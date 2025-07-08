@@ -21,6 +21,7 @@ import type { BlockDefinition } from "../../types";
 // Export all standard block definitions
 export const StandardBlocks: BlockDefinition[] = [
   // Basic input blocks
+  SelectableBoxQuestionBlock,
   TextInputBlock,
   TextareaBlock,
   SelectBlock,
@@ -32,7 +33,6 @@ export const StandardBlocks: BlockDefinition[] = [
   DatePickerBlock,
   FileUploadBlock,
   MatrixBlock,
-  SelectableBoxQuestionBlock,
   // Content blocks
   MarkdownBlock,
   HtmlBlock,
@@ -50,6 +50,7 @@ export const StandardBlocks: BlockDefinition[] = [
 
 // Export individual blocks for direct imports
 export {
+  SelectableBoxQuestionBlock,
   TextInputBlock,
   TextareaBlock,
   RadioBlock,
@@ -63,7 +64,6 @@ export {
   DatePickerBlock,
   FileUploadBlock,
   MatrixBlock,
-  SelectableBoxQuestionBlock,
   BMICalculatorBlock,
   CalculatedFieldBlock,
   ConditionalBlock,

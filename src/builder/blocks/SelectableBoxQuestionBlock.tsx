@@ -310,17 +310,39 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
     boxSpacing: "4",
     defaultValue: "",
     showSelectionIndicator: false,
-    options: [],
+    options: [
+      {
+        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630",
+        label: "Option 1",
+        value: "option-1"
+      },
+      {
+        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631",
+        label: "Option 2",
+        value: "option-2"
+      }
+    ],
   },
   generateDefaultData: () => ({
     type: "selectablebox",
     fieldName: "", // Will be generated when block is created
-    label: "What's your goal?",
+    label: "Select an option",
     description: "",
     boxSpacing: "4",
     defaultValue: "",
     showSelectionIndicator: false,
-    options: [],
+    options: [
+      {
+        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630",
+        label: "Option 1",
+        value: "option-1"
+      },
+      {
+        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631",
+        label: "Option 2",
+        value: "option-2"
+      }
+    ],
   }),
   renderItem: (props) => <SelectableBoxQuestionItem {...props} />,
   renderFormFields: (props) => <SelectableBoxQuestionForm {...props} />,
