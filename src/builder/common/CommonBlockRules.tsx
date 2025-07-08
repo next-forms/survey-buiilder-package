@@ -60,14 +60,14 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
 
   return (
     <div className="space-y-4 mt-4 mb-4">
-      <Label>Base Settings</Label>
+      <Label className="text-sm">Base Settings</Label>
       <div className="flex items-center gap-2 mt-4">
         <Checkbox
           id="is-end-block"
           checked={isEndBlock}
           onCheckedChange={handleEndBlockChange}
         />
-        <Label htmlFor="is-end-block">Mark as end block?</Label>
+        <Label className="text-sm" htmlFor="is-end-block">Mark as end block?</Label>
       </div>      
       <div className="flex items-center gap-2">
         <Checkbox
@@ -75,7 +75,7 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
           checked={autoContinueOnSelect}
           onCheckedChange={handleAutoContinueChange}
         />
-        <Label htmlFor="is-auto-block">Auto Continue To next?</Label>
+        <Label className="text-sm" htmlFor="is-auto-block">Auto Continue To next?</Label>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -83,7 +83,7 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
           checked={showContinueButton}
           onCheckedChange={handleShowContinueChange}
         />
-        <Label htmlFor="is-show-block">Show Next Button?</Label>
+        <Label className="text-sm" htmlFor="is-show-block">Show Next Button?</Label>
       </div>
     </div>
   );

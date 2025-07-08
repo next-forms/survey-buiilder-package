@@ -21,6 +21,7 @@ export interface BlockDefinition {
   description: string;
   icon?: ReactNode;
   defaultData: BlockData;
+  generateDefaultData?: () => BlockData;
   renderItem?: (props: ContentBlockItemProps) => JSX.Element;
   renderFormFields?: (props: ContentBlockItemProps) => JSX.Element;
   renderPreview?: () => JSX.Element;
@@ -48,6 +49,7 @@ export type SurveyTheme =
   | "modern"
   | "corporate"
   | "dark"
+  | "hims"
   | "custom";
 
 export interface ThemeDefinition {
@@ -129,7 +131,7 @@ export interface SurveyBuilderState {
   localizations: LocalizationMap;
   theme: ThemeDefinition;
   selectedNode: UUID | null;
-  displayMode: 'list' | 'graph' | 'lang' | 'theme';
+  displayMode: 'list' | 'graph' | 'flow' | 'lang' | 'theme';
 }
 
 export interface SurveyBuilderAction {

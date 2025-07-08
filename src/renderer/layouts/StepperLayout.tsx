@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useSurveyForm } from '../../context/SurveyFormContext';
 import { NavigationButtons } from '../../components/ui/NavigationButtons';
 import { BlockRenderer } from '../renderers/BlockRenderer';
-import { themes } from '../themes';
+import { themes } from '../../themes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { DebugInfo } from '../../components/ui/DebugInfo';

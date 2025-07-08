@@ -25,7 +25,20 @@ const HtmlBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="variableName">Variable Name (Optional)</Label>
+          <Label className="text-sm" htmlFor="label">Label</Label>
+          <Input
+            id="label"
+            value={data.label || ""}
+            onChange={(e) => handleChange("label", e.target.value)}
+            placeholder="HTML Block"
+          />
+          <p className="text-xs text-muted-foreground">
+            Only shown in flow builder.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm" htmlFor="variableName">Variable Name (Optional)</Label>
           <Input
             id="variableName"
             value={data.variableName || ""}
@@ -38,7 +51,7 @@ const HtmlBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="className">CSS Class Names</Label>
+          <Label className="text-sm" htmlFor="className">CSS Class Names</Label>
           <Input
             id="className"
             value={data.className || ""}
@@ -50,7 +63,7 @@ const HtmlBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="html">HTML Content</Label>
+          <Label className="text-sm" htmlFor="html">HTML Content</Label>
           <button
             type="button"
             className="text-xs text-primary hover:underline"
@@ -112,6 +125,7 @@ export const HtmlBlock: BlockDefinition = {
   icon: <Code className="w-4 h-4" />,
   defaultData: {
     type: "html",
+    label: "HTML Block",
     html: "<h2>HTML Content</h2>\n<p>This is a <strong>custom</strong> HTML block.</p>",
     variableName: "",
     className: "",

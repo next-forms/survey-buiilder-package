@@ -9,6 +9,7 @@ import { Calendar as CalendarComponent } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Switch } from "../../components/ui/switch";
 import { cn } from "../../lib/utils";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Simple date formatter function since we're not using date-fns
 const formatDate = (date: Date, format: string = 'PPP'): string => {
@@ -68,7 +69,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -81,7 +82,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">Question Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -95,7 +96,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -106,7 +107,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="placeholder">Placeholder</Label>
+          <Label className="text-sm" htmlFor="placeholder">Placeholder</Label>
           <Input
             id="placeholder"
             value={data.placeholder || ""}
@@ -116,7 +117,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="dateFormat">Date Format</Label>
+          <Label className="text-sm" htmlFor="dateFormat">Date Format</Label>
           <Input
             id="dateFormat"
             value={data.dateFormat || ""}
@@ -131,7 +132,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="defaultValue">Default Value</Label>
+          <Label className="text-sm" htmlFor="defaultValue">Default Value</Label>
           <Popover>
             <PopoverTrigger>
               <Button type="button"
@@ -163,7 +164,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
                 handleChange("showCalendarOnFocus", checked)
               }
             />
-            <Label htmlFor="showCalendarOnFocus">
+            <Label className="text-sm" htmlFor="showCalendarOnFocus">
               Show calendar on input focus
             </Label>
           </div>
@@ -172,7 +173,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="minDate">Minimum Date</Label>
+          <Label className="text-sm" htmlFor="minDate">Minimum Date</Label>
           <Input
             id="minDate"
             type="date"
@@ -182,7 +183,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxDate">Maximum Date</Label>
+          <Label className="text-sm" htmlFor="maxDate">Maximum Date</Label>
           <Input
             id="maxDate"
             type="date"
@@ -192,7 +193,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="disabledDays">Disabled Days</Label>
+          <Label className="text-sm" htmlFor="disabledDays">Disabled Days</Label>
           <Input
             id="disabledDays"
             placeholder="0,6 (Sun,Sat)"
@@ -263,7 +264,7 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
       )}
 
       {data.description && (
@@ -321,7 +322,7 @@ export const DatePickerBlock: BlockDefinition = {
   icon: <Calendar className="w-4 h-4" />,
   defaultData: {
     type: "datepicker",
-    fieldName: `date${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("date"),
     label: "Select a date",
     description: "",
     placeholder: "Pick a date",
@@ -331,6 +332,18 @@ export const DatePickerBlock: BlockDefinition = {
     maxDate: "",
     disabledDays: "",
   },
+  generateDefaultData: () => ({
+    type: "datepicker",
+    fieldName: generateFieldName("date"),
+    label: "Select a date",
+    description: "",
+    placeholder: "Pick a date",
+    dateFormat: "PPP",
+    showCalendarOnFocus: true,
+    minDate: "",
+    maxDate: "",
+    disabledDays: "",
+  }),
   renderItem: (props) => <DatePickerBlockItem {...props} />,
   renderFormFields: (props) => <DatePickerBlockForm {...props} />,
   renderPreview: () => <DatePickerBlockPreview/>,

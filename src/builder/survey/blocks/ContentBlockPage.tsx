@@ -43,15 +43,21 @@ export const ContentBlockPage: React.FC<ContentBlockPageProps> = ({
   };
 
   const handleAddBlockItem = (blockType: string) => {
+    console.log(blockType);
     const blockDefinition = state.definitions.blocks[blockType];
     if (!blockDefinition) return;
+
+    // Use generateDefaultData function if available, otherwise fall back to defaultData
+    const blockData = blockDefinition.generateDefaultData 
+      ? blockDefinition.generateDefaultData()
+      : blockDefinition.defaultData;
 
     onUpdate({
       ...data,
       items: [
         ...(data.items || []),
         {
-          ...blockDefinition.defaultData,
+          ...blockData,
           uuid: uuidv4(),
         },
       ],

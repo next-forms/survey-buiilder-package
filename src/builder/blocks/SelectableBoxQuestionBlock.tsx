@@ -7,6 +7,7 @@ import { Card } from "../../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { CirclePlus, CircleX, CheckSquare } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 interface BoxOption {
   id: string;
@@ -72,7 +73,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -85,7 +86,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Label</Label>
+          <Label className="text-sm" htmlFor="label">Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -96,7 +97,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text (Optional)</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text (Optional)</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -108,7 +109,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
       {/* Options section */}
       <div className="space-y-2 border rounded-md p-4">
         <div className="flex justify-between items-center">
-          <Label>Selectable Options</Label>
+          <Label className="text-sm">Selectable Options</Label>
         </div>
 
         <div className="space-y-3">
@@ -171,11 +172,11 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       {/* Optional visual configuration settings */}
-      <div className="space-y-2 pt-2 border-t">
-        <Label>Visual Settings</Label>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2 pt-2">
+        <Label className="text-sm">Visual Settings</Label>
+        <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="boxSpacing">Spacing Between Boxes</Label>
+            <Label className="text-sm" htmlFor="boxSpacing">Spacing Between Boxes</Label>
             <Input
               id="boxSpacing"
               type="number"
@@ -190,7 +191,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="defaultValue">Default Selected Value (Optional)</Label>
+            <Label className="text-sm" htmlFor="defaultValue">Default Selected Value (Optional)</Label>
             <Input
               id="defaultValue"
               value={data.defaultValue || ""}
@@ -201,7 +202,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2 pt-2">
-          <Label htmlFor="showSelectionIndicator">Selection Style</Label>
+          <Label htmlFor="showSelectionIndicator" className="text-sm">Selection Style</Label>
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -303,19 +304,24 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
   icon: <CheckSquare className="w-4 h-4" />,
   defaultData: {
     type: "selectablebox",
-    fieldName: `boxq${uuidv4().substring(0, 4)}`,
+    fieldName: "", // Will be generated when block is created
     label: "What's your goal?",
     description: "",
     boxSpacing: "4",
     defaultValue: "",
-    showSelectionIndicator: true,
-    options: [
-      { id: uuidv4(), label: "Lose 5 to 20 lbs", value: "5-20" },
-      { id: uuidv4(), label: "Lose 21 to 50 lbs", value: "21-50" },
-      { id: uuidv4(), label: "Lose 51+ lbs", value: "51+" },
-      { id: uuidv4(), label: "I'm not sure yet", value: "unsure" },
-    ],
+    showSelectionIndicator: false,
+    options: [],
   },
+  generateDefaultData: () => ({
+    type: "selectablebox",
+    fieldName: "", // Will be generated when block is created
+    label: "What's your goal?",
+    description: "",
+    boxSpacing: "4",
+    defaultValue: "",
+    showSelectionIndicator: false,
+    options: [],
+  }),
   renderItem: (props) => <SelectableBoxQuestionItem {...props} />,
   renderFormFields: (props) => <SelectableBoxQuestionForm {...props} />,
   renderPreview: () => <SelectableBoxQuestionPreview />,

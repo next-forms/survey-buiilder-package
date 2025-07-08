@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ThemeDefinition, themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { UploadCloud, X } from 'lucide-react';

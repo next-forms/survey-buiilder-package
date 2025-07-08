@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSurveyForm } from '../../context/SurveyFormContext';
 import { NavigationButtons } from '../../components/ui/NavigationButtons';
 import { BlockRenderer } from '../renderers/BlockRenderer';
-import { themes } from '../themes';
+import { themes } from '../../themes';
 
 interface AccordionLayoutProps {
   progressBar?: boolean | {

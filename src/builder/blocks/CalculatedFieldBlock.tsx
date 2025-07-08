@@ -34,7 +34,7 @@ const CalculatedFieldForm: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="label">Label</Label>
+        <Label className="text-sm" htmlFor="label">Label</Label>
         <Input
           id="label"
           value={data.label || ""}
@@ -44,7 +44,7 @@ const CalculatedFieldForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label className="text-sm" htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={data.description || ""}
@@ -55,7 +55,7 @@ const CalculatedFieldForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="fieldName">Field Name</Label>
+        <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
         <Input
           id="fieldName"
           value={data.fieldName || ""}
@@ -68,7 +68,7 @@ const CalculatedFieldForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="formula">Formula</Label>
+        <Label className="text-sm" htmlFor="formula">Formula</Label>
         <Textarea
           id="formula"
           value={data.formula || ""}
@@ -111,7 +111,7 @@ return bmi > 25 ? "Overweight" : "Normal";`}</code>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="dependencies">Dependencies</Label>
+        <Label className="text-sm" htmlFor="dependencies">Dependencies</Label>
         <Input
           id="dependencies"
           value={data.dependencies?.join(', ') || ""}
@@ -124,7 +124,7 @@ return bmi > 25 ? "Overweight" : "Normal";`}</code>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="note">Note</Label>
+        <Label className="text-sm" htmlFor="note">Note</Label>
         <Input
           id="note"
           value={data.note || ""}
@@ -137,7 +137,7 @@ return bmi > 25 ? "Overweight" : "Normal";`}</code>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="displayFormat">Display Format</Label>
+        <Label className="text-sm" htmlFor="displayFormat">Display Format</Label>
         <Input
           id="displayFormat"
           value={data.displayFormat || ""}
@@ -150,7 +150,7 @@ return bmi > 25 ? "Overweight" : "Normal";`}</code>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="resultType">Expected Result Type</Label>
+        <Label className="text-sm" htmlFor="resultType">Expected Result Type</Label>
         <Input
           id="resultType"
           value={data.resultType || ""}
@@ -163,7 +163,7 @@ return bmi > 25 ? "Overweight" : "Normal";`}</code>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="className">CSS Class Names</Label>
+        <Label className="text-sm" htmlFor="className">CSS Class Names</Label>
         <Input
           id="className"
           value={data.className || ""}

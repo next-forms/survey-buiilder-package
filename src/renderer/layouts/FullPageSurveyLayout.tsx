@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { useSurveyForm } from "../../context/SurveyFormContext";
 import { BlockRenderer } from "../renderers/BlockRenderer";
-import { themes } from "../themes";
+import { themes } from "../../themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../../components/ui/button";
 import { ChevronLeft, ArrowRight, History } from "lucide-react";
@@ -157,7 +157,7 @@ export const FullPageSurveyLayout: React.FC<FullPageSurveyLayoutProps> = ({
 
   return (
     <div
-      className="survey-fullpage-layout min-h-max flex flex-col"
+      className="survey-fullpage-layout min-h-max flex flex-col w-full"
       ref={containerRef}
     >
       {/* Debug Panel (only visible when enableDebug is true) */}
@@ -177,7 +177,7 @@ export const FullPageSurveyLayout: React.FC<FullPageSurveyLayoutProps> = ({
       {/* Logo Section - Positioned after header */}
       {logo && (
         <div className="w-full flex py-2 px-4 border-gray-100 mb-4">
-          <div className="w-full flex max-w-lg mx-auto">
+          <div className="w-full flex max-w-lg mx-auto px-4">
           <div className="justify-start">
             {logo}
           </div>
@@ -296,7 +296,7 @@ export const FullPageSurveyLayout: React.FC<FullPageSurveyLayoutProps> = ({
             className="flex-1 flex flex-col"
           >
             {/* Question Content - Centered Layout */}
-            <div className="flex-[0.8] flex flex-col justify-start items-center px-4 py-2">
+            <div className="flex-[0.8] flex flex-col justify-start items-center py-2">
               <div className="w-full max-w-lg min-w-80 sm:min-w-[32rem] space-y-6 px-4">
                 {currentPageBlocks[currentBlockIndex] && (
                   <div className="text-start">

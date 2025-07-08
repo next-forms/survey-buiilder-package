@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { FileUp, Upload, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Checkbox } from "../../components/ui/checkbox";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Form component for editing the block configuration
 const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -35,7 +36,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -48,7 +49,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">Question Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -62,7 +63,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -73,7 +74,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="acceptedFileTypes">Accepted File Types</Label>
+          <Label className="text-sm" htmlFor="acceptedFileTypes">Accepted File Types</Label>
           <Input
             id="acceptedFileTypes"
             value={(data.acceptedFileTypes || []).join(", ")}
@@ -86,7 +87,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxFileSize">Maximum File Size (MB)</Label>
+          <Label className="text-sm" htmlFor="maxFileSize">Maximum File Size (MB)</Label>
           <Input
             id="maxFileSize"
             type="number"
@@ -100,7 +101,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="maxFiles">Maximum Files</Label>
+          <Label className="text-sm" htmlFor="maxFiles">Maximum Files</Label>
           <Input
             id="maxFiles"
             type="number"
@@ -120,13 +121,13 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
                 handleChange("showPreview", !!checked)
               }
             />
-            <Label htmlFor="showPreview">Show previews for images</Label>
+            <Label className="text-sm" htmlFor="showPreview">Show previews for images</Label>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="helpText">Upload Instructions</Label>
+        <Label className="text-sm" htmlFor="helpText">Upload Instructions</Label>
         <Input
           id="helpText"
           value={data.helpText || ""}
@@ -144,7 +145,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
               handleChange("required", !!checked)
             }
           />
-          <Label htmlFor="required">Required</Label>
+          <Label className="text-sm" htmlFor="required">Required</Label>
         </div>
       </div>
     </div>
@@ -252,7 +253,7 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
       )}
 
       {data.description && (
@@ -319,7 +320,7 @@ export const FileUploadBlock: BlockDefinition = {
   icon: <Upload className="w-4 h-4" />,
   defaultData: {
     type: "fileupload",
-    fieldName: `file${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("file"),
     label: "Upload files",
     description: "",
     acceptedFileTypes: [".jpg", ".jpeg", ".png", ".pdf"],
@@ -329,6 +330,18 @@ export const FileUploadBlock: BlockDefinition = {
     showPreview: true,
     required: false,
   },
+  generateDefaultData: () => ({
+    type: "fileupload",
+    fieldName: generateFieldName("file"),
+    label: "Upload files",
+    description: "",
+    acceptedFileTypes: [".jpg", ".jpeg", ".png", ".pdf"],
+    maxFileSize: "5",
+    maxFiles: "1",
+    helpText: "Drag and drop files here or click to browse",
+    showPreview: true,
+    required: false,
+  }),
   renderItem: (props) => <FileUploadBlockItem {...props} />,
   renderFormFields: (props) => <FileUploadBlockForm {...props} />,
   renderPreview: () => <FileUploadBlockPreview/>,

@@ -63,8 +63,9 @@ export {
   colorfulTheme,
   modernTheme,
   corporateTheme,
-  darkTheme
-} from './renderer/themes';
+  darkTheme,
+  himsTheme,
+} from './themes';
 
 export {
   // Main components

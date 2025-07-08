@@ -1,10 +1,9 @@
 import React, { forwardRef } from 'react';
-import { themes } from '../themes';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';
 import { BlockData } from '../../types';
-import { ThemeDefinition } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 
 interface TextareaRendererProps {
   block: BlockData;

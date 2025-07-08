@@ -7,7 +7,7 @@ import { ContinuousLayout } from './layouts/ContinuousLayout';
 import { AccordionLayout } from './layouts/AccordionLayout';
 import { TabsLayout } from './layouts/TabsLayout';
 import { StepperLayout } from './layouts/StepperLayout';
-import { themes } from './themes';
+import { themes } from '../themes';
 import { getThemeClass } from '../utils/surveyUtils';
 import { applyDynamicColors } from '../utils/colorUtils';
 

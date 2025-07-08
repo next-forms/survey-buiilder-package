@@ -4,7 +4,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar';
 import { NavigationButtons } from '../../components/ui/NavigationButtons';
 import { BlockRenderer } from '../renderers/BlockRenderer';
 import { DebugInfo } from '../../components/ui/DebugInfo';
-import { themes } from '../themes';
+import { themes } from '../../themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { cn } from '../../lib/utils';

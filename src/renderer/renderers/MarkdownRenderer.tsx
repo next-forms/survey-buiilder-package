@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemeDefinition, themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import { BlockData } from '../../types';
 
 interface MarkdownRendererProps {

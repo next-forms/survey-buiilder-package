@@ -18,7 +18,7 @@ import {
   getNextPageFromNavigationRules,
   getNextStepFromNavigationRules
 } from "../utils/conditionalUtils";
-import { ThemeDefinition } from "../renderer/themes";
+import { ThemeDefinition } from "../themes";
 
 // Navigation history entry
 interface NavigationHistoryEntry {

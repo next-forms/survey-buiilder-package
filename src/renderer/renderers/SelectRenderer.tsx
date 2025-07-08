@@ -1,7 +1,6 @@
 import React, { forwardRef } from 'react';
 import { BlockData } from '../../types';
-import { themes } from '../themes';
-import { ThemeDefinition } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import {
   Select,
   SelectContent,

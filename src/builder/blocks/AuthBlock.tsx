@@ -450,7 +450,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   
                   {/* Field Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="fieldName">Field Name (for data storage)</Label>
+                    <Label className="text-sm" htmlFor="fieldName">Field Name (for data storage)</Label>
                     <Input
                       id="fieldName"
                       value={data.fieldName || "authResults"}
@@ -470,7 +470,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                         checked={!!data.skipIfLoggedIn}
                         onCheckedChange={(checked) => handleChange("skipIfLoggedIn", !!checked)}
                       />
-                      <Label htmlFor="skipIfLoggedIn" className="flex items-center gap-2">
+                      <Label htmlFor="skipIfLoggedIn" className="text-sm flex items-center gap-2">
                         <SkipForward className="w-4 h-4" />
                         Skip if Already Logged In
                       </Label>
@@ -490,7 +490,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   {/* Authentication URLs */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="loginUrl">Login URL</Label>
+                      <Label className="text-sm" htmlFor="loginUrl">Login URL</Label>
                       <Input
                         id="loginUrl"
                         value={data.loginUrl || ""}
@@ -499,7 +499,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signupUrl">Signup URL (Optional)</Label>
+                      <Label className="text-sm" htmlFor="signupUrl">Signup URL (Optional)</Label>
                       <Input
                         id="signupUrl"
                         value={data.signupUrl || ""}
@@ -512,7 +512,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   {/* Token Settings */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tokenField">Token Field Name</Label>
+                      <Label className="text-sm" htmlFor="tokenField">Token Field Name</Label>
                       <Input
                         id="tokenField"
                         value={data.tokenField || "token"}
@@ -521,7 +521,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="tokenStorageKey">Token Storage Key</Label>
+                      <Label className="text-sm" htmlFor="tokenStorageKey">Token Storage Key</Label>
                       <Input
                         id="tokenStorageKey"
                         value={data.tokenStorageKey || "authToken"}
@@ -532,7 +532,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="validateTokenUrl">Token Validation URL (Optional)</Label>
+                    <Label className="text-sm" htmlFor="validateTokenUrl">Token Validation URL (Optional)</Label>
                     <Input
                       id="validateTokenUrl"
                       value={data.validateTokenUrl || ""}
@@ -554,7 +554,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                           checked={!!data.requireName}
                           onCheckedChange={(checked) => handleChange("requireName", !!checked)}
                         />
-                        <Label htmlFor="requireName">Require Name</Label>
+                        <Label className="text-sm" htmlFor="requireName">Require Name</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -562,7 +562,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                           checked={!!data.requireEmail}
                           onCheckedChange={(checked) => handleChange("requireEmail", !!checked)}
                         />
-                        <Label htmlFor="requireEmail">Require Email</Label>
+                        <Label className="text-sm" htmlFor="requireEmail">Require Email</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -570,7 +570,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                           checked={!!data.requireMobile}
                           onCheckedChange={(checked) => handleChange("requireMobile", !!checked)}
                         />
-                        <Label htmlFor="requireMobile">Require Mobile</Label>
+                        <Label className="text-sm" htmlFor="requireMobile">Require Mobile</Label>
                       </div>
                     </div>
                     
@@ -587,7 +587,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   {/* Field Labels */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="nameLabel">Name Field Label</Label>
+                      <Label className="text-sm" htmlFor="nameLabel">Name Field Label</Label>
                       <Input
                         id="nameLabel"
                         value={data.nameLabel || "Name"}
@@ -596,7 +596,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="emailLabel">Email Field Label</Label>
+                      <Label className="text-sm" htmlFor="emailLabel">Email Field Label</Label>
                       <Input
                         id="emailLabel"
                         value={data.emailLabel || "Email"}
@@ -605,7 +605,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="mobileLabel">Mobile Field Label</Label>
+                      <Label className="text-sm" htmlFor="mobileLabel">Mobile Field Label</Label>
                       <Input
                         id="mobileLabel"
                         value={data.mobileLabel || "Mobile Number"}
@@ -632,7 +632,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       checked={!!data.useOtp}
                       onCheckedChange={(checked) => handleChange("useOtp", !!checked)}
                     />
-                    <Label htmlFor="useOtp">Enable OTP Authentication</Label>
+                    <Label className="text-sm" htmlFor="useOtp">Enable OTP Authentication</Label>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     When enabled, users will receive verification codes instead of direct login
@@ -643,7 +643,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       {data.requireEmail && (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="sendEmailOtpUrl">Send Email OTP URL</Label>
+                            <Label className="text-sm" htmlFor="sendEmailOtpUrl">Send Email OTP URL</Label>
                             <Input
                               id="sendEmailOtpUrl"
                               value={data.sendEmailOtpUrl || ""}
@@ -652,7 +652,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="verifyEmailOtpUrl">Verify Email OTP URL</Label>
+                            <Label className="text-sm" htmlFor="verifyEmailOtpUrl">Verify Email OTP URL</Label>
                             <Input
                               id="verifyEmailOtpUrl"
                               value={data.verifyEmailOtpUrl || ""}
@@ -666,7 +666,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       {data.requireMobile && (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="sendMobileOtpUrl">Send Mobile OTP URL</Label>
+                            <Label className="text-sm" htmlFor="sendMobileOtpUrl">Send Mobile OTP URL</Label>
                             <Input
                               id="sendMobileOtpUrl"
                               value={data.sendMobileOtpUrl || ""}
@@ -675,7 +675,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="verifyMobileOtpUrl">Verify Mobile OTP URL</Label>
+                            <Label className="text-sm" htmlFor="verifyMobileOtpUrl">Verify Mobile OTP URL</Label>
                             <Input
                               id="verifyMobileOtpUrl"
                               value={data.verifyMobileOtpUrl || ""}
@@ -885,7 +885,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="testName">Test Name</Label>
+                      <Label className="text-sm" htmlFor="testName">Test Name</Label>
                       <Input
                         id="testName"
                         value={testData.name}
@@ -894,7 +894,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="testEmail">Test Email</Label>
+                      <Label className="text-sm" htmlFor="testEmail">Test Email</Label>
                       <Input
                         id="testEmail"
                         value={testData.email}
@@ -903,7 +903,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="testMobile">Test Mobile</Label>
+                      <Label className="text-sm" htmlFor="testMobile">Test Mobile</Label>
                       <Input
                         id="testMobile"
                         value={testData.mobile}
@@ -912,7 +912,7 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="testOtp">Test OTP</Label>
+                      <Label className="text-sm" htmlFor="testOtp">Test OTP</Label>
                       <Input
                         id="testOtp"
                         value={testData.otp}

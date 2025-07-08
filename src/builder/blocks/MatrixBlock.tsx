@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { CirclePlus, CircleX, Grid3X3 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 interface MatrixQuestion {
   id: string;
@@ -112,7 +113,7 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -125,7 +126,7 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Matrix Title</Label>
+          <Label className="text-sm" htmlFor="label">Matrix Title</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -136,7 +137,7 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -265,7 +266,7 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="columnHeader">Column Header (Optional)</Label>
+        <Label className="text-sm" htmlFor="columnHeader">Column Header (Optional)</Label>
         <Input
           id="columnHeader"
           value={data.columnHeader || ""}
@@ -365,7 +366,7 @@ export const MatrixBlock: BlockDefinition = {
   icon: <Grid3X3 className="w-4 h-4" />,
   defaultData: {
     type: "matrix",
-    fieldName: `matrix${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("matrix"),
     label: "Please rate the following items",
     description: "Select one option for each row",
     columnHeader: "Rating",
@@ -381,6 +382,25 @@ export const MatrixBlock: BlockDefinition = {
       { id: uuidv4(), text: "Excellent", value: "4" },
     ],
   },
+  generateDefaultData: () => ({
+    type: "matrix",
+    fieldName: generateFieldName("matrix"),
+    label: "Please rate the following items",
+    description: "Select one option for each row",
+    columnHeader: "Rating",
+    questions: [
+      { id: uuidv4(), text: "Item 1" },
+      { id: uuidv4(), text: "Item 2" },
+      { id: uuidv4(), text: "Item 3" },
+    ],
+    options: [
+      { id: uuidv4(), text: "Poor", value: "1" },
+      { id: uuidv4(), text: "Fair", value: "2" },
+      { id: uuidv4(), text: "Good", value: "3" },
+      { id: uuidv4(), text: "Excellent", value: "4" },
+    ],
+  }),
+
   renderItem: (props) => <MatrixBlockItem {...props} />,
   renderFormFields: (props) => <MatrixBlockForm {...props} />,
   renderPreview: () => <MatrixBlockPreview/>,

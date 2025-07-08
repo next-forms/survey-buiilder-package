@@ -6,6 +6,7 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Form component for editing the block configuration
 const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) => {
@@ -20,7 +21,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -32,7 +33,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="label">Label</Label>
+          <Label className="text-sm" htmlFor="label">Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -43,7 +44,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label className="text-sm" htmlFor="description">Description</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -59,7 +60,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.showContactInfo}
             onCheckedChange={(checked) => handleChange("showContactInfo", !!checked)}
           />
-          <Label htmlFor="showContactInfo">Show Contact Information</Label>
+          <Label className="text-sm" htmlFor="showContactInfo">Show Contact Information</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -67,7 +68,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.showShippingAddress}
             onCheckedChange={(checked) => handleChange("showShippingAddress", !!checked)}
           />
-          <Label htmlFor="showShippingAddress">Show Shipping Address</Label>
+          <Label className="text-sm" htmlFor="showShippingAddress">Show Shipping Address</Label>
         </div>
       </div>
 
@@ -78,7 +79,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.showBillingAddress}
             onCheckedChange={(checked) => handleChange("showBillingAddress", !!checked)}
           />
-          <Label htmlFor="showBillingAddress">Show Billing Address</Label>
+          <Label className="text-sm" htmlFor="showBillingAddress">Show Billing Address</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -86,7 +87,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.sameAsBilling}
             onCheckedChange={(checked) => handleChange("sameAsBilling", !!checked)}
           />
-          <Label htmlFor="sameAsBilling">Same as Shipping (Default)</Label>
+          <Label className="text-sm" htmlFor="sameAsBilling">Same as Shipping (Default)</Label>
         </div>
       </div>
 
@@ -97,7 +98,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.requireEmail}
             onCheckedChange={(checked) => handleChange("requireEmail", !!checked)}
           />
-          <Label htmlFor="requireEmail">Require Email</Label>
+          <Label className="text-sm" htmlFor="requireEmail">Require Email</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -105,7 +106,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.requirePhone}
             onCheckedChange={(checked) => handleChange("requirePhone", !!checked)}
           />
-          <Label htmlFor="requirePhone">Require Phone</Label>
+          <Label className="text-sm" htmlFor="requirePhone">Require Phone</Label>
         </div>
       </div>
 
@@ -116,7 +117,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.collectFullName}
             onCheckedChange={(checked) => handleChange("collectFullName", !!checked)}
           />
-          <Label htmlFor="collectFullName">Collect Full Name</Label>
+          <Label className="text-sm" htmlFor="collectFullName">Collect Full Name</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -124,12 +125,12 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
             checked={!!data.allowCompany}
             onCheckedChange={(checked) => handleChange("allowCompany", !!checked)}
           />
-          <Label htmlFor="allowCompany">Allow Company Field</Label>
+          <Label className="text-sm" htmlFor="allowCompany">Allow Company Field</Label>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="defaultCountry">Default Country</Label>
+        <Label className="text-sm" htmlFor="defaultCountry">Default Country</Label>
         <Select value={data.defaultCountry || "US"} onValueChange={(value) => handleChange("defaultCountry", value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select country" />
@@ -146,7 +147,7 @@ const CheckoutBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate }) 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="className">CSS Class Names</Label>
+        <Label className="text-sm" htmlFor="className">CSS Class Names</Label>
         <Input
           id="className"
           value={data.className || ""}
@@ -243,7 +244,7 @@ export const CheckoutBlock: BlockDefinition = {
   icon: React.createElement(ShoppingCart, { className: "w-4 h-4" }),
   defaultData: {
     type: "checkout",
-    fieldName: `checkout${uuidv4().substring(0,4)}`,
+    fieldName: generateFieldName("checkout"),
     label: "Checkout Information",
     description: "Please provide your contact and shipping details",
     showContactInfo: true,
@@ -257,6 +258,22 @@ export const CheckoutBlock: BlockDefinition = {
     defaultCountry: "US",
     className: "",
   },
+  generateDefaultData: () => ({
+    type: "checkout",
+    fieldName: generateFieldName("checkout"),
+    label: "Checkout Information",
+    description: "Please provide your contact and shipping details",
+    showContactInfo: true,
+    showShippingAddress: true,
+    showBillingAddress: false,
+    sameAsBilling: true,
+    requireEmail: true,
+    requirePhone: true,
+    collectFullName: true,
+    allowCompany: false,
+    defaultCountry: "US",
+    className: "",
+  }),
   renderItem: (props) => <CheckoutBlockItem {...props} />,
   renderFormFields: (props) => <CheckoutBlockForm {...props} />,
   renderPreview: () => <CheckoutBlockPreview />,

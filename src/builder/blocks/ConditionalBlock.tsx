@@ -45,7 +45,7 @@ const ConditionalBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="condition">Condition</Label>
+          <Label className="text-sm" htmlFor="condition">Condition</Label>
           <Textarea
             id="condition"
             value={data.condition || ""}
@@ -73,7 +73,7 @@ return fieldA === "Yes";`}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="dependencies">Dependencies</Label>
+          <Label className="text-sm" htmlFor="dependencies">Dependencies</Label>
           <Input
             id="dependencies"
             value={data.dependencies?.join(', ') || ""}
@@ -110,7 +110,7 @@ return fieldA === "Yes";`}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="childBlockType">Block Type</Label>
+          <Label className="text-sm" htmlFor="childBlockType">Block Type</Label>
           <Select 
             value={data.childBlock?.type || "text"} 
             onValueChange={(value) => handleChildBlockChange("type", value)}
@@ -135,7 +135,7 @@ return fieldA === "Yes";`}
         {showChildConfig && (
           <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
             <div className="space-y-2">
-              <Label htmlFor="childLabel">Label</Label>
+              <Label className="text-sm" htmlFor="childLabel">Label</Label>
               <Input
                 id="childLabel"
                 value={data.childBlock?.label || ""}
@@ -145,7 +145,7 @@ return fieldA === "Yes";`}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="childFieldName">Field Name</Label>
+              <Label className="text-sm" htmlFor="childFieldName">Field Name</Label>
               <Input
                 id="childFieldName"
                 value={data.childBlock?.fieldName || ""}
@@ -155,7 +155,7 @@ return fieldA === "Yes";`}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="childDescription">Description</Label>
+              <Label className="text-sm" htmlFor="childDescription">Description</Label>
               <Textarea
                 id="childDescription"
                 value={data.childBlock?.description || ""}
@@ -167,7 +167,7 @@ return fieldA === "Yes";`}
 
             {(data.childBlock?.type === "text" || data.childBlock?.type === "textarea" || data.childBlock?.type === "number") && (
               <div className="space-y-2">
-                <Label htmlFor="childPlaceholder">Placeholder</Label>
+                <Label className="text-sm" htmlFor="childPlaceholder">Placeholder</Label>
                 <Input
                   id="childPlaceholder"
                   value={data.childBlock?.placeholder || ""}
@@ -179,7 +179,7 @@ return fieldA === "Yes";`}
 
             {(data.childBlock?.type === "select" || data.childBlock?.type === "radio" || data.childBlock?.type === "checkbox") && (
               <div className="space-y-2">
-                <Label htmlFor="childOptions">Options</Label>
+                <Label className="text-sm" htmlFor="childOptions">Options</Label>
                 <Textarea
                   id="childOptions"
                   value={data.childBlock?.options?.join('\n') || ""}
@@ -198,7 +198,7 @@ return fieldA === "Yes";`}
 
             {data.childBlock?.type === "html" && (
               <div className="space-y-2">
-                <Label htmlFor="childHtml">HTML Content</Label>
+                <Label className="text-sm" htmlFor="childHtml">HTML Content</Label>
                 <Textarea
                   id="childHtml"
                   value={data.childBlock?.html || ""}
@@ -214,7 +214,7 @@ return fieldA === "Yes";`}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="className">CSS Class Names</Label>
+        <Label className="text-sm" htmlFor="className">CSS Class Names</Label>
         <Input
           id="className"
           value={data.className || ""}

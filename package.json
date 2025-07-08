@@ -1,6 +1,6 @@
 {
   "name": "survey-form-package",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A beautiful and customizable renderer for survey forms created with react-survey-builder",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

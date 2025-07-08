@@ -388,7 +388,7 @@ interface SurveyBuilderContextType {
   updateNode: (uuid: UUID, data: Partial<NodeData>) => void;
   removeNode: (uuid: UUID) => void;
   setSelectedNode: (uuid: UUID | null) => void;
-  setDisplayMode: (mode: "list" | "graph" | "lang") => void;
+  setDisplayMode: (mode: "list" | "graph" | "flow" | "lang" | "theme") => void;
   updateLocalizations: (localizations: LocalizationMap) => void;
   updateTheme: (theme: ThemeDefinition) => void;
   importSurvey: (data: { rootNode: NodeData; localizations?: LocalizationMap; theme?: ThemeDefinition }) => void;
@@ -504,7 +504,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     });
   };
 
-  const setDisplayMode = (mode: "list" | "graph" | "lang") => {
+  const setDisplayMode = (mode: "list" | "graph" | "flow" | "lang" | "theme") => {
     dispatch({
       type: ActionTypes.SET_DISPLAY_MODE,
       payload: mode,

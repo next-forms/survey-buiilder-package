@@ -1,6 +1,6 @@
 import React from 'react';
 import { BlockData } from '../../types';
-import { ThemeDefinition, themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 
 interface HtmlRendererProps {
   block: BlockData;

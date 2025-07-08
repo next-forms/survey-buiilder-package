@@ -1,6 +1,6 @@
 import React from 'react';
 import { BlockData } from '../../types';
-import { ThemeDefinition, themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';

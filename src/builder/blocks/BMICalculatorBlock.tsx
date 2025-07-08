@@ -28,7 +28,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="label">Label</Label>
+        <Label  className="text-sm" htmlFor="label">Label</Label>
         <Input
           id="label"
           value={data.label || ""}
@@ -38,7 +38,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label  className="text-sm" htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={data.description || ""}
@@ -49,7 +49,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="fieldName">Field Name</Label>
+        <Label  className="text-sm" htmlFor="fieldName">Field Name</Label>
         <Input
           id="fieldName"
           value={data.fieldName || ""}
@@ -62,7 +62,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="defaultUnit">Default Unit System</Label>
+        <Label  className="text-sm" htmlFor="defaultUnit">Default Unit System</Label>
         <Select value={data.defaultUnit || "metric"} onValueChange={(value: string | boolean) => handleChange("defaultUnit", value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select default unit system" />
@@ -75,7 +75,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="theme">Theme</Label>
+        <Label  className="text-sm" htmlFor="theme">Theme</Label>
         <Select value={data.theme || "default"} onValueChange={(value: string | boolean) => handleChange("theme", value)}>
           <SelectTrigger>
             <SelectValue />
@@ -89,7 +89,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="className">CSS Class Names</Label>
+        <Label  className="text-sm" htmlFor="className">CSS Class Names</Label>
         <Input
           id="className"
           value={data.className || ""}
@@ -105,7 +105,7 @@ const BMICalculatorForm: React.FC<ContentBlockItemProps> = ({
               handleChange("showResults", !!checked);
             }}
           />
-          <Label htmlFor="showResults">Show results?</Label>
+          <Label  className="text-sm" htmlFor="showResults">Show results?</Label>
       </div>
 
     </div>
@@ -258,7 +258,7 @@ const BMICalculatorItem: React.FC<ContentBlockItemProps> = ({
           <TabsContent value="metric" className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label className="text-base font-medium flex items-center gap-2">
+                <Label  className="text-sm text-base font-medium flex items-center gap-2">
                   <Ruler className="w-4 h-4 text-muted-foreground" />
                   Height (cm)
                 </Label>
@@ -279,7 +279,7 @@ const BMICalculatorItem: React.FC<ContentBlockItemProps> = ({
               </div>
 
               <div className="space-y-3">
-                <Label className="text-base font-medium flex items-center gap-2">
+                <Label  className="text-sm text-base font-medium flex items-center gap-2">
                   <Weight className="w-4 h-4 text-muted-foreground" />
                   Weight (kg)
                 </Label>
@@ -304,7 +304,7 @@ const BMICalculatorItem: React.FC<ContentBlockItemProps> = ({
           <TabsContent value="imperial" className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label className="text-base font-medium flex items-center gap-2">
+                <Label  className="text-base font-medium flex items-center gap-2">
                   <Ruler className="w-4 h-4 text-muted-foreground" />
                   Height
                 </Label>
@@ -343,7 +343,7 @@ const BMICalculatorItem: React.FC<ContentBlockItemProps> = ({
               </div>
 
               <div className="space-y-3">
-                <Label className="text-base font-medium flex items-center gap-2">
+                <Label  className="text-sm text-base font-medium flex items-center gap-2">
                   <Weight className="w-4 h-4 text-muted-foreground" />
                   Weight (lbs)
                 </Label>

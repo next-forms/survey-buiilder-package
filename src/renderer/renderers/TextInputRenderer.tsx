@@ -1,11 +1,10 @@
 import React, { forwardRef } from 'react';
-import { themes } from '../themes';
 import { getLocalized } from '../../utils/surveyUtils';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';
 import { BlockData } from '../../types';
-import { ThemeDefinition } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 
 interface TextInputRendererProps {
   block: BlockData;

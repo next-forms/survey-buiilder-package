@@ -779,14 +779,14 @@ export const SurveyGraph: React.FC<SurveyGraphProps> = ({
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
 
           {/* Edges - Rendered with improved visibility */}
-          {edges.map(edge => {
+          {edges.map((edge, index) => {
             const path = generateEdgePath(edge);
             const pathId = `path-${edge.id}`;
             const isHighlighted = hoveredEdge === edge.id || 
               (selectedNode && (edge.source === selectedNode || edge.target === selectedNode));
-            
+            const key = `key-${edge.id}-${index}`;
             return (
-              <g key={edge.id}>
+              <g key={key}>
                 <defs>
                   <path id={pathId} d={path} />
                 </defs>

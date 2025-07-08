@@ -1,4 +1,4 @@
-import type { SurveyTheme } from "../../types";
+import type { SurveyTheme } from "../types";
 
 export interface ThemeDefinition {
   name: SurveyTheme;
@@ -414,6 +414,74 @@ export const darkTheme: ThemeDefinition = {
   },
 };
 
+export const himsTheme: ThemeDefinition = {
+  "name": "hims",
+  "containerLayout": "max-w-2xl mx-auto py-8 px-4 sm:px-6",
+  "header": "mb-8",
+  "title": "text-3xl font-semibold text-gray-900 mb-4 text-left",
+  "description": "text-lg text-gray-600 mb-6 text-left",
+  "background": "bg-white",
+  "card": "bg-white shadow-sm rounded-lg p-6 mb-6 border border-gray-200",
+  "container": {
+    "card": "bg-white border border-gray-200 rounded-lg shadow-sm",
+    "border": "border-gray-200",
+    "activeBorder": "border-gray-400",
+    "activeBg": "bg-gray-50",
+    "header": "bg-gray-100"
+  },
+  "field": {
+    "label": "block text-base font-medium text-gray-900 mb-4",
+    "input": "w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-base py-3 px-4",
+    "description": "mt-2 text-sm text-gray-600",
+    "error": "mt-2 text-sm text-red-600 font-medium",
+    "radio": "focus:ring-gray-500 h-4 w-4 text-gray-600 border-gray-300",
+    "checkbox": "focus:ring-gray-500 h-4 w-4 text-gray-600 border-gray-300 rounded",
+    "select": "w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-base py-3 px-4",
+    "textarea": "w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-base py-3 px-4",
+    "file": "w-full text-base text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 py-3 px-4",
+    "matrix": "border-collapse w-full text-base rounded-lg overflow-hidden",
+    "range": "accent-gray-600",
+    "text": "text-gray-900",
+    "activeText": "text-gray-900",
+    "placeholder": "text-gray-500",
+    "boxBorder": "border-gray-300",
+    "selectableBox": "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+    "selectableBoxDefault": "border border-gray-300 bg-white hover:bg-gray-50",
+    "selectableBoxSelected": "border border-gray-400 bg-gray-50",
+    "selectableBoxHover": "hover:border-gray-400",
+    "selectableBoxFocus": "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2",
+    "selectableBoxDisabled": "opacity-50 cursor-not-allowed",
+    "selectableBoxContainer": "space-y-3",
+    "selectableBoxText": "text-gray-900 text-base font-normal",
+    "selectableBoxTextSelected": "text-gray-900 font-normal",
+    "selectableBoxIndicator": "bg-gray-600 text-white",
+    "selectableBoxIndicatorIcon": "text-white"
+  },
+  "progress": {
+    "bar": "h-2 bg-gray-600 rounded-full overflow-hidden",
+    "dots": "flex space-x-2 justify-center",
+    "numbers": "flex space-x-2 justify-center",
+    "percentage": "text-right text-base text-gray-600 font-medium mb-2",
+    "label": "text-base text-gray-700 mb-2 font-medium"
+  },
+  "button": {
+    "primary": "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200",
+    "secondary": "inline-flex justify-center py-3 px-6 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
+    "text": "text-base font-medium text-gray-600 hover:text-gray-800",
+    "navigation": "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+  },
+  "colors": {
+    "primary": "#111827",
+    "secondary": "#6B7280",
+    "accent": "#374151",
+    "background": "#FFFFFF",
+    "text": "#111827",
+    "border": "#D1D5DB",
+    "error": "#EF4444",
+    "success": "#10B981"
+  }
+}
+
 // Map of all themes
 export const themes: Record<SurveyTheme, ThemeDefinition> = {
   default: defaultTheme,
@@ -422,5 +490,6 @@ export const themes: Record<SurveyTheme, ThemeDefinition> = {
   modern: modernTheme,
   corporate: corporateTheme,
   dark: darkTheme,
+  hims: himsTheme,
   custom: undefined
 };

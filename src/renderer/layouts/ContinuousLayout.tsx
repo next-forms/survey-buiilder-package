@@ -3,7 +3,7 @@ import { useSurveyForm } from '../../context/SurveyFormContext';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { NavigationButtons } from '../../components/ui/NavigationButtons';
 import { BlockRenderer } from '../renderers/BlockRenderer';
-import { themes } from '../themes';
+import { themes } from '../../themes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { cn } from '../../lib/utils';
 import { DebugInfo } from '../../components/ui/DebugInfo';

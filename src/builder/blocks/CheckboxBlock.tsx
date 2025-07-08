@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { CheckSquare } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Form component for editing the block configuration
 const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -23,7 +24,7 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -36,7 +37,7 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Label</Label>
+          <Label className="text-sm" htmlFor="label">Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -51,7 +52,7 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="value">Value (when checked)</Label>
+          <Label className="text-sm" htmlFor="value">Value (when checked)</Label>
           <Input
             id="value"
             value={data.value || ""}
@@ -68,12 +69,12 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
               handleChange("defaultValue", !!checked);
             }}
           />
-          <Label htmlFor="defaultChecked">Default to checked</Label>
+          <Label className="text-sm" htmlFor="defaultChecked">Default to checked</Label>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -91,13 +92,13 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
               handleChange("showYesNo", !!checked);
             }}
           />
-          <Label htmlFor="showYesNo">Show Yes/No labels</Label>
+          <Label className="text-sm" htmlFor="showYesNo">Show Yes/No labels</Label>
         </div>
 
         {data.showYesNo && (
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div className="space-y-2">
-              <Label htmlFor="trueLabel">Yes Label</Label>
+              <Label className="text-sm" htmlFor="trueLabel">Yes Label</Label>
               <Input
                 id="trueLabel"
                 value={data.trueLabel || "Yes"}
@@ -106,7 +107,7 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="falseLabel">No Label</Label>
+              <Label className="text-sm" htmlFor="falseLabel">No Label</Label>
               <Input
                 id="falseLabel"
                 value={data.falseLabel || "No"}
@@ -133,7 +134,7 @@ const CheckboxBlockItem: React.FC<ContentBlockItemProps> = ({
           defaultChecked={!!data.defaultValue}
           value={data.value || "true"}
         />
-        <Label htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
       </div>
 
       {data.description && (
@@ -156,7 +157,7 @@ const CheckboxBlockPreview: React.FC = () => {
     <div className="w-full flex items-center justify-center py-1">
       <div className="flex items-center space-x-2 w-4/5 max-w-full">
         <Checkbox id="preview-checkbox" disabled />
-        <Label htmlFor="preview-checkbox">Checkbox option</Label>
+        <Label className="text-sm" htmlFor="preview-checkbox">Checkbox option</Label>
       </div>
     </div>
   );
@@ -170,7 +171,7 @@ export const CheckboxBlock: BlockDefinition = {
   icon: <CheckSquare className="w-4 h-4" />,
   defaultData: {
     type: "checkbox",
-    fieldName: `checkbox${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("checkbox"),
     label: "Check this option",
     description: "",
     value: "true",
@@ -179,6 +180,17 @@ export const CheckboxBlock: BlockDefinition = {
     trueLabel: "Yes",
     falseLabel: "No",
   },
+  generateDefaultData: () => ({
+    type: "checkbox",
+    fieldName: generateFieldName("checkbox"),
+    label: "Check this option",
+    description: "",
+    value: "true",
+    defaultValue: false,
+    showYesNo: false,
+    trueLabel: "Yes",
+    falseLabel: "No",
+  }),
   renderItem: (props) => <CheckboxBlockItem {...props} />,
   renderFormFields: (props) => <CheckboxBlockForm {...props} />,
   renderPreview: () => <CheckboxBlockPreview/>,

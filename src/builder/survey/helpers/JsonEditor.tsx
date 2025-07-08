@@ -53,6 +53,7 @@ export const JsonEditor: React.FC = () => {
       importSurvey({
         rootNode: rootNodeWithUuids,
         localizations: data.localizations || { en: {} },
+        theme: data.theme || null
       });
 
       setSuccess("Survey imported successfully!");

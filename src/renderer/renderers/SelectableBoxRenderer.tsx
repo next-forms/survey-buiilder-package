@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useId } from 'react';
 import { BlockData } from '../../types';
-import { themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import { Label } from '../../components/ui/label';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Card } from '../../components/ui/card';
 import { CheckSquare } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ThemeDefinition } from '../themes';
 
 interface BoxOption {
   id: string;

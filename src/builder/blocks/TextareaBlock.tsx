@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { AlignLeft } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Form component for editing the block configuration
 const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -23,7 +24,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -36,7 +37,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Label</Label>
+          <Label className="text-sm" htmlFor="label">Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -51,7 +52,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="placeholder">Placeholder</Label>
+          <Label className="text-sm" htmlFor="placeholder">Placeholder</Label>
           <Input
             id="placeholder"
             value={data.placeholder || ""}
@@ -61,7 +62,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="rows">Rows</Label>
+          <Label className="text-sm" htmlFor="rows">Rows</Label>
           <Input
             id="rows"
             type="number"
@@ -75,7 +76,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -85,7 +86,7 @@ const TextareaBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="defaultValue">Default Value</Label>
+        <Label className="text-sm" htmlFor="defaultValue">Default Value</Label>
         <Textarea
           id="defaultValue"
           value={data.defaultValue || ""}
@@ -105,7 +106,7 @@ const TextareaBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
       )}
 
       {data.description && (
@@ -145,13 +146,22 @@ export const TextareaBlock: BlockDefinition = {
   icon: <AlignLeft className="w-4 h-4" />,
   defaultData: {
     type: "textarea",
-    fieldName: `textArea${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("textArea"),
     label: "Text Area Question",
     placeholder: "Type your answer here",
     description: "",
     defaultValue: "",
     rows: "3",
   },
+  generateDefaultData: () => ({
+    type: "textarea",
+    fieldName: generateFieldName("textArea"),
+    label: "Text Area Question",
+    placeholder: "Type your answer here",
+    description: "",
+    defaultValue: "",
+    rows: "3",
+  }),
   renderItem: (props) => <TextareaBlockItem {...props} />,
   renderFormFields: (props) => <TextareaBlockForm {...props} />,
   renderPreview: () => <TextareaBlockPreview/>,

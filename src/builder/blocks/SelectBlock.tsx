@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { CirclePlus, CircleX, ListFilter } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { generateFieldName } from "./utils/GenFieldName";
 
 // Form component for editing the block configuration
 const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -62,7 +63,7 @@ const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
           <Input
             id="fieldName"
             value={data.fieldName || ""}
@@ -75,7 +76,7 @@ const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">Question Label</Label>
           <Input
             id="label"
             value={data.label || ""}
@@ -89,7 +90,7 @@ const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
         <Input
           id="description"
           value={data.description || ""}
@@ -100,7 +101,7 @@ const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="placeholder">Placeholder</Label>
+          <Label className="text-sm" htmlFor="placeholder">Placeholder</Label>
           <Input
             id="placeholder"
             value={data.placeholder || ""}
@@ -110,7 +111,7 @@ const SelectBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="defaultValue">Default Value</Label>
+          <Label className="text-sm" htmlFor="defaultValue">Default Value</Label>
           <Select
             value={data.defaultValue as string || ""}
             onValueChange={(value) => handleChange("defaultValue", value)}
@@ -209,7 +210,7 @@ const SelectBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
       )}
 
       {data.description && (
@@ -253,7 +254,7 @@ export const SelectBlock: BlockDefinition = {
   icon: <ListFilter className="w-4 h-4" />,
   defaultData: {
     type: "select",
-    fieldName: `select${uuidv4().substring(0, 4)}`,
+    fieldName: generateFieldName("select"),
     label: "Select an option",
     description: "",
     placeholder: "Choose from the list...",
@@ -261,6 +262,17 @@ export const SelectBlock: BlockDefinition = {
     values: ["1", "2", "3"],
     defaultValue: "",
   },
+  generateDefaultData: () => ({
+    type: "select",
+    fieldName: generateFieldName("select"),
+    label: "Select an option",
+    description: "",
+    placeholder: "Choose from the list...",
+    labels: ["Option 1", "Option 2", "Option 3"],
+    values: ["1", "2", "3"],
+    defaultValue: "",
+  }),
+
   renderItem: (props) => <SelectBlockItem {...props} />,
   renderFormFields: (props) => <SelectBlockForm {...props} />,
   renderPreview: () => <SelectBlockPreview/>,

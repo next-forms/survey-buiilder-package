@@ -9,19 +9,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Textarea } from "../../../components/ui/textarea";
 import { Separator } from "../../../components/ui/separator";
-import { Switch } from "../../../components/ui/switch";
-import { Slider } from "../../../components/ui/slider";
 import { Badge } from "../../../components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "../../../components/ui/toggle-group";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import { 
   ClipboardCopy, Palette, Type, Layout, MousePointer, BarChart3, Package, 
   RefreshCw, Download, Upload, Plus, X, Info, Eye, EyeOff, Sparkles,
-  Square, Circle, RotateCcw, Sliders, Paintbrush, Grid3X3, Move, CheckSquare
+  Square, Sliders, Paintbrush, Grid3X3, CheckSquare,
+  ArrowLeft, ArrowRight, Settings, Brush, Wrench, Check, ChevronRight, Zap
 } from "lucide-react";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { ThemeDefinition, SurveyTheme, SurveyBuilderState, NodeData, LocalizationMap } from "../../../types";
 import { SurveyForm } from "../../../renderer/SurveyForm";
+import { themes } from "../../../themes";
+
+// Theme creation steps
+type ThemeStep = 'selection' | 'basics' | 'advanced' | 'review';
+
+// Theme creation path
+type ThemePath = 'preset' | 'custom' | 'modify';
+
+// Step configuration
+interface StepConfig {
+  id: ThemeStep;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  completed?: boolean;
+}
 
 // Preset options for various styling properties
 const PRESET_OPTIONS = {
@@ -609,419 +624,6 @@ const VisualStyleBuilder: React.FC<{
   );
 };
 
-// Predefined theme presets
-const themePresets: Record<SurveyTheme, ThemeDefinition> = {
-  default: {
-    name: "default",
-    containerLayout: "max-w-2xl mx-auto py-4 px-4 sm:px-6",
-    header: "mb-8",
-    title: "text-3xl font-bold text-gray-900 mb-4 text-center",
-    description: "text-lg text-gray-600 mb-8 text-center",
-    background: "bg-muted/50",
-    card: "bg-white shadow-sm rounded-lg p-6 mb-6",
-    container: {
-      card: "bg-white border border-gray-200 rounded-lg",
-      border: "border-gray-200",
-      activeBorder: "border-blue-500",
-      activeBg: "bg-blue-50",
-      header: "bg-muted/50",
-    },
-    field: {
-      label: "block text-sm font-medium text-gray-700 mb-2",
-      input: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-      description: "mt-1 text-sm text-gray-500",
-      error: "mt-1 text-sm text-red-600",
-      radio: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300",
-      checkbox: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded",
-      select: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-      textarea: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-      file: "w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-muted/50",
-      matrix: "border-collapse w-full text-sm",
-      range: "accent-blue-600",
-      text: "text-gray-900",
-      activeText: "text-blue-600",
-      placeholder: "text-gray-400",
-      boxBorder: "border-gray-300",
-      // SelectableBox specific styles
-      selectableBox: "p-4 transition-all duration-200 hover:shadow-sm cursor-pointer",
-      selectableBoxDefault: "border border-gray-300 bg-white",
-      selectableBoxSelected: "border-blue-500 bg-blue-50 ring-1 ring-blue-500",
-      selectableBoxHover: "hover:border-gray-400 hover:shadow-sm",
-      selectableBoxFocus: "focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-gray-900 font-medium",
-      selectableBoxTextSelected: "text-blue-900",
-      selectableBoxIndicator: "bg-blue-500 text-white",
-      selectableBoxIndicatorIcon: "text-white"
-    },
-    progress: {
-      bar: "h-2 bg-[#3B82F6] rounded-full overflow-hidden",
-      dots: "flex space-x-2 justify-center",
-      numbers: "flex space-x-2 justify-center",
-      percentage: "text-right text-sm text-gray-600 mb-1",
-      label: "text-sm text-gray-600 mb-1",
-    },
-    button: {
-      primary: "inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-      secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-      text: "text-sm font-medium text-blue-600 hover:text-blue-500",
-      navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-    },
-    colors: {
-      primary: "#3B82F6",
-      secondary: "#6B7280",
-      accent: "#1D4ED8",
-      background: "#FFFFFF",
-      text: "#111827",
-      border: "#D1D5DB",
-      error: "#EF4444",
-      success: "#10B981",
-    },
-  },
-  minimal: {
-    name: "minimal",
-    containerLayout: "max-w-xl mx-auto py-8 px-4",
-    header: "mb-12",
-    title: "text-2xl font-light text-gray-900 mb-6 text-center",
-    description: "text-base text-gray-600 mb-8 text-center",
-    background: "bg-white",
-    card: "bg-white border-b border-gray-100 py-8",
-    container: {
-      card: "bg-white",
-      border: "border-gray-100",
-      activeBorder: "border-gray-900",
-      activeBg: "bg-muted/50",
-      header: "bg-white",
-    },
-    field: {
-      label: "block text-sm font-normal text-gray-900 mb-3",
-      input: "w-full border-0 border-b border-gray-200 rounded-none focus:border-gray-900 focus:ring-0 py-3 px-0",
-      description: "mt-2 text-xs text-gray-500",
-      error: "mt-2 text-xs text-red-600",
-      radio: "focus:ring-gray-900 h-4 w-4 text-gray-900 border-gray-300",
-      checkbox: "focus:ring-gray-900 h-4 w-4 text-gray-900 border-gray-300 rounded-none",
-      select: "w-full border-0 border-b border-gray-200 rounded-none focus:border-gray-900 focus:ring-0",
-      textarea: "w-full border-0 border-b border-gray-200 rounded-none focus:border-gray-900 focus:ring-0",
-      file: "w-full text-sm text-gray-900 border border-gray-200 rounded-none cursor-pointer bg-white",
-      matrix: "border-collapse w-full text-sm",
-      range: "accent-gray-900",
-      text: "text-gray-900",
-      activeText: "text-gray-900",
-      placeholder: "text-gray-400",
-      boxBorder: "border-gray-200",
-      // SelectableBox minimal styles
-      selectableBox: "p-6 transition-all duration-200 cursor-pointer",
-      selectableBoxDefault: "border-b border-gray-100 bg-white",
-      selectableBoxSelected: "border-b-2 border-gray-900 bg-muted/50",
-      selectableBoxHover: "hover:bg-muted/50",
-      selectableBoxFocus: "focus-within:bg-muted/50",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-gray-900 font-normal",
-      selectableBoxTextSelected: "text-gray-900 font-medium",
-      selectableBoxIndicator: "bg-gray-900 text-white",
-      selectableBoxIndicatorIcon: "text-white"
-    },
-    progress: {
-      bar: "h-1 bg-gray-100 rounded-none overflow-hidden",
-      dots: "flex space-x-1 justify-center",
-      numbers: "flex space-x-1 justify-center",
-      percentage: "text-right text-xs text-gray-600 mb-2",
-      label: "text-xs text-gray-600 mb-2",
-    },
-    button: {
-      primary: "inline-flex justify-center py-3 px-8 text-sm font-normal border border-gray-900 text-gray-900 bg-white hover:bg-gray-900 hover:text-white focus:outline-none transition-colors",
-      secondary: "inline-flex justify-center py-3 px-8 text-sm font-normal text-gray-600 bg-white hover:text-gray-900 focus:outline-none",
-      text: "text-sm font-normal text-gray-600 hover:text-gray-900",
-      navigation: "inline-flex items-center px-8 py-3 text-sm font-normal border border-gray-900 text-gray-900 bg-white hover:bg-gray-900 hover:text-white focus:outline-none transition-colors",
-    },
-    colors: {
-      primary: "#111827",
-      secondary: "#6B7280",
-      accent: "#000000",
-      background: "#FFFFFF",
-      text: "#111827",
-      border: "#E5E7EB",
-      error: "#DC2626",
-      success: "#059669",
-    },
-  },
-  modern: {
-    name: "modern",
-    containerLayout: "max-w-2xl mx-auto py-4 px-4 sm:px-6",
-    header: "mb-8",
-    title: "text-4xl font-light text-[#E67E4D] mb-6 text-start leading-tight",
-    description: "text-xl text-gray-900 leading-relaxed font-normal text-start max-w-md mx-auto",
-    background: "bg-transparent",
-    card: "bg-white p-8 mb-8",
-    container: {
-      card: "bg-white border border-gray-100 rounded-xl",
-      border: "border-gray-100",
-      activeBorder: "border-[#E67E4D]",
-      activeBg: "bg-[#E67E4D]/5",
-      header: "bg-white",
-    },
-    field: {
-      label: "block text-xl font-medium text-gray-900 mb-4 text-start text-[#C48A66]",
-      input: "w-full rounded-xl border-gray-200 shadow-sm focus:border-[#E67E4D] focus:ring-[#E67E4D] text-lg py-4 px-4",
-      description: "mt-2 text-base text-gray-600 text-start",
-      error: "mt-2 text-sm text-red-600 font-medium text-start",
-      radio: "focus:ring-[#E67E4D] h-5 w-5 text-[#E67E4D] border-gray-300",
-      checkbox: "focus:ring-[#E67E4D] h-5 w-5 text-[#E67E4D] border-gray-300 rounded-md",
-      select: "w-full rounded-xl border-gray-200 shadow-sm focus:border-[#E67E4D] focus:ring-[#E67E4D] text-lg py-4 px-4",
-      textarea: "w-full rounded-xl border-gray-200 shadow-sm focus:border-[#E67E4D] focus:ring-[#E67E4D] text-lg py-4 px-4",
-      file: "w-full text-base text-gray-900 border border-gray-200 rounded-xl cursor-pointer bg-muted/50 py-4 px-4",
-      matrix: "border-collapse w-full text-base rounded-lg overflow-hidden",
-      range: "accent-[#E67E4D] focus:outline-none focus:ring-2 focus:ring-[#E67E4D]",
-      text: "text-gray-900 text-sm",
-      activeText: "text-[#E67E4D]",
-      placeholder: "text-gray-400",
-      boxBorder: "border-[#C48A66]",
-      // SelectableBox modern styles
-      selectableBox: "p-6 transition-all duration-300 cursor-pointer rounded-xl",
-      selectableBoxDefault: "border border-gray-200 bg-white shadow-sm",
-      selectableBoxSelected: "border-[#E67E4D] bg-[#E67E4D]/5 shadow-md ring-1 ring-[#E67E4D]/20",
-      selectableBoxHover: "hover:border-[#C48A66] hover:shadow-md hover:scale-[1.02]",
-      selectableBoxFocus: "focus-within:ring-2 focus-within:ring-[#E67E4D] focus-within:ring-offset-2",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-gray-900 text-lg font-medium",
-      selectableBoxTextSelected: "text-[#E67E4D] font-semibold",
-      selectableBoxIndicator: "bg-[#E67E4D] text-white shadow-sm",
-      selectableBoxIndicatorIcon: "text-white"
-    },
-    progress: {
-      bar: "h-2 bg-[#3B82F6] rounded-full overflow-hidden",
-      dots: "flex space-x-2 justify-center",
-      numbers: "flex space-x-2 justify-center",
-      percentage: "text-right text-base text-gray-900 font-medium mb-1",
-      label: "text-base text-gray-600 mb-1 text-start",
-    },
-    button: {
-      primary: "inline-flex justify-center py-4 px-16 text-base font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] min-w-[200px]",
-      secondary: "inline-flex justify-center py-3 px-8 border border-gray-200 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E67E4D]",
-      text: "text-base font-medium text-[#E67E4D] hover:text-[#D86B3C]",
-      navigation: "inline-flex items-center px-8 py-4 text-base font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200",
-    },
-    colors: {
-      primary: "#E67E4D",
-      secondary: "#6B7280",
-      accent: "#D86B3C",
-      background: "#FFFFFF",
-      text: "#111827",
-      border: "#E5E7EB",
-      error: "#EF4444",
-      success: "#10B981",
-    },
-  },
-  colorful: {
-    name: "colorful",
-    containerLayout: "max-w-3xl mx-auto py-6 px-4 sm:px-6",
-    header: "mb-10",
-    title: "text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 text-center",
-    description: "text-lg text-gray-700 mb-8 text-center",
-    background: "bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50",
-    card: "bg-white shadow-lg rounded-2xl p-8 mb-8 border border-purple-100",
-    container: {
-      card: "bg-white border border-purple-200 rounded-2xl shadow-sm",
-      border: "border-purple-200",
-      activeBorder: "border-purple-500",
-      activeBg: "bg-purple-50",
-      header: "bg-gradient-to-r from-purple-500 to-pink-500",
-    },
-    field: {
-      label: "block text-base font-semibold text-gray-800 mb-3",
-      input: "w-full rounded-xl border-purple-200 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-base py-3 px-4",
-      description: "mt-2 text-sm text-gray-600",
-      error: "mt-2 text-sm text-red-600 font-medium",
-      radio: "focus:ring-purple-500 h-5 w-5 text-purple-600 border-purple-300",
-      checkbox: "focus:ring-purple-500 h-5 w-5 text-purple-600 border-purple-300 rounded-md",
-      select: "w-full rounded-xl border-purple-200 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-base py-3 px-4",
-      textarea: "w-full rounded-xl border-purple-200 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-base py-3 px-4",
-      file: "w-full text-base text-gray-900 border border-purple-200 rounded-xl cursor-pointer bg-purple-50 py-3 px-4",
-      matrix: "border-collapse w-full text-base rounded-xl overflow-hidden",
-      range: "accent-purple-600",
-      text: "text-gray-800",
-      activeText: "text-purple-600",
-      placeholder: "text-gray-400",
-      boxBorder: "border-purple-300",
-      // SelectableBox colorful styles
-      selectableBox: "p-6 transition-all duration-300 cursor-pointer rounded-2xl transform hover:scale-105",
-      selectableBoxDefault: "border-2 border-purple-200 bg-white shadow-sm",
-      selectableBoxSelected: "border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-lg ring-2 ring-purple-200",
-      selectableBoxHover: "hover:border-purple-400 hover:shadow-md",
-      selectableBoxFocus: "focus-within:ring-2 focus-within:ring-purple-500 focus-within:ring-offset-2",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed transform-none",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-gray-800 text-base font-semibold",
-      selectableBoxTextSelected: "text-purple-700 font-bold",
-      selectableBoxIndicator: "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg",
-      selectableBoxIndicatorIcon: "text-white"
-    },
-    progress: {
-      bar: "h-3 bg-[#3B82F6] rounded-full overflow-hidden",
-      dots: "flex space-x-2 justify-center",
-      numbers: "flex space-x-2 justify-center",
-      percentage: "text-right text-base text-purple-600 font-semibold mb-2",
-      label: "text-base text-gray-700 mb-2 font-medium",
-    },
-    button: {
-      primary: "inline-flex justify-center py-3 px-8 text-base font-semibold rounded-xl text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transform hover:scale-105 transition-all duration-200",
-      secondary: "inline-flex justify-center py-3 px-8 border-2 border-purple-200 text-base font-semibold rounded-xl text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
-      text: "text-base font-semibold text-purple-600 hover:text-purple-700",
-      navigation: "inline-flex items-center px-8 py-3 text-base font-semibold rounded-xl text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transform hover:scale-105 transition-all duration-200",
-    },
-    colors: {
-      primary: "#9333EA",
-      secondary: "#6B7280",
-      accent: "#EC4899",
-      background: "#FFFFFF",
-      text: "#1F2937",
-      border: "#D1D5DB",
-      error: "#EF4444",
-      success: "#10B981",
-    },
-  },
-  corporate: {
-    name: "corporate",
-    containerLayout: "max-w-4xl mx-auto py-8 px-6 sm:px-8",
-    header: "mb-12",
-    title: "text-3xl font-semibold text-slate-800 mb-6 text-center tracking-tight",
-    description: "text-lg text-slate-600 mb-10 text-center max-w-2xl mx-auto leading-relaxed",
-    background: "bg-slate-50",
-    card: "bg-white shadow-sm border border-slate-200 rounded-lg p-8 mb-8",
-    container: {
-      card: "bg-white border border-slate-200 rounded-lg",
-      border: "border-slate-200",
-      activeBorder: "border-slate-600",
-      activeBg: "bg-slate-50",
-      header: "bg-slate-100",
-    },
-    field: {
-      label: "block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide",
-      input: "w-full rounded-md border-slate-300 shadow-sm focus:border-slate-600 focus:ring-slate-600 text-base py-3 px-4",
-      description: "mt-2 text-sm text-slate-500",
-      error: "mt-2 text-sm text-red-600 font-medium",
-      radio: "focus:ring-slate-600 h-4 w-4 text-slate-600 border-slate-300",
-      checkbox: "focus:ring-slate-600 h-4 w-4 text-slate-600 border-slate-300 rounded",
-      select: "w-full rounded-md border-slate-300 shadow-sm focus:border-slate-600 focus:ring-slate-600 text-base py-3 px-4",
-      textarea: "w-full rounded-md border-slate-300 shadow-sm focus:border-slate-600 focus:ring-slate-600 text-base py-3 px-4",
-      file: "w-full text-base text-slate-900 border border-slate-300 rounded-md cursor-pointer bg-slate-50 py-3 px-4",
-      matrix: "border-collapse w-full text-base",
-      range: "accent-slate-600",
-      text: "text-slate-900",
-      activeText: "text-slate-600",
-      placeholder: "text-slate-400",
-      boxBorder: "border-slate-300",
-      // SelectableBox corporate styles
-      selectableBox: "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-      selectableBoxDefault: "border border-slate-300 bg-white shadow-sm",
-      selectableBoxSelected: "border-slate-600 bg-slate-50 shadow-md",
-      selectableBoxHover: "hover:border-slate-400 hover:shadow-sm",
-      selectableBoxFocus: "focus-within:ring-2 focus-within:ring-slate-600 focus-within:ring-offset-2",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-slate-900 font-medium tracking-wide",
-      selectableBoxTextSelected: "text-slate-700 font-semibold",
-      selectableBoxIndicator: "bg-slate-600 text-white",
-      selectableBoxIndicatorIcon: "text-white"
-    },
-    progress: {
-      bar: "h-2 bg-slate-200 rounded overflow-hidden",
-      dots: "flex space-x-3 justify-center",
-      numbers: "flex space-x-3 justify-center",
-      percentage: "text-right text-sm text-slate-600 font-semibold mb-2",
-      label: "text-sm text-slate-600 mb-2 font-medium",
-    },
-    button: {
-      primary: "inline-flex justify-center py-3 px-6 text-base font-semibold rounded-md text-white bg-slate-700 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200",
-      secondary: "inline-flex justify-center py-3 px-6 border border-slate-300 text-base font-semibold rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500",
-      text: "text-base font-semibold text-slate-600 hover:text-slate-700",
-      navigation: "inline-flex items-center px-6 py-3 text-base font-semibold rounded-md text-white bg-slate-700 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200",
-    },
-    colors: {
-      primary: "#475569",
-      secondary: "#64748B",
-      accent: "#334155",
-      background: "#F8FAFC",
-      text: "#1E293B",
-      border: "#CBD5E1",
-      error: "#DC2626",
-      success: "#059669",
-    },
-  },
-  dark: {
-    name: "dark",
-    containerLayout: "max-w-2xl mx-auto py-6 px-4 sm:px-6",
-    header: "mb-10",
-    title: "text-3xl font-bold text-white mb-6 text-center",
-    description: "text-lg text-gray-300 mb-8 text-center",
-    background: "bg-gray-900",
-    card: "bg-gray-800 border border-gray-700 rounded-lg p-8 mb-8",
-    container: {
-      card: "bg-gray-800 border border-gray-700 rounded-lg",
-      border: "border-gray-700",
-      activeBorder: "border-blue-400",
-      activeBg: "bg-gray-700",
-      header: "bg-gray-700",
-    },
-    field: {
-      label: "block text-sm font-medium text-gray-200 mb-2",
-      input: "w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-400 focus:ring-blue-400 text-base py-3 px-4",
-      description: "mt-2 text-sm text-gray-400",
-      error: "mt-2 text-sm text-red-400 font-medium",
-      radio: "focus:ring-blue-400 h-4 w-4 text-blue-500 border-gray-600 bg-gray-700",
-      checkbox: "focus:ring-blue-400 h-4 w-4 text-blue-500 border-gray-600 bg-gray-700 rounded",
-      select: "w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-400 focus:ring-blue-400 text-base py-3 px-4",
-      textarea: "w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-400 focus:ring-blue-400 text-base py-3 px-4",
-      file: "w-full text-base text-gray-200 border border-gray-600 bg-gray-700 rounded-md cursor-pointer py-3 px-4",
-      matrix: "border-collapse w-full text-base",
-      range: "accent-blue-500",
-      text: "text-gray-200",
-      activeText: "text-blue-400",
-      placeholder: "text-gray-500",
-      boxBorder: "border-gray-600",
-      // SelectableBox dark styles
-      selectableBox: "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-      selectableBoxDefault: "border border-gray-600 bg-gray-800",
-      selectableBoxSelected: "border-blue-400 bg-gray-700 ring-1 ring-blue-400/50",
-      selectableBoxHover: "hover:border-gray-500 hover:bg-gray-750",
-      selectableBoxFocus: "focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-gray-900",
-      selectableBoxDisabled: "opacity-50 cursor-not-allowed",
-      selectableBoxContainer: "",
-      selectableBoxText: "text-gray-200 font-medium",
-      selectableBoxTextSelected: "text-blue-300 font-semibold",
-      selectableBoxIndicator: "bg-blue-500 text-gray-900",
-      selectableBoxIndicatorIcon: "text-gray-900"
-    },
-    progress: {
-      bar: "h-2 bg-gray-700 rounded overflow-hidden",
-      dots: "flex space-x-2 justify-center",
-      numbers: "flex space-x-2 justify-center",
-      percentage: "text-right text-sm text-gray-300 font-medium mb-2",
-      label: "text-sm text-gray-300 mb-2",
-    },
-    button: {
-      primary: "inline-flex justify-center py-3 px-6 text-base font-medium rounded-md text-gray-900 bg-blue-500 hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900 transition-colors duration-200",
-      secondary: "inline-flex justify-center py-3 px-6 border border-gray-600 text-base font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900",
-      text: "text-base font-medium text-blue-400 hover:text-blue-300",
-      navigation: "inline-flex items-center px-6 py-3 text-base font-medium rounded-md text-gray-900 bg-blue-500 hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900 transition-colors duration-200",
-    },
-    colors: {
-      primary: "#3B82F6",
-      secondary: "#6B7280",
-      accent: "#60A5FA",
-      background: "#111827",
-      text: "#F9FAFB",
-      border: "#374151",
-      error: "#F87171",
-      success: "#34D399",
-    },
-  },
-  custom: undefined
-};
-
 // Field-specific presets
 const FIELD_PRESETS = {
   label: [
@@ -1215,6 +817,10 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
   const [selectedPreset, setSelectedPreset] = useState<SurveyTheme>(state.theme.name);
   const [showPreview, setShowPreview] = useState(true);
   const [editMode, setEditMode] = useState<'visual' | 'code'>('visual');
+  
+  // Step-based navigation state
+  const [currentStep, setCurrentStep] = useState<ThemeStep>(state.theme.name === 'custom' ? 'basics' : 'selection');
+  const [selectedPath, setSelectedPath] = useState<ThemePath | null>(null);
 
   // Initialize default layout widths
   useEffect(() => {
@@ -1278,7 +884,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
 
   // Apply a preset theme
   const handlePresetChange = (presetName: SurveyTheme) => {
-    const preset = themePresets[presetName];
+    const preset = themes[presetName];
     if (preset) {
       setSelectedPreset(presetName);
       setCurrentTheme(preset);
@@ -1344,148 +950,354 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-muted/50">
-      {/* Main Layout - Resizable Two Column Layout on Desktop, Single Column on Mobile */}
-      <div className="flex flex-col lg:flex-row lg:h-screen min-h-full">
+  // Step configuration
+  const steps: StepConfig[] = [
+    {
+      id: 'selection',
+      title: 'Choose Approach',
+      description: 'Select how you want to create your theme',
+      icon: <Zap className="w-5 h-5" />,
+      completed: selectedPath !== null
+    },
+    {
+      id: 'basics',
+      title: 'Basic Settings',
+      description: 'Configure colors and basic styling',
+      icon: <Palette className="w-5 h-5" />,
+      completed: currentStep === 'advanced' || currentStep === 'review'
+    },
+    {
+      id: 'advanced',
+      title: 'Advanced Customization',
+      description: 'Fine-tune all theme elements',
+      icon: <Settings className="w-5 h-5" />,
+      completed: currentStep === 'review'
+    },
+    {
+      id: 'review',
+      title: 'Review & Finalize',
+      description: 'Preview and save your theme',
+      icon: <Check className="w-5 h-5" />,
+      completed: false
+    }
+  ];
+
+  // Handle step navigation
+  const goToStep = (step: ThemeStep) => {
+    setCurrentStep(step);
+  };
+
+  const nextStep = () => {
+    const currentIndex = steps.findIndex(s => s.id === currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1].id);
+    }
+  };
+
+  const prevStep = () => {
+    const currentIndex = steps.findIndex(s => s.id === currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1].id);
+    }
+  };
+
+  // Handle path selection
+  const handlePathSelection = (path: ThemePath) => {
+    setSelectedPath(path);
+    
+    switch (path) {
+      case 'preset':
+        // Will select preset in next step
+        nextStep();
+        break;
+      case 'custom':
+        // Start with a clean custom theme
+        const customTheme: ThemeDefinition = {
+          ...themes.default,
+          name: 'custom'
+        };
+        setCurrentTheme(customTheme);
+        updateTheme(customTheme);
+        setSelectedPreset('custom');
+        nextStep();
+        break;
+      case 'modify':
+        // Continue with current theme
+        nextStep();
+        break;
+    }
+  };
+
+  // Step Indicator Component
+  const StepIndicator = () => (
+    <div className="flex items-center justify-between mb-8">
+      {steps.map((step, index) => {
+        const isActive = step.id === currentStep;
+        const isCompleted = step.completed;
+        const isAccessible = index <= steps.findIndex(s => s.id === currentStep);
         
-        {/* Theme Builder Column - Flexible width */}
-        <div 
-          className="flex-1 lg:min-w-96 space-y-6 p-4 lg:p-2 rounded-md lg:pr-3 overflow-y-auto"
-          style={{
-            width: 'var(--left-panel-width, auto)',
-            maxWidth: 'var(--left-panel-width, none)',
-            flexShrink: 0
-          }}
-        >
-          
-          {/* Header Controls */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleResetToPreset}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleExportTheme}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-              <label className="cursor-pointer">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="flex items-center gap-2"
-                >
-                  <span>
-                    <Upload className="w-4 h-4" />
-                    Import
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportTheme}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <ToggleGroup 
-                type="single" 
-                value={editMode} 
-                onValueChange={(val) => val && setEditMode(val as 'visual' | 'code')}
-              >
-                <ToggleGroupItem value="visual" className="data-[state=on]:bg-blue-100 dark:bg-blue-800">
-                  <Palette className="w-4 h-4 mr-1" />
-                  Visual
-                </ToggleGroupItem>
-                <ToggleGroupItem value="code" className="data-[state=on]:bg-blue-100 data-[state=on]:dark:bg-blue-800">
-                  <Type className="w-4 h-4 mr-1" />
-                  Code
-                </ToggleGroupItem>
-              </ToggleGroup>
-              {/* Preview toggle - only show on mobile */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-                className="flex lg:hidden items-center gap-2"
-              >
-                {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                Preview
-              </Button>
-            </div>
+        return (
+          <div key={step.id} className="flex items-center flex-1">
+            <button
+              onClick={() => isAccessible ? goToStep(step.id) : null}
+              disabled={!isAccessible}
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left ${
+                isActive
+                  ? 'bg-blue-50 border-2 border-blue-200 text-blue-900'
+                  : isCompleted
+                  ? 'bg-green-50 border-2 border-green-200 text-green-900 hover:bg-green-100'
+                  : isAccessible
+                  ? 'border-2 border-gray-200 hover:bg-gray-50'
+                  : 'border-2 border-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <div className={`flex-shrink-0 p-2 rounded-full ${
+                isActive
+                  ? 'bg-blue-200'
+                  : isCompleted
+                  ? 'bg-green-200'
+                  : 'bg-gray-200'
+              }`}>
+                {isCompleted ? <Check className="w-4 h-4" /> : step.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-sm">{step.title}</h3>
+                <p className="text-xs opacity-70 mt-1">{step.description}</p>
+              </div>
+            </button>
+            {index < steps.length - 1 && (
+              <ChevronRight className="w-4 h-4 text-gray-400 mx-2 flex-shrink-0" />
+            )}
           </div>
+        );
+      })}
+    </div>
+  );
 
-          {copySuccess && (
-            <Alert variant="default" className="bg-green-50 border-green-300 text-green-800">
-              <AlertDescription>{copySuccess}</AlertDescription>
-            </Alert>
-          )}
+  // Navigation Buttons Component
+  const NavigationButtons = () => (
+    <div className="flex items-center justify-between pt-6 border-t">
+      <Button
+        variant="outline"
+        onClick={prevStep}
+        disabled={currentStep === 'selection'}
+        className="flex items-center gap-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Previous
+      </Button>
+      
+      <div className="flex items-center gap-2">
+        {currentStep === 'review' ? (
+          <Button
+            onClick={handleCopyToClipboard}
+            className="flex items-center gap-2"
+          >
+            <Check className="w-4 h-4" />
+            Save Theme
+          </Button>
+        ) : (
+          <Button
+            onClick={nextStep}
+            className="flex items-center gap-2"
+          >
+            Next
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
-          {/* Theme Presets */}
+  // Render step content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 'selection':
+        return (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                Theme Presets
+                <Zap className="w-5 h-5" />
+                Choose Your Approach
               </CardTitle>
               <CardDescription>
-                Choose a preset theme or create your own custom design
+                How would you like to create your theme?
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                {Object.entries(themePresets)
-                  .filter(([_, preset]) => preset !== undefined)
-                  .map(([key, preset]) => (
-                    <button
-                      key={key}
-                      onClick={() => handlePresetChange(key as SurveyTheme)}
-                      className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                        selectedPreset === key 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                          : 'border-border hover:border-muted-foreground'                        
-                      }`}
-                    >
-                      <div className="text-sm font-medium text-start capitalize text-foreground">{preset.name}</div>
-                      <div className="mt-2 flex gap-1">
-                        <div 
-                          className="w-3 h-3 rounded-full border"
-                          style={{ backgroundColor: preset.colors.primary }}
-                        />
-                        <div 
-                          className="w-3 h-3 rounded-full border"
-                          style={{ backgroundColor: preset.colors.secondary }}
-                        />
-                        <div 
-                          className="w-3 h-3 rounded-full border"
-                          style={{ backgroundColor: preset.colors.accent }}
-                        />
-                      </div>
-                    </button>
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => handlePathSelection('preset')}
+                  className={`p-6 rounded-lg border-2 transition-all hover:scale-105 text-left ${
+                    selectedPath === 'preset'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Sparkles className="w-8 h-8 text-blue-600 mb-3" />
+                  <h3 className="font-semibold text-lg mb-2">Start with Preset</h3>
+                  <p className="text-sm text-gray-600">
+                    Choose from our professional theme presets and customize as needed
+                  </p>
+                </button>
+                
+                <button
+                  onClick={() => handlePathSelection('custom')}
+                  className={`p-6 rounded-lg border-2 transition-all hover:scale-105 text-left ${
+                    selectedPath === 'custom'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Brush className="w-8 h-8 text-purple-600 mb-3" />
+                  <h3 className="font-semibold text-lg mb-2">Create Custom</h3>
+                  <p className="text-sm text-gray-600">
+                    Build a completely custom theme from scratch with full control
+                  </p>
+                </button>
+                
+                <button
+                  onClick={() => handlePathSelection('modify')}
+                  className={`p-6 rounded-lg border-2 transition-all hover:scale-105 text-left ${
+                    selectedPath === 'modify'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Wrench className="w-8 h-8 text-green-600 mb-3" />
+                  <h3 className="font-semibold text-lg mb-2">Modify Current</h3>
+                  <p className="text-sm text-gray-600">
+                    Continue editing your current theme with advanced options
+                  </p>
+                </button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Theme Editor */}
-          {editMode === 'visual' ? (
+        );
+        
+      case 'basics':
+        return (
+          <div className="space-y-6">
+            {selectedPath === 'preset' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Choose Preset Theme
+                  </CardTitle>
+                  <CardDescription>
+                    Select a professional theme as your starting point
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {Object.entries(themes)
+                      .filter(([_, preset]) => preset !== undefined)
+                      .map(([key, preset]) => (
+                        <button
+                          key={key}
+                          onClick={() => handlePresetChange(key as SurveyTheme)}
+                          className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                            selectedPreset === key 
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
+                              : 'border-border hover:border-muted-foreground'                        
+                          }`}
+                        >
+                          <div className="text-sm font-medium text-start capitalize text-foreground">{preset.name}</div>
+                          <div className="mt-2 flex gap-1">
+                            <div 
+                              className="w-3 h-3 rounded-full border"
+                              style={{ backgroundColor: preset.colors.primary }}
+                            />
+                            <div 
+                              className="w-3 h-3 rounded-full border"
+                              style={{ backgroundColor: preset.colors.secondary }}
+                            />
+                            <div 
+                              className="w-3 h-3 rounded-full border"
+                              style={{ backgroundColor: preset.colors.accent }}
+                            />
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Color Palette</CardTitle>
+                <CardDescription>
+                  Customize the main colors for your theme
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {Object.entries(currentTheme.colors).slice(0, 4).map(([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <Label className="capitalize flex items-center gap-2">
+                        {key}
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full h-12 justify-between"
+                          >
+                            <span className="text-sm font-mono">{value}</span>
+                            <div 
+                              className="w-8 h-8 rounded border"
+                              style={{ backgroundColor: value }}
+                            />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Quick Colors</Label>
+                              <div className="grid grid-cols-6 gap-2 mt-2">
+                                {COLOR_PRESETS.map(preset => (
+                                  <button
+                                    key={preset.value}
+                                    className="w-10 h-10 rounded border-2 hover:scale-110 transition-transform"
+                                    style={{ backgroundColor: preset.value }}
+                                    onClick={() => updateNestedProperty('colors', key, preset.value)}
+                                    title={preset.name}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Custom Color</Label>
+                              <div className="flex gap-2 mt-2">
+                                <input
+                                  type="color"
+                                  value={value}
+                                  onChange={(e) => updateNestedProperty('colors', key, e.target.value)}
+                                  className="w-20 h-10 rounded cursor-pointer"
+                                />
+                                <Input
+                                  value={value}
+                                  onChange={(e) => updateNestedProperty('colors', key, e.target.value)}
+                                  placeholder="#000000"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+        
+      case 'advanced':
+        return (
+          editMode === 'visual' ? (
             <Tabs defaultValue="colors" className="space-y-4">
               <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="colors" className="flex items-center gap-1">
@@ -1938,7 +1750,227 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
                 </div>
               </CardContent>
             </Card>
+          )
+        );
+        
+      case 'review':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Check className="w-5 h-5" />
+                  Theme Review
+                </CardTitle>
+                <CardDescription>
+                  Review your theme settings and make final adjustments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-lg font-semibold">Theme Summary</Label>
+                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Theme Name:</span> {currentTheme.name}
+                        </div>
+                        <div>
+                          <span className="font-medium">Primary Color:</span>
+                          <div className="inline-flex items-center gap-2 ml-2">
+                            <div 
+                              className="w-4 h-4 rounded border"
+                              style={{ backgroundColor: currentTheme.colors.primary }}
+                            />
+                            {currentTheme.colors.primary}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleCopyToClipboard}
+                      className="flex items-center gap-2"
+                    >
+                      <ClipboardCopy className="w-4 h-4" />
+                      Copy JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleExportTheme}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export Theme
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {editMode === 'code' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Advanced Code Editor</CardTitle>
+                  <CardDescription>
+                    Edit the theme JSON directly for full control
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Alert>
+                      <Info className="w-4 h-4" />
+                      <AlertDescription>
+                        Changes made here will be applied immediately. Make sure your JSON is valid!
+                      </AlertDescription>
+                    </Alert>
+                    <Textarea
+                      value={JSON.stringify(currentTheme, null, 2)}
+                      onChange={(e) => {
+                        try {
+                          const parsed = JSON.parse(e.target.value);
+                          setCurrentTheme(parsed);
+                          updateTheme(parsed);
+                        } catch (error) {
+                          // Invalid JSON, don't update
+                        }
+                      }}
+                      className="font-mono text-sm min-h-[400px]"
+                      spellCheck={false}
+                    />
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyToClipboard}
+                        className="flex items-center gap-2"
+                      >
+                        <ClipboardCopy className="w-4 h-4" />
+                        Copy JSON
+                      </Button>
+                      <div className="text-sm text-gray-500">
+                        {Object.keys(currentTheme).length} properties
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+        
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Main Layout - Resizable Two Column Layout on Desktop, Single Column on Mobile */}
+      <div className="flex flex-col lg:flex-row lg:h-screen min-h-full">
+        
+        {/* Theme Builder Column - Flexible width */}
+        <div 
+          className="flex-1 lg:min-w-96 space-y-6 p-4 lg:p-2 rounded-md lg:pr-3 overflow-y-auto"
+          style={{
+            width: 'var(--left-panel-width, auto)',
+            maxWidth: 'var(--left-panel-width, none)',
+            flexShrink: 0
+          }}
+        >
+          
+          {/* Step Indicator */}
+          <StepIndicator />
+
+          {/* Header Controls - Only show on advanced/review steps */}
+          {(currentStep === 'advanced' || currentStep === 'review') && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetToPreset}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reset
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportTheme}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+                <label className="cursor-pointer">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="flex items-center gap-2"
+                  >
+                    <span>
+                      <Upload className="w-4 h-4" />
+                      Import
+                    </span>
+                  </Button>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportTheme}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <ToggleGroup 
+                  type="single" 
+                  value={editMode} 
+                  onValueChange={(val) => val && setEditMode(val as 'visual' | 'code')}
+                >
+                  <ToggleGroupItem value="visual" className="data-[state=on]:bg-blue-100 dark:bg-blue-800">
+                    <Palette className="w-4 h-4 mr-1" />
+                    Visual
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="code" className="data-[state=on]:bg-blue-100 data-[state=on]:dark:bg-blue-800">
+                    <Type className="w-4 h-4 mr-1" />
+                    Code
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {/* Preview toggle - only show on mobile */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex lg:hidden items-center gap-2"
+                >
+                  {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Preview
+                </Button>
+              </div>
+            </div>
           )}
+
+          {copySuccess && (
+            <Alert variant="default" className="bg-green-50 border-green-300 text-green-800">
+              <AlertDescription>{copySuccess}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Step Content */}
+          {renderStepContent()}
+
+          {/* Navigation */}
+          {currentStep !== 'selection' && <NavigationButtons />}
 
           {/* Mobile Preview */}
           {showPreview && (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSurveyForm } from '../../context/SurveyFormContext';
-import { themes } from '../../renderer/themes';
+import { themes } from '../../themes';
 
 interface ProgressBarProps {
   currentPage: number;

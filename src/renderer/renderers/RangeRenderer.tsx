@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ThemeDefinition, themes } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 import { Slider } from '../../components/ui/slider';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';

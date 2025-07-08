@@ -5,8 +5,7 @@ import { useSurveyForm } from '../../context/SurveyFormContext';
 import { ValidationSummary } from '../../components/ui/ValidationSummary';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { cn } from '../../lib/utils';
-import { themes } from '../themes';
-import { ThemeDefinition } from '../themes';
+import { ThemeDefinition, themes } from '../../themes';
 
 /**
  * Renderer for "set" block type

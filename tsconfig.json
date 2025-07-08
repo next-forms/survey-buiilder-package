@@ -25,7 +25,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@survey-form-package/*": ["./src/*"]
+      "@survey-form-renderer/*": ["./src/*"]
     }
   },
   "include": ["src"],

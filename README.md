@@ -1,0 +1,1375 @@
+# Survey Form Package
+
+A powerful, customizable React survey renderer and builder library with TypeScript support, featuring advanced conditional logic, multiple layout options, and comprehensive theming capabilities.
+
+## 🚀 Features
+
+### **Core Survey Rendering**
+- **Multiple Layouts**: Page-by-page, continuous, accordion, tabs, stepper, and fullpage layouts
+- **18+ Block Types**: Complete set of form input types and advanced interactive blocks
+- **Conditional Logic**: Show/hide blocks based on user responses with complex condition evaluation
+- **Navigation Rules**: Custom routing between survey sections based on user input
+- **Real-time Validation**: Field-level validation with custom error messages
+- **Progress Tracking**: Multiple progress indicator styles with animations
+
+### **Advanced Features**
+- **Calculated Fields**: Dynamic computations based on other form values
+- **BMI Calculator**: Built-in health assessment tools
+- **Checkout Integration**: Contact information and payment collection
+- **Mobile Navigation**: Touch gestures and swipe support
+- **Localization**: Multi-language support with complete translation system
+- **Theme System**: 7 built-in themes plus custom theme support
+
+### **Developer Experience**
+- **TypeScript First**: Full type safety with comprehensive interfaces
+- **React 19 Compatible**: Built for modern React with hooks and context
+- **Tree Shakeable**: Modular exports for optimal bundle sizes
+- **Extensible**: Easy to add custom blocks and renderers
+- **Well Documented**: Comprehensive API documentation and examples
+
+## 📦 Installation
+
+```bash
+bun add survey-form-package
+```
+
+### Peer Dependencies
+```bash
+bun add react@^19.1.0 react-dom@^19.1.0
+```
+
+## 🎯 Quick Start
+
+### Basic Survey Renderer
+
+```tsx
+import React from 'react';
+import { SurveyForm } from 'survey-form-package';
+
+const surveyData = {
+  rootNode: {
+    type: "section",
+    name: "Customer Feedback Survey",
+    uuid: "survey-root",
+    items: [
+      {
+        type: "set",
+        name: "Contact Information",
+        uuid: "contact-page",
+        items: [
+          {
+            type: "textfield",
+            fieldName: "name",
+            label: "Full Name",
+            placeholder: "Enter your full name",
+            uuid: "name-field"
+          },
+          {
+            type: "selectablebox",
+            fieldName: "satisfaction",
+            label: "How satisfied are you with our service?",
+            options: [
+              { id: "very-satisfied", label: "Very Satisfied", value: "5" },
+              { id: "satisfied", label: "Satisfied", value: "4" },
+              { id: "neutral", label: "Neutral", value: "3" },
+              { id: "dissatisfied", label: "Dissatisfied", value: "2" },
+              { id: "very-dissatisfied", label: "Very Dissatisfied", value: "1" }
+            ],
+            uuid: "satisfaction-field"
+          }
+        ]
+      }
+    ]
+  },
+  localizations: {
+    en: {}
+  }
+};
+
+function App() {
+  const handleSubmit = (data: Record<string, any>) => {
+    console.log('Survey submitted:', data);
+  };
+
+  const handleChange = (data: Record<string, any>) => {
+    console.log('Form data changed:', data);
+  };
+
+  return (
+    <SurveyForm
+      survey={surveyData}
+      theme="modern"
+      layout="page-by-page"
+      progressBar={{
+        type: 'percentage',
+        showPercentage: true,
+        position: 'top'
+      }}
+      onSubmit={handleSubmit}
+      onChange={handleChange}
+    />
+  );
+}
+
+export default App;
+```
+
+### Survey Builder Integration
+
+```tsx
+import React, { useState } from 'react';
+import { SurveyBuilder, StandardBlocks, StandardNodes } from 'survey-form-package';
+
+function BuilderApp() {
+  const [surveyData, setSurveyData] = useState(null);
+
+  return (
+    <div style={{ height: '800px' }}>
+      <SurveyBuilder
+        blockDefinitions={StandardBlocks}
+        nodeDefinitions={StandardNodes}
+        onDataChange={setSurveyData}
+        initialData={existingSurvey}
+      />
+    </div>
+  );
+}
+```
+
+## 🎨 Themes
+
+The package includes 7 built-in themes:
+
+```tsx
+import { SurveyForm } from 'survey-form-package';
+
+// Available themes
+type SurveyTheme = 
+  | "default"     // Clean, professional gray theme
+  | "minimal"     // Simplified, typography-focused
+  | "colorful"    // Vibrant, engaging colors
+  | "modern"      // Contemporary design with gradients
+  | "corporate"   // Professional business theme
+  | "dark"        // Dark mode optimized
+  | "custom";     // Fully customizable
+
+<SurveyForm survey={data} theme="modern" />
+```
+
+### Custom Theme
+
+```tsx
+const customTheme = {
+  name: "custom",
+  colors: {
+    primary: "#3b82f6",
+    secondary: "#64748b",
+    background: "#ffffff",
+    text: "#1f2937"
+  },
+  button: {
+    primary: "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg",
+    secondary: "bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
+  },
+  field: {
+    input: "border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500",
+    label: "text-gray-700 font-medium mb-2 block"
+  }
+};
+
+<SurveyForm 
+  survey={data} 
+  theme="custom"
+  customTheme={customTheme}
+/>
+```
+
+## 📱 Layouts
+
+Choose from 6 different layout options:
+
+```tsx
+// Page-by-page navigation (default)
+<SurveyForm survey={data} layout="page-by-page" />
+
+// Continuous scrolling
+<SurveyForm survey={data} layout="continuous" />
+
+// Accordion-style collapsible sections
+<SurveyForm survey={data} layout="accordion" />
+
+// Tab-based navigation
+<SurveyForm survey={data} layout="tabs" />
+
+// Step-by-step with progress indicators
+<SurveyForm survey={data} layout="stepper" />
+
+// Full-screen immersive experience
+<SurveyForm survey={data} layout="fullpage" />
+```
+
+## 🧩 Block Types
+
+### Input Blocks
+
+#### Text Input
+```tsx
+{
+  type: "textfield",
+  fieldName: "email",
+  label: "Email Address",
+  placeholder: "Enter your email",
+  validation: "email",
+  required: true
+}
+```
+
+#### Textarea
+```tsx
+{
+  type: "textarea",
+  fieldName: "comments",
+  label: "Additional Comments",
+  placeholder: "Share your thoughts...",
+  rows: 4
+}
+```
+
+#### Radio Buttons
+```tsx
+{
+  type: "radio",
+  fieldName: "gender",
+  label: "Gender",
+  options: [
+    { id: "male", label: "Male", value: "male" },
+    { id: "female", label: "Female", value: "female" },
+    { id: "other", label: "Other", value: "other" }
+  ]
+}
+```
+
+#### Checkboxes
+```tsx
+{
+  type: "checkbox",
+  fieldName: "interests",
+  label: "Select your interests",
+  options: [
+    { id: "tech", label: "Technology", value: "technology" },
+    { id: "sports", label: "Sports", value: "sports" },
+    { id: "music", label: "Music", value: "music" }
+  ]
+}
+```
+
+#### Selectable Boxes
+```tsx
+{
+  type: "selectablebox",
+  fieldName: "preference",
+  label: "Choose your preference",
+  autoContinueOnSelect: true,
+  showContinueButton: false,
+  options: [
+    { id: "option1", label: "Option 1", value: "1" },
+    { id: "option2", label: "Option 2", value: "2" }
+  ]
+}
+```
+
+#### Select Dropdown
+```tsx
+{
+  type: "select",
+  fieldName: "country",
+  label: "Country",
+  placeholder: "Select your country",
+  options: [
+    { id: "us", label: "United States", value: "US" },
+    { id: "ca", label: "Canada", value: "CA" },
+    { id: "uk", label: "United Kingdom", value: "UK" }
+  ]
+}
+```
+
+#### Range Slider
+```tsx
+{
+  type: "range",
+  fieldName: "satisfaction",
+  label: "Rate your satisfaction (1-10)",
+  min: 1,
+  max: 10,
+  step: 1,
+  defaultValue: 5
+}
+```
+
+#### Date Picker
+```tsx
+{
+  type: "datepicker",
+  fieldName: "birthdate",
+  label: "Date of Birth",
+  format: "MM/dd/yyyy",
+  placeholder: "Select date"
+}
+```
+
+#### File Upload
+```tsx
+{
+  type: "fileupload",
+  fieldName: "resume",
+  label: "Upload Resume",
+  accept: ".pdf,.doc,.docx",
+  maxSize: "5MB",
+  multiple: false
+}
+```
+
+### Advanced Blocks
+
+#### Matrix Questions
+```tsx
+{
+  type: "matrix",
+  fieldName: "evaluation",
+  label: "Rate the following aspects",
+  rows: [
+    { id: "quality", label: "Quality" },
+    { id: "service", label: "Service" },
+    { id: "value", label: "Value" }
+  ],
+  columns: [
+    { id: "poor", label: "Poor", value: "1" },
+    { id: "good", label: "Good", value: "2" },
+    { id: "excellent", label: "Excellent", value: "3" }
+  ]
+}
+```
+
+#### Conditional Block
+```tsx
+{
+  type: "conditional",
+  fieldName: "conditional_question",
+  label: "Additional Information",
+  visibleIf: "age >= 18",
+  blocks: [
+    {
+      type: "textfield",
+      fieldName: "adult_info",
+      label: "Adult-specific question"
+    }
+  ]
+}
+```
+
+#### Calculated Field
+```tsx
+{
+  type: "calculated",
+  fieldName: "total",
+  label: "Total Amount",
+  formula: "item1 + item2 + (item3 * 0.1)",
+  dependencies: ["item1", "item2", "item3"],
+  format: "currency"
+}
+```
+
+#### BMI Calculator
+```tsx
+{
+  type: "bmi",
+  fieldName: "bmi_result",
+  label: "BMI Assessment",
+  heightField: "height",
+  weightField: "weight",
+  showCategory: true,
+  showRecommendations: true
+}
+```
+
+#### Checkout Block
+```tsx
+{
+  type: "checkout",
+  fieldName: "contact_info",
+  label: "Contact Information",
+  showContactInfo: true,
+  showShippingAddress: false,
+  requireEmail: true,
+  requirePhone: true,
+  collectFullName: true
+}
+```
+
+### Content Blocks
+
+#### HTML Block
+```tsx
+{
+  type: "html",
+  html: `
+    <div class="alert alert-info">
+      <h3>Important Information</h3>
+      <p>Please read this carefully before proceeding.</p>
+    </div>
+  `,
+  className: "my-4"
+}
+```
+
+#### Markdown Block
+```tsx
+{
+  type: "markdown",
+  content: `
+    # Survey Instructions
+    
+    Please answer all questions **honestly** and *completely*.
+    
+    - Take your time
+    - Read each question carefully
+    - Contact support if you need help
+  `
+}
+```
+
+## 🔀 Conditional Logic
+
+### Navigation Rules
+
+```tsx
+{
+  type: "selectablebox",
+  fieldName: "user_type",
+  label: "What type of user are you?",
+  options: [
+    { id: "new", label: "New User", value: "new" },
+    { id: "existing", label: "Existing User", value: "existing" }
+  ],
+  navigationRules: [
+    {
+      condition: "user_type == 'new'",
+      target: "new-user-page-uuid",
+      isPage: true
+    },
+    {
+      condition: "user_type == 'existing'",
+      target: "existing-user-page-uuid",
+      isPage: true
+    }
+  ]
+}
+```
+
+### Visibility Conditions
+
+```tsx
+{
+  type: "textfield",
+  fieldName: "company_name",
+  label: "Company Name",
+  visibleIf: "employment_status == 'employed'",
+  required: true
+}
+```
+
+### Complex Conditions
+
+```tsx
+// Multiple conditions
+visibleIf: "age >= 18 && country == 'US'"
+
+// Range conditions
+visibleIf: "income >= 50000 && income <= 100000"
+
+// Array contains
+visibleIf: "interests.includes('technology')"
+
+// Custom functions
+visibleIf: "calculateAge(birthdate) >= 21"
+```
+
+## 📊 Progress Bars
+
+Configure progress indicators:
+
+```tsx
+<SurveyForm
+  survey={data}
+  progressBar={{
+    type: 'percentage',        // 'bar' | 'dots' | 'numbers' | 'percentage'
+    showPercentage: true,      // Show percentage text
+    showStepInfo: true,        // Show "Step 2 of 5"
+    showStepTitles: false,     // Show page titles
+    position: 'top',           // 'top' | 'bottom'
+    animation: true            // Smooth animations
+  }}
+/>
+```
+
+## 🎮 Navigation Controls
+
+Customize navigation buttons:
+
+```tsx
+<SurveyForm
+  survey={data}
+  navigationButtons={{
+    showPrevious: true,
+    showNext: true,
+    showSubmit: true,
+    previousText: "Back",
+    nextText: "Continue",
+    submitText: "Submit Survey",
+    position: "bottom",        // 'bottom' | 'split'
+    align: "right",           // 'left' | 'center' | 'right'
+    style: "default"          // 'default' | 'outlined' | 'text'
+  }}
+/>
+```
+
+## 📱 Mobile Features
+
+### Swipe Navigation
+
+```tsx
+<SurveyForm
+  survey={data}
+  mobileNavigation={{
+    enableSwipeNavigation: true,
+    enableDoubleTapToGoBack: true,
+    showMobileBackButton: true,
+    swipeThreshold: 50
+  }}
+/>
+```
+
+### Mobile-Optimized Layouts
+
+All layouts are mobile-responsive with touch-friendly controls:
+
+- Touch-optimized button sizes
+- Swipe gestures for navigation
+- Responsive breakpoints
+- Mobile-specific UI patterns
+
+## 🔧 Custom Blocks
+
+Create your own block types:
+
+### 1. Define Block Structure
+
+```tsx
+import { BlockDefinition } from 'survey-form-package';
+
+export const StarRatingBlock: BlockDefinition = {
+  type: 'star-rating',
+  name: 'Star Rating',
+  description: 'Visual star rating component',
+  icon: <StarIcon className="w-4 h-4" />,
+  defaultData: {
+    type: 'star-rating',
+    fieldName: 'rating',
+    label: 'Rate your experience',
+    maxStars: 5,
+    allowHalfStars: false,
+    showLabels: true
+  },
+  
+  // Render in the actual survey form
+  renderItem: ({ data, value, onChange }) => (
+    <StarRatingComponent
+      value={value}
+      maxStars={data.maxStars}
+      onChange={onChange}
+      allowHalfStars={data.allowHalfStars}
+      showLabels={data.showLabels}
+    />
+  ),
+  
+  // Configuration form in the builder
+  renderFormFields: ({ data, onUpdate }) => (
+    <div className="space-y-4">
+      <div>
+        <label>Maximum Stars</label>
+        <input 
+          type="number" 
+          value={data.maxStars} 
+          onChange={(e) => onUpdate({
+            ...data, 
+            maxStars: parseInt(e.target.value)
+          })}
+        />
+      </div>
+      <div>
+        <label>
+          <input 
+            type="checkbox" 
+            checked={data.allowHalfStars}
+            onChange={(e) => onUpdate({
+              ...data, 
+              allowHalfStars: e.target.checked
+            })}
+          />
+          Allow half stars
+        </label>
+      </div>
+    </div>
+  ),
+  
+  // Preview in block library
+  renderPreview: () => (
+    <div className="p-2 flex items-center justify-center">
+      <div className="flex space-x-1">
+        {[1,2,3,4,5].map(star => (
+          <StarIcon key={star} className="w-4 h-4 text-yellow-400" />
+        ))}
+      </div>
+    </div>
+  ),
+  
+  // Validation logic
+  validate: (data) => {
+    if (!data.fieldName) return "Field name is required";
+    if (data.maxStars < 1 || data.maxStars > 10) return "Max stars must be between 1 and 10";
+    return null;
+  }
+};
+```
+
+### 2. Create the Renderer Component
+
+```tsx
+import React from 'react';
+import { BlockRendererProps } from 'survey-form-package';
+
+const StarIcon = ({ filled }: { filled: boolean }) => (
+  <svg className={`w-6 h-6 ${filled ? 'text-yellow-400' : 'text-gray-300'}`}>
+    {/* SVG path for star */}
+  </svg>
+);
+
+export const StarRatingRenderer: React.FC<BlockRendererProps> = ({
+  block,
+  value = 0,
+  onChange,
+  error,
+  theme
+}) => {
+  const handleStarClick = (rating: number) => {
+    onChange?.(rating);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className={theme?.field.label}>
+        {block.label}
+      </label>
+      
+      <div className="flex space-x-1">
+        {Array.from({ length: block.maxStars }, (_, index) => {
+          const starValue = index + 1;
+          const isFilled = starValue <= value;
+          
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => handleStarClick(starValue)}
+              className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+            >
+              <StarIcon filled={isFilled} />
+            </button>
+          );
+        })}
+      </div>
+      
+      {block.showLabels && (
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>Poor</span>
+          <span>Excellent</span>
+        </div>
+      )}
+      
+      {error && (
+        <div className={theme?.field.error}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### 3. Register Your Custom Block
+
+```tsx
+import { SurveyForm, StandardBlocks } from 'survey-form-package';
+import { StarRatingBlock } from './StarRatingBlock';
+
+const customBlocks = [...StandardBlocks, StarRatingBlock];
+
+// Use in SurveyBuilder
+<SurveyBuilder blockDefinitions={customBlocks} />
+
+// Or register the renderer for the survey form
+<SurveyForm 
+  survey={data}
+  customComponents={{
+    'star-rating': StarRatingRenderer
+  }}
+/>
+```
+
+## 🌐 Localization
+
+Support multiple languages:
+
+```tsx
+const surveyWithLocalizations = {
+  rootNode: {
+    // ... survey structure
+  },
+  localizations: {
+    en: {
+      "welcome_title": "Welcome to our survey",
+      "name_label": "Full Name",
+      "submit_button": "Submit"
+    },
+    es: {
+      "welcome_title": "Bienvenido a nuestra encuesta",
+      "name_label": "Nombre Completo", 
+      "submit_button": "Enviar"
+    },
+    fr: {
+      "welcome_title": "Bienvenue à notre enquête",
+      "name_label": "Nom Complet",
+      "submit_button": "Soumettre"
+    }
+  }
+};
+
+<SurveyForm 
+  survey={surveyWithLocalizations}
+  language="es"  // Set active language
+/>
+```
+
+Use localized strings in blocks:
+
+```tsx
+{
+  type: "textfield",
+  fieldName: "name",
+  label: "{{name_label}}",  // References localization key
+  placeholder: "{{name_placeholder}}"
+}
+```
+
+## 🎛️ Advanced Configuration
+
+### Form Validation
+
+```tsx
+<SurveyForm
+  survey={data}
+  customValidators={{
+    email: {
+      validate: (value) => {
+        if (!value.includes('@')) return 'Invalid email format';
+        return null;
+      }
+    },
+    phone: {
+      validate: (value) => {
+        if (!/^\d{10}$/.test(value)) return 'Phone must be 10 digits';
+        return null;
+      }
+    }
+  }}
+/>
+```
+
+### Computed Fields
+
+```tsx
+<SurveyForm
+  survey={data}
+  computedFields={{
+    total: {
+      formula: 'price * quantity',
+      dependencies: ['price', 'quantity'],
+      format: (value) => `$${value.toFixed(2)}`
+    },
+    age: {
+      formula: 'Math.floor((Date.now() - new Date(birthdate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))',
+      dependencies: ['birthdate']
+    }
+  }}
+/>
+```
+
+### Auto-scroll Behavior
+
+```tsx
+<SurveyForm
+  survey={data}
+  autoScroll={true}          // Scroll to new content
+  autoFocus={true}           // Focus first input on page change
+  scrollBehavior="smooth"    // Smooth scrolling
+  scrollOffset={100}         // Offset from top
+/>
+```
+
+### Debug Mode
+
+```tsx
+<SurveyForm
+  survey={data}
+  enableDebug={true}  // Shows debug information
+  debug={true}        // Alternative prop name
+/>
+```
+
+## 📚 API Reference
+
+### SurveyForm Props
+
+```tsx
+interface SurveyFormProps {
+  survey: {
+    rootNode: NodeData;
+    localizations?: LocalizationMap;
+    theme?: ThemeDefinition;
+  };
+  onSubmit?: (data: Record<string, any>) => void;
+  onChange?: (data: Record<string, any>) => void;
+  onPageChange?: (pageIndex: number, totalPages: number) => void;
+  defaultValues?: Record<string, any>;
+  language?: string;
+  theme?: SurveyTheme;
+  layout?: SurveyLayout;
+  progressBar?: ProgressBarOptions | boolean;
+  navigationButtons?: NavigationButtonsOptions;
+  autoScroll?: boolean;
+  autoFocus?: boolean;
+  showSummary?: boolean;
+  submitText?: string;
+  className?: string;
+  computedFields?: ComputedFieldsConfig;
+  customValidators?: Record<string, CustomValidator>;
+  customComponents?: Record<string, React.FC<BlockRendererProps>>;
+  mobileNavigation?: MobileNavigationConfig;
+  enableDebug?: boolean;
+  logo?: ReactNode;
+}
+```
+
+### Block Data Interface
+
+```tsx
+interface BlockData {
+  type: string;
+  name?: string;
+  label?: string;
+  description?: string;
+  fieldName?: string;
+  placeholder?: string;
+  text?: string;
+  html?: string;
+  items?: Array<BlockData>;
+  labels?: Array<string>;
+  values?: Array<string | number | boolean>;
+  defaultValue?: any;
+  className?: string;
+  showResults?: boolean;
+  navigationRules?: NavigationRule[];
+  visibleIf?: string;
+  isEndBlock?: boolean;
+  autoContinueOnSelect?: boolean;
+  showContinueButton?: boolean;
+  required?: boolean;
+  validation?: string;
+  [key: string]: any;
+}
+```
+
+### Theme Definition
+
+```tsx
+interface ThemeDefinition {
+  name: SurveyTheme;
+  containerLayout: string;
+  header: string;
+  title: string;
+  description: string;
+  background: string;
+  card: string;
+  field: {
+    label: string;
+    input: string;
+    description: string;
+    error: string;
+    radio: string;
+    checkbox: string;
+    select: string;
+    textarea: string;
+    file: string;
+    matrix: string;
+    range: string;
+    text: string;
+    activeText: string;
+    placeholder: string;
+    // ... additional field styles
+  };
+  container: {
+    card: string;
+    border: string;
+    activeBorder: string;
+    activeBg: string;
+    header: string;
+  };
+  progress: {
+    bar: string;
+    dots: string;
+    numbers: string;
+    percentage: string;
+    label: string;
+  };
+  button: {
+    primary: string;
+    secondary: string;
+    text: string;
+    navigation: string;
+  };
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+    border: string;
+    error: string;
+    success: string;
+  };
+}
+```
+
+## 🔌 Hooks
+
+### useSurveyForm
+
+```tsx
+import { useSurveyForm } from 'survey-form-package';
+
+const {
+  values,              // Current form values
+  errors,              // Validation errors
+  currentPage,         // Current page index
+  currentBlockIndex,   // Current block index
+  totalPages,          // Total number of pages
+  goToPage,           // Navigate to specific page
+  goToNextPage,       // Go to next page
+  goToPreviousPage,   // Go to previous page
+  goToNextBlock,      // Go to next block
+  goToPreviousBlock,  // Go to previous block
+  isFirstPage,        // Is on first page
+  isLastPage,         // Is on last page
+  isSubmitting,       // Is form being submitted
+  isValid,            // Is form valid
+  submit,             // Submit form
+  setValue,           // Set field value
+  setError,           // Set field error
+  language,           // Current language
+  setLanguage,        // Change language
+  theme,              // Current theme
+  surveyData          // Survey data
+} = useSurveyForm(survey, options);
+```
+
+### useMobileNavigation
+
+```tsx
+import { useMobileNavigation } from 'survey-form-package';
+
+const {
+  enableSwipe,        // Enable swipe gestures
+  handleSwipeLeft,    // Handle left swipe
+  handleSwipeRight,   // Handle right swipe
+  swipeDirection,     // Current swipe direction
+  isSwipeEnabled      // Is swipe enabled
+} = useMobileNavigation({
+  onSwipeLeft: () => goToNextPage(),
+  onSwipeRight: () => goToPreviousPage(),
+  threshold: 50       // Swipe threshold in pixels
+});
+```
+
+## 🎯 Examples
+
+### Complete Registration Form
+
+```tsx
+const registrationSurvey = {
+  rootNode: {
+    type: "section",
+    name: "User Registration",
+    uuid: "registration-root",
+    items: [
+      {
+        type: "set",
+        name: "Personal Information",
+        uuid: "personal-info",
+        items: [
+          {
+            type: "textfield",
+            fieldName: "firstName",
+            label: "First Name",
+            required: true,
+            placeholder: "Enter your first name"
+          },
+          {
+            type: "textfield",
+            fieldName: "lastName", 
+            label: "Last Name",
+            required: true,
+            placeholder: "Enter your last name"
+          },
+          {
+            type: "textfield",
+            fieldName: "email",
+            label: "Email Address",
+            required: true,
+            validation: "email",
+            placeholder: "Enter your email"
+          },
+          {
+            type: "datepicker",
+            fieldName: "birthdate",
+            label: "Date of Birth",
+            required: true
+          }
+        ]
+      },
+      {
+        type: "set",
+        name: "Account Setup",
+        uuid: "account-setup",
+        items: [
+          {
+            type: "textfield",
+            fieldName: "username",
+            label: "Username",
+            required: true,
+            placeholder: "Choose a username"
+          },
+          {
+            type: "textfield",
+            fieldName: "password",
+            label: "Password",
+            type: "password",
+            required: true,
+            placeholder: "Enter a secure password"
+          },
+          {
+            type: "checkbox",
+            fieldName: "interests",
+            label: "Select your interests",
+            options: [
+              { id: "tech", label: "Technology", value: "technology" },
+              { id: "sports", label: "Sports", value: "sports" },
+              { id: "music", label: "Music", value: "music" },
+              { id: "travel", label: "Travel", value: "travel" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+<SurveyForm
+  survey={registrationSurvey}
+  theme="modern"
+  layout="stepper"
+  progressBar={{
+    type: 'numbers',
+    showStepTitles: true,
+    position: 'top'
+  }}
+  onSubmit={(data) => {
+    console.log('Registration data:', data);
+    // Handle registration
+  }}
+/>
+```
+
+### Conditional Survey with BMI Calculator
+
+```tsx
+const healthAssessment = {
+  rootNode: {
+    type: "section",
+    name: "Health Assessment",
+    uuid: "health-root",
+    items: [
+      {
+        type: "set",
+        name: "Basic Information",
+        uuid: "basic-info",
+        items: [
+          {
+            type: "radio",
+            fieldName: "hasHealthConcerns",
+            label: "Do you have any current health concerns?",
+            options: [
+              { id: "yes", label: "Yes", value: "yes" },
+              { id: "no", label: "No", value: "no" }
+            ],
+            navigationRules: [
+              {
+                condition: "hasHealthConcerns == 'yes'",
+                target: "health-details",
+                isPage: true
+              },
+              {
+                condition: "hasHealthConcerns == 'no'",
+                target: "bmi-assessment", 
+                isPage: true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        type: "set",
+        name: "Health Details",
+        uuid: "health-details",
+        items: [
+          {
+            type: "textarea",
+            fieldName: "healthConcerns",
+            label: "Please describe your health concerns",
+            placeholder: "Describe any current health issues...",
+            visibleIf: "hasHealthConcerns == 'yes'"
+          }
+        ]
+      },
+      {
+        type: "set",
+        name: "BMI Assessment",
+        uuid: "bmi-assessment",
+        items: [
+          {
+            type: "bmi",
+            fieldName: "bmi_calculator",
+            label: "BMI Assessment",
+            showCategory: true,
+            showRecommendations: true
+          }
+        ]
+      }
+    ]
+  }
+};
+```
+
+## 🧪 Testing
+
+The package is designed to be easily testable:
+
+```tsx
+import { render, fireEvent, screen } from '@testing-library/react';
+import { SurveyForm } from 'survey-form-package';
+
+test('renders survey form correctly', () => {
+  const mockSurvey = {
+    rootNode: {
+      type: "section",
+      name: "Test Survey",
+      items: [
+        {
+          type: "set",
+          name: "Test Page",
+          items: [
+            {
+              type: "textfield",
+              fieldName: "name",
+              label: "Name"
+            }
+          ]
+        }
+      ]
+    }
+  };
+
+  render(<SurveyForm survey={mockSurvey} />);
+  
+  expect(screen.getByLabelText('Name')).toBeInTheDocument();
+});
+
+test('handles form submission', () => {
+  const onSubmit = jest.fn();
+  
+  render(
+    <SurveyForm 
+      survey={mockSurvey} 
+      onSubmit={onSubmit}
+    />
+  );
+  
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'John Doe' }
+  });
+  
+  fireEvent.click(screen.getByText('Submit'));
+  
+  expect(onSubmit).toHaveBeenCalledWith({ name: 'John Doe' });
+});
+```
+
+## 📈 Performance
+
+### Bundle Size Optimization
+
+- **Tree Shaking**: Import only what you need
+- **Code Splitting**: Layouts and components are lazy-loaded
+- **Minimal Dependencies**: Carefully chosen peer dependencies
+
+```tsx
+// Import only specific components to reduce bundle size
+import { SurveyForm } from 'survey-form-package/renderer';
+import { TextInputBlock } from 'survey-form-package/blocks';
+```
+
+### Rendering Performance
+
+- **React.memo**: Components are memoized for optimal re-rendering
+- **useMemo/useCallback**: Expensive calculations are memoized
+- **Virtual Scrolling**: For large surveys with many blocks
+
+## 🔒 Security
+
+### Input Sanitization
+
+All user inputs are automatically sanitized to prevent XSS attacks:
+
+```tsx
+// HTML content is sanitized by default
+{
+  type: "html",
+  html: userInput,  // Automatically sanitized
+  allowDangerousHTML: false  // Set to true only if you trust the source
+}
+```
+
+### Validation
+
+Built-in validation patterns prevent malicious inputs:
+
+```tsx
+{
+  type: "textfield",
+  fieldName: "email",
+  validation: "email",      // Built-in email validation
+  customValidation: (value) => {
+    // Custom validation logic
+    if (value.includes('<script>')) {
+      return 'Invalid characters detected';
+    }
+    return null;
+  }
+}
+```
+
+## 🚀 Migration Guide
+
+### From v0.1.x to v0.2.x
+
+1. **Updated Theme Structure**
+```tsx
+// Before
+theme="default"
+
+// After - same API, enhanced themes
+theme="default"  // Now includes more styling options
+```
+
+2. **New Block Types**
+```tsx
+// New blocks available
+- BMICalculatorBlock
+- CalculatedFieldBlock
+- ConditionalBlock
+- CheckoutBlock
+```
+
+3. **Enhanced Mobile Support**
+```tsx
+// New mobile navigation options
+<SurveyForm
+  survey={data}
+  mobileNavigation={{
+    enableSwipeNavigation: true,
+    showMobileBackButton: true
+  }}
+/>
+```
+
+## 🤝 Contributing
+
+We welcome contributions! To contribute:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Add tests for new functionality
+5. Run tests: `npm test`
+6. Run linting: `npm run lint`
+7. Commit your changes: `git commit -m 'Add amazing feature'`
+8. Push to the branch: `git push origin feature/amazing-feature`
+9. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/UNISELL-DEV/react-survey-builder.git
+cd react-survey-builder/src/packages/survey-form-package
+
+# Install dependencies
+bun install
+
+# Start development mode
+bun run dev
+
+# Run tests
+bun test
+
+# Build package
+bun run build
+```
+
+## 📄 License
+
+This package is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Radix UI** for accessible component primitives
+- **Tailwind CSS** for utility-first styling
+- **Framer Motion** for smooth animations
+- **@dnd-kit** for drag-and-drop functionality
+- **React Hook Form** for form handling inspiration
+
+## 📞 Support
+
+- 📧 **Email**: sayeed99@live.com
+- 🐛 **Issues**: [GitHub Issues](https://github.com/UNISELL-DEV/react-survey-builder/issues)
+
+---
