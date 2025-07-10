@@ -48,6 +48,19 @@ export function surveyToFlow(rootNode: NodeData, enableDebug: boolean = false): 
     hasNavigationRules: boolean;
   }> = [];
 
+  // Add a start node
+  const startNodeId = "start-node";
+  nodes.push({
+    id: startNodeId,
+    type: "start",
+    position: { x: 0, y: 0 }, // Default position, will be overridden by layout
+    data: { 
+      name: "Start", 
+      type: "start",
+      containerSize: { width: 100, height: 60 }
+    }
+  });
+
   if (pagesToProcess.length > 0) {
     debugLog(enableDebug, "Processing pages:", pagesToProcess);
     
@@ -112,7 +125,23 @@ export function surveyToFlow(rootNode: NodeData, enableDebug: boolean = false): 
         data: { ...actualChildNode, containerSize: dynamicPageSize }
       });
       
-      // Skip adding edges from root to pages since we removed the section node
+      // Add edge from start node to first page
+      if (pageIndex === 0) {
+        edges.push({
+          id: `${startNodeId}-${actualChildNode.uuid}`,
+          source: startNodeId,
+          target: actualChildNode.uuid,
+          type: "default",
+          style: {
+            stroke: '#22c55e', // Green color for start connection
+            strokeWidth: 2
+          },
+          data: {
+            label: "Begin Survey",
+            isStartEntry: true
+          }
+        });
+      }
       
       // Process blocks within this page in a smart grid layout
       if (actualChildNode.items && actualChildNode.items.length > 0) {
@@ -469,12 +498,13 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], en
     blockOffset: { x: 20, y: 60 } // Offset of blocks relative to their parent page
   };
   
-  // Separate pages and blocks
+  // Separate different node types
+  const startNodes = layoutNodes.filter(node => node.type === "start");
   const pageNodes = layoutNodes.filter(node => node.type === "set");
   const blockNodes = layoutNodes.filter(node => node.type === "block");
   const submitNodes = layoutNodes.filter(node => node.type === "submit");
   
-  debugLog(enableDebug, "Pages:", pageNodes.length, "Blocks:", blockNodes.length, "Submit:", submitNodes.length);
+  debugLog(enableDebug, "Start:", startNodes.length, "Pages:", pageNodes.length, "Blocks:", blockNodes.length, "Submit:", submitNodes.length);
   
   // Build navigation graph for conditional flows
   const navigationEdges = edges.filter(edge => edge.type === "conditional");
@@ -621,6 +651,16 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], en
     }
   });
   
+  // Position start node
+  if (startNodes.length > 0) {
+    const startX = layout.startPosition.x;
+    const startY = layout.startPosition.y - layout.levelSpacing; // Position above the first level
+    
+    startNodes.forEach(startNode => {
+      startNode.position = { x: startX, y: startY };
+    });
+  }
+
   // Position submit node
   if (submitNodes.length > 0) {
     const maxLevel = Math.max(...Array.from(pageLevels.values()));

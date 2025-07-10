@@ -1,18 +1,27 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { FlowEdge, FlowNode } from "./types";
+import { EdgeDragState } from "./utils/connectionValidation";
 
 interface FlowEdgeComponentProps {
   edge: FlowEdge;
   nodes: FlowNode[];
   zoom: number;
   viewport?: { x: number; y: number; zoom: number };
+  dragState?: EdgeDragState;
+  onEdgeDragStart?: (edgeId: string, position: { x: number; y: number }) => void;
+  onEdgeDragEnd?: (edgeId: string, targetNodeId: string | null) => void;
+  onEdgeDragMove?: (edgeId: string, position: { x: number; y: number }) => void;
 }
 
 export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   edge,
   nodes,
   zoom,
-  viewport
+  viewport,
+  dragState,
+  onEdgeDragStart,
+  onEdgeDragEnd,
+  onEdgeDragMove
 }) => {
   const sourceNode = nodes.find(n => n.id === edge.source);
   const targetNode = nodes.find(n => n.id === edge.target);
@@ -102,6 +111,33 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   
   const markerEnd = isConditional ? "url(#arrowhead-conditional)" : "url(#arrowhead-default)";
 
+  // Handle arrowhead drag start
+  const handleArrowheadDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onEdgeDragStart) {
+      // Get the initial mouse position in world coordinates
+      onEdgeDragStart(edge.id, {
+        x: targetX,
+        y: targetY
+      });
+    }
+  }, [edge.id, onEdgeDragStart, targetX, targetY]);
+
+  // Check if this edge is currently being dragged
+  const isBeingDragged = dragState?.isDragging && dragState.edgeId === edge.id;
+  
+  // Calculate drag line path if this edge is being dragged
+  let dragLinePath = "";
+  if (isBeingDragged && dragState.currentPosition) {
+    const dragX = dragState.currentPosition.x;
+    const dragY = dragState.currentPosition.y;
+    
+    // Create a line from source to current drag position
+    dragLinePath = `M ${sourceX} ${sourceY} L ${dragX} ${dragY}`;
+  }
+
   return (
     <g>
       {/* Edge path */}
@@ -113,7 +149,66 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         strokeDasharray={strokeDasharray}
         className={edge.animated ? "animate-pulse" : ""}
         markerEnd={markerEnd}
+        style={{
+          opacity: isBeingDragged ? 0.5 : 1
+        }}
       />
+
+      {/* Interactive arrowhead area for dragging */}
+      <g style={{ pointerEvents: "all" }}>
+        {/* Invisible larger circle for easier grabbing */}
+        <circle
+          cx={targetX}
+          cy={targetY}
+          r={12}
+          fill="transparent"
+          stroke="transparent"
+          onMouseDown={handleArrowheadDragStart}
+          style={{
+            cursor: isBeingDragged ? "grabbing" : "grab"
+          }}
+        />
+        
+        {/* Visible grab indicator on hover */}
+        <circle
+          cx={targetX}
+          cy={targetY}
+          r={6}
+          fill="transparent"
+          stroke="transparent"
+          className="hover:stroke-primary hover:stroke-2 hover:fill-primary/20"
+          style={{
+            pointerEvents: "none",
+            transition: "all 0.2s ease"
+          }}
+        />
+        
+        {/* Small dot indicator for the connection point */}
+        <circle
+          cx={targetX}
+          cy={targetY}
+          r={2}
+          fill={strokeColor}
+          className="opacity-60 hover:opacity-100"
+          style={{
+            pointerEvents: "none",
+            transition: "opacity 0.2s ease"
+          }}
+        />
+      </g>
+
+      {/* Drag line when dragging */}
+      {isBeingDragged && dragLinePath && (
+        <path
+          d={dragLinePath}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray="5,5"
+          className="animate-pulse"
+          markerEnd={markerEnd}
+        />
+      )}
 
       {/* Edge label with improved styling */}
       {edge.data?.label && !isSequential && (

@@ -494,6 +494,128 @@ export const FlowBuilder: React.FC = () => {
     setShowNodeConfig(true);
   }, []);
 
+  // Handle edge update for connection line pointer dragging
+  const handleEdgeUpdate = useCallback((edgeId: string, newTargetId: string) => {
+    debug.log("Updating edge", edgeId, "to target", newTargetId);
+    
+    // Find the edge in the current flow data
+    const edge = flowData.edges.find(e => e.id === edgeId);
+    if (!edge) {
+      console.warn("Edge not found:", edgeId);
+      return;
+    }
+
+    // For conditional navigation rules, update the block's navigation rules
+    if (edge.type === "conditional") {
+      const sourceNode = flowData.nodes.find(n => n.id === edge.source);
+      if (sourceNode?.type === "block") {
+        const blockData = sourceNode.data as any;
+        const targetNode = flowData.nodes.find(n => n.id === newTargetId);
+        
+        if (targetNode) {
+          // Determine the new target string
+          let newTargetString = "";
+          if (targetNode.type === "submit") {
+            newTargetString = "submit";
+          } else if (targetNode.type === "block") {
+            const targetBlockData = targetNode.data as any;
+            newTargetString = targetBlockData.fieldName || targetBlockData.label || targetNode.id;
+          } else if (targetNode.type === "set") {
+            const targetPageData = targetNode.data as any;
+            newTargetString = targetPageData.name || targetPageData.uuid || targetNode.id;
+          }
+
+          // Update the navigation rule
+          const navigationRules = blockData.navigationRules || [];
+          const condition = edge.data?.condition || "";
+          const isDefault = edge.data?.isDefault || false;
+
+          // Find and update the matching rule
+          const updatedRules = navigationRules.map((rule: any) => {
+            if (rule.condition === condition && rule.isDefault === isDefault) {
+              return {
+                ...rule,
+                target: newTargetString,
+                isPage: targetNode.type === "set"
+              };
+            }
+            return rule;
+          });
+
+          const updatedBlockData = {
+            ...blockData,
+            navigationRules: updatedRules
+          };
+
+          handleNodeUpdate(edge.source, updatedBlockData);
+          debug.log("Updated navigation rule for edge:", edgeId);
+        }
+      }
+    }
+    // Handle page entry connections (from page to first block)
+    else if (edge.type === "default" && edge.data?.isPageEntry) {
+      // For page entry edges, we need to reorder the blocks within the page
+      const sourcePageId = edge.source;
+      const currentTargetBlockId = edge.target;
+      const newTargetBlockId = newTargetId;
+      
+      // Find the page in the survey structure
+      const findAndReorderBlocks = (node: NodeData): NodeData | null => {
+        if (node.uuid === sourcePageId && node.items) {
+          // Extract block indices from IDs
+          const currentBlockMatch = currentTargetBlockId.match(/^(.+)-block-(\d+)$/);
+          const newBlockMatch = newTargetBlockId.match(/^(.+)-block-(\d+)$/);
+          
+          if (currentBlockMatch && newBlockMatch) {
+            const currentBlockIndex = parseInt(currentBlockMatch[2]);
+            const newBlockIndex = parseInt(newBlockMatch[2]);
+            
+            // Reorder the blocks array
+            const updatedItems = [...node.items];
+            const [movedBlock] = updatedItems.splice(currentBlockIndex, 1);
+            updatedItems.splice(newBlockIndex, 0, movedBlock);
+            
+            return {
+              ...node,
+              items: updatedItems
+            };
+          }
+        }
+        
+        // Search in nested items
+        if (node.items) {
+          for (let i = 0; i < node.items.length; i++) {
+            const item = node.items[i];
+            if (item.type === 'set' && typeof item !== 'string') {
+              const updated = findAndReorderBlocks(item as NodeData);
+              if (updated) {
+                const updatedItems = [...node.items];
+                updatedItems[i] = updated;
+                return {
+                  ...node,
+                  items: updatedItems
+                };
+              }
+            }
+          }
+        }
+        
+        return null;
+      };
+      
+      if (state.rootNode) {
+        const updatedRootNode = findAndReorderBlocks(state.rootNode);
+        if (updatedRootNode) {
+          updateNode(state.rootNode.uuid!, updatedRootNode);
+        }
+      }
+    }
+    // For other edge types (sequential, etc.)
+    else {
+      debug.log("Edge update not implemented for edge type:", edge.type);
+    }
+  }, [flowData.edges, flowData.nodes, handleNodeUpdate]);
+
   // Handle connection creation for navigation rules
   const handleConnectionCreate = useCallback((sourceNodeId: string, targetNodeId: string) => {
     debug.log("Creating connection from", sourceNodeId, "to", targetNodeId);
@@ -642,6 +764,7 @@ export const FlowBuilder: React.FC = () => {
             onModeChange={handleModeChange}
             onFitView={fitViewRef}
             onConnectionCreate={handleConnectionCreate}
+            onEdgeUpdate={handleEdgeUpdate}
             enableDebug={state.enableDebug}
           />
         </div>

@@ -3,6 +3,7 @@ import { FlowNode, FlowEdge, FlowMode } from "./types";
 import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
 import { debugLog } from "../../utils/debugUtils";
+import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
 
 interface FlowCanvasProps {
   nodes: FlowNode[];
@@ -18,6 +19,7 @@ interface FlowCanvasProps {
   onModeChange: (mode: FlowMode) => void;
   onFitView?: React.MutableRefObject<(() => void) | undefined>;
   onConnectionCreate?: (sourceNodeId: string, targetNodeId: string) => void;
+  onEdgeUpdate?: (edgeId: string, newTarget: string) => void;
   enableDebug?: boolean;
 }
 
@@ -35,6 +37,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   onModeChange,
   onFitView,
   onConnectionCreate,
+  onEdgeUpdate,
   enableDebug = false
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -58,6 +61,11 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     currentMousePos?: { x: number; y: number };
   }>({
     isConnecting: false
+  });
+  
+  // Edge drag state for connection line pointer dragging
+  const [edgeDragState, setEdgeDragState] = useState<EdgeDragState>({
+    isDragging: false
   });
   
   // Track if mouse is over canvas for better scroll handling
@@ -159,6 +167,79 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     // Clear drag over state
     setDragOverPageId(null);
   }, [onNodeCreate, viewport, findPageAtPosition]);
+
+  // Handle edge drag start
+  const handleEdgeDragStart = useCallback((edgeId: string, initialPosition: { x: number; y: number }) => {
+    const edge = edges.find(e => e.id === edgeId);
+    if (!edge) return;
+    
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    if (!sourceNode) return;
+    
+    // Get valid targets for this edge
+    const validTargets = getValidTargets(sourceNode, edge.type || "default", nodes, edges, edgeId);
+    
+    console.log(`Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
+    console.log(`Initial position:`, initialPosition);
+    console.log(`Valid targets:`, validTargets);
+    console.log(`Viewport:`, viewport);
+    
+    debugLog(enableDebug, `Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
+    debugLog(enableDebug, `Valid targets:`, validTargets);
+    
+    setEdgeDragState({
+      isDragging: true,
+      edgeId,
+      originalTarget: edge.target,
+      currentPosition: initialPosition,
+      validTargets
+    });
+  }, [edges, nodes, enableDebug, viewport]);
+
+  // Handle edge drag move
+  const handleEdgeDragMove = useCallback((edgeId: string, position: { x: number; y: number }) => {
+    if (edgeDragState.isDragging && edgeDragState.edgeId === edgeId) {
+      setEdgeDragState(prev => ({
+        ...prev,
+        currentPosition: position
+      }));
+    }
+  }, [edgeDragState]);
+
+  // Handle edge drag end
+  const handleEdgeDragEnd = useCallback((edgeId: string, targetNodeId: string | null) => {
+    if (!edgeDragState.isDragging || edgeDragState.edgeId !== edgeId) return;
+    
+    const edge = edges.find(e => e.id === edgeId);
+    if (!edge) {
+      setEdgeDragState({ isDragging: false });
+      return;
+    }
+    
+    if (targetNodeId && targetNodeId !== edge.target) {
+      // Validate the connection
+      const validation = validateConnectionWithFeedback(
+        edge.source,
+        targetNodeId,
+        edge.type || "default",
+        nodes,
+        edges,
+        edgeId
+      );
+      
+      if (validation.isValid) {
+        debugLog(enableDebug, `Updating edge ${edgeId} from ${edge.target} to ${targetNodeId}`);
+        if (onEdgeUpdate) {
+          onEdgeUpdate(edgeId, targetNodeId);
+        }
+      } else {
+        debugLog(enableDebug, `Invalid connection: ${validation.message}`);
+        // Could show a toast notification here
+      }
+    }
+    
+    setEdgeDragState({ isDragging: false });
+  }, [edgeDragState, edges, nodes, onEdgeUpdate, enableDebug]);
 
   // Get boundary constraints for a node
   const getBoundaryConstraints = useCallback((nodeId: string) => {
@@ -274,7 +355,27 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     e.preventDefault(); // Prevent text selection and other browser defaults
     e.stopPropagation(); // Prevent event bubbling
     
-    if (dragState.isDragging && dragState.nodeId) {
+    if (edgeDragState.isDragging && edgeDragState.edgeId) {
+      // Edge dragging - convert screen coordinates to world coordinates
+      const rect = canvasRef.current!.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      
+      // Convert from screen coordinates to world coordinates
+      const worldX = (screenX - viewport.x) / viewport.zoom;
+      const worldY = (screenY - viewport.y) / viewport.zoom;
+      
+      console.log("Edge drag move:", { 
+        screenX, 
+        screenY,
+        viewport, 
+        worldX, 
+        worldY,
+        edgeId: edgeDragState.edgeId
+      });
+      
+      handleEdgeDragMove(edgeDragState.edgeId, { x: worldX, y: worldY });
+    } else if (dragState.isDragging && dragState.nodeId) {
       // Node dragging with boundary constraints - simplified for performance
       const rect = canvasRef.current!.getBoundingClientRect();
       const rawX = (e.clientX - rect.left - viewport.x - (dragState.offset?.x || 0)) / viewport.zoom;
@@ -312,18 +413,95 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     if (e) {
       e.stopPropagation(); // Prevent event bubbling
     }
+    
+    // Handle edge drag end
+    if (edgeDragState.isDragging && edgeDragState.edgeId) {
+      let targetNodeId: string | null = null;
+      
+      // Check if we're dropping on a valid target node
+      if (e) {
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+        const x = (screenX - viewport.x) / viewport.zoom;
+        const y = (screenY - viewport.y) / viewport.zoom;
+        
+        console.log("Edge drag end at:", { screenX, screenY, worldX: x, worldY: y });
+        
+        // Find the node at this position - prioritize blocks over pages
+        const hitNodes = nodes.filter(node => {
+          const nodeData = node.data as any;
+          const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
+          
+          // Give blocks a more forgiving hit area (expand by 20px on all sides)
+          const padding = node.type === "block" ? 20 : 0;
+          
+          const hitTest = x >= (node.position.x - padding) && 
+                         x <= (node.position.x + containerSize.width + padding) &&
+                         y >= (node.position.y - padding) && 
+                         y <= (node.position.y + containerSize.height + padding);
+          
+          if (node.type === "block" || hitTest) {
+            console.log(`Hit test for node ${node.id}:`, {
+              nodePos: node.position,
+              containerSize,
+              mousePos: { x, y },
+              hitTest,
+              nodeType: node.type,
+              isValidTarget: edgeDragState.validTargets?.includes(node.id),
+              padding: padding,
+              bounds: {
+                left: node.position.x - padding,
+                right: node.position.x + containerSize.width + padding,
+                top: node.position.y - padding,
+                bottom: node.position.y + containerSize.height + padding
+              }
+            });
+          }
+          
+          return hitTest;
+        });
+        
+        // Prioritize blocks over pages, and only consider valid targets
+        const targetNode = hitNodes.find(node => 
+          node.type === "block" && edgeDragState.validTargets?.includes(node.id)
+        ) || hitNodes.find(node => 
+          edgeDragState.validTargets?.includes(node.id)
+        );
+        
+        if (targetNode && edgeDragState.validTargets?.includes(targetNode.id)) {
+          targetNodeId = targetNode.id;
+          console.log("Valid target found:", targetNodeId);
+        } else {
+          console.log("No valid target found or not in valid targets list");
+        }
+      }
+      
+      handleEdgeDragEnd(edgeDragState.edgeId, targetNodeId);
+    }
+    
     setDragState({ isDragging: false });
     setIsPanning(false);
-  }, []);
+  }, [edgeDragState, nodes, viewport, handleEdgeDragEnd]);
 
   // Handle mouse leave to stop dragging/panning when leaving inner canvas
   const handleCanvasInnerMouseLeave = useCallback(() => {
     setDragState({ isDragging: false });
     setIsPanning(false);
-  }, []);
+    
+    // Also stop edge dragging
+    if (edgeDragState.isDragging && edgeDragState.edgeId) {
+      handleEdgeDragEnd(edgeDragState.edgeId, null);
+    }
+  }, [edgeDragState, handleEdgeDragEnd]);
 
   // Handle pan start
   const handlePanStart = useCallback((e: React.MouseEvent) => {
+    // Don't allow panning if we're dragging an edge
+    if (edgeDragState.isDragging) {
+      return;
+    }
+    
     // Allow panning when:
     // 1. In pan mode and clicking on canvas background
     // 2. Middle mouse button anywhere
@@ -346,7 +524,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       e.preventDefault();
       e.stopPropagation(); // Prevent event bubbling
     }
-  }, [mode]);
+  }, [mode, edgeDragState.isDragging]);
 
   // Handle zoom with better control
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -438,6 +616,75 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     }
   }, [fitView, onFitView]);
 
+  // Global mouse event handling for edge dragging
+  React.useEffect(() => {
+    if (!edgeDragState.isDragging) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!canvasRef.current || !edgeDragState.isDragging) return;
+      
+      const rect = canvasRef.current.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldX = (screenX - viewport.x) / viewport.zoom;
+      const worldY = (screenY - viewport.y) / viewport.zoom;
+      
+      console.log("Global mouse move during edge drag:", { screenX, screenY, worldX, worldY });
+      
+      if (edgeDragState.edgeId) {
+        handleEdgeDragMove(edgeDragState.edgeId, { x: worldX, y: worldY });
+      }
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (!canvasRef.current || !edgeDragState.isDragging || !edgeDragState.edgeId) return;
+      
+      const rect = canvasRef.current.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldX = (screenX - viewport.x) / viewport.zoom;
+      const worldY = (screenY - viewport.y) / viewport.zoom;
+      
+      console.log("Global mouse up during edge drag:", { screenX, screenY, worldX, worldY });
+      
+      // Find target node - prioritize blocks over pages
+      let targetNodeId: string | null = null;
+      const hitNodes = nodes.filter(node => {
+        const nodeData = node.data as any;
+        const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
+        
+        // Give blocks a more forgiving hit area
+        const padding = node.type === "block" ? 20 : 0;
+        
+        return worldX >= (node.position.x - padding) && 
+               worldX <= (node.position.x + containerSize.width + padding) &&
+               worldY >= (node.position.y - padding) && 
+               worldY <= (node.position.y + containerSize.height + padding);
+      });
+      
+      const targetNode = hitNodes.find(node => 
+        node.type === "block" && edgeDragState.validTargets?.includes(node.id)
+      ) || hitNodes.find(node => 
+        edgeDragState.validTargets?.includes(node.id)
+      );
+      
+      if (targetNode && edgeDragState.validTargets?.includes(targetNode.id)) {
+        targetNodeId = targetNode.id;
+        console.log("Global valid target found:", targetNodeId);
+      }
+      
+      handleEdgeDragEnd(edgeDragState.edgeId, targetNodeId);
+    };
+
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [edgeDragState.isDragging, edgeDragState.edgeId, edgeDragState.validTargets, viewport, nodes, handleEdgeDragMove, handleEdgeDragEnd]);
+
   // Keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -488,9 +735,13 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         nodes={nodes}
         zoom={viewport.zoom}
         viewport={viewport}
+        dragState={edgeDragState}
+        onEdgeDragStart={handleEdgeDragStart}
+        onEdgeDragMove={handleEdgeDragMove}
+        onEdgeDragEnd={handleEdgeDragEnd}
       />
     ));
-  }, [edges, nodes, viewport]);
+  }, [edges, nodes, viewport, edgeDragState, handleEdgeDragStart, handleEdgeDragMove, handleEdgeDragEnd]);
 
   // Handle context menu to prevent interference with right-click panning
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -510,7 +761,12 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     // Stop any active dragging/panning
     setDragState({ isDragging: false });
     setIsPanning(false);
-  }, []);
+    
+    // Also stop edge dragging
+    if (edgeDragState.isDragging && edgeDragState.edgeId) {
+      handleEdgeDragEnd(edgeDragState.edgeId, null);
+    }
+  }, [edgeDragState, handleEdgeDragEnd]);
 
   return (
     <div 
@@ -578,14 +834,49 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
             </div>
           )}
 
+          {/* Valid drop targets visualization when dragging edges */}
+          {edgeDragState.isDragging && edgeDragState.validTargets && (
+            <>
+              {edgeDragState.validTargets.map(targetId => {
+                const targetNode = nodes.find(n => n.id === targetId);
+                if (!targetNode) return null;
+                
+                const nodeData = targetNode.data as any;
+                const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
+                
+                return (
+                  <div
+                    key={targetId}
+                    className="absolute border-4 border-green-500 border-solid bg-green-500/30 pointer-events-none rounded"
+                    style={{
+                      left: targetNode.position.x - 8,
+                      top: targetNode.position.y - 8,
+                      width: containerSize.width + 16,
+                      height: containerSize.height + 16,
+                      zIndex: 15
+                    }}
+                  >
+                    <div className="absolute -top-8 left-2 text-sm font-bold text-green-800 bg-green-100 px-3 py-1 rounded shadow-lg border border-green-500">
+                      🎯 {targetNode.type} 
+                    </div>
+                    <div className="absolute top-2 left-2 text-xs text-green-700 bg-white/90 px-1 rounded">
+                      {targetId.includes('block-') ? `Block ${targetId.split('block-')[1]}` : targetId}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
           {/* Edges */}
           <svg 
-            className="absolute inset-0 pointer-events-none" 
+            className="absolute inset-0" 
             style={{ 
               width: "100%", 
               height: "100%",
               zIndex: 5,
-              overflow: "visible"
+              overflow: "visible",
+              pointerEvents: "none"
             }}
           >
             

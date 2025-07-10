@@ -4,7 +4,7 @@ export type FlowMode = "select" | "connect" | "pan";
 
 export interface FlowNode {
   id: string;
-  type: "section" | "set" | "block" | "submit";
+  type: "section" | "set" | "block" | "submit" | "start";
   position: { x: number; y: number };
   data: NodeData | BlockData | { name: string; type: string; containerSize?: { width: number; height: number } };
   selected?: boolean;
@@ -29,6 +29,7 @@ export interface FlowEdge {
     isDefault?: boolean;
     isSequential?: boolean;
     isPageEntry?: boolean;
+    isStartEntry?: boolean;
   };
 }
 

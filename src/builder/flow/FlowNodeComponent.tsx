@@ -86,6 +86,23 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       );
     }
 
+    if (node.type === "start") {
+      const nodeData = node.data as { name: string; type: string };
+      return (
+        <div className="flow-node-start h-full">
+          <div className="flex items-center gap-2 p-2 bg-blue-100 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+            <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
+            <span className="font-medium text-xs text-blue-900 dark:text-blue-100">Start</span>
+          </div>
+          <div className="p-2">
+            <div className="text-xs font-medium text-foreground text-center">
+              {nodeData.name || "Start Survey"}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (node.type === "submit") {
       const nodeData = node.data as { name: string; type: string };
       return (
@@ -193,6 +210,16 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       };
     }
 
+    if (node.type === "start") {
+      return {
+        ...baseStyle,
+        width: containerSize?.width || 100,
+        height: containerSize?.height || 60,
+        minWidth: 80,
+        minHeight: 50
+      };
+    }
+
     if (node.type === "submit") {
       return {
         ...baseStyle,
@@ -235,6 +262,10 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
     }
 
+    if (node.type === "start") {
+      return `${baseClasses} bg-card border border-blue-200 dark:border-blue-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
+    }
+
     if (node.type === "submit") {
       return `${baseClasses} bg-card border border-destructive/20 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
     }
@@ -264,6 +295,12 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
         </>
       )}
 
+      {node.type === "start" && (
+        <>
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full border border-background shadow-sm" title="Output connection"></div>
+        </>
+      )}
+
       {node.type === "submit" && (
         <>
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-destructive rounded-full border border-background shadow-sm" title="Input connection"></div>
@@ -276,7 +313,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       </div>
 
       {/* Node controls */}
-      {selected && node.type !== "submit" && node.type !== "set" && (
+      {selected && node.type !== "submit" && node.type !== "set" && node.type !== "start" && (
         <div className="absolute -top-3 -right-3 flex gap-1">
           <Button
             type="button"
