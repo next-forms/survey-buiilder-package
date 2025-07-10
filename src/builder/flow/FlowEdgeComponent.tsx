@@ -31,11 +31,23 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   }
   
 
-  // Get node sizes from their data
+  // Get node sizes from their data and apply zoom scaling
   const sourceData = sourceNode.data as any;
   const targetData = targetNode.data as any;
-  const sourceSize = sourceData?.containerSize || { width: 120, height: 60 };
-  const targetSize = targetData?.containerSize || { width: 120, height: 60 };
+  const baseSourceSize = sourceData?.containerSize || { width: 120, height: 60 };
+  const baseTargetSize = targetData?.containerSize || { width: 120, height: 60 };
+  
+  // Apply zoom scaling to match how nodes are actually rendered
+  // FlowNodeComponent applies: transform: scale(Math.max(0.7, Math.min(1, zoom)))
+  const nodeZoomScale = Math.max(0.7, Math.min(1, zoom));
+  const sourceSize = {
+    width: baseSourceSize.width * nodeZoomScale,
+    height: baseSourceSize.height * nodeZoomScale
+  };
+  const targetSize = {
+    width: baseTargetSize.width * nodeZoomScale,
+    height: baseTargetSize.height * nodeZoomScale
+  };
 
   // Determine edge style based on type and custom styles first
   const isConditional = edge.type === "conditional";
