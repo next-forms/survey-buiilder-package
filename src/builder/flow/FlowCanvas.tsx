@@ -10,6 +10,7 @@ interface FlowCanvasProps {
   edges: FlowEdge[];
   mode: FlowMode;
   selectedNodeId: string | null;
+  activePageId?: string | null;
   onNodeCreate: (position: { x: number; y: number }, nodeType: string, targetPageId?: string) => void;
   onNodeSelect: (nodeId: string) => void;
   onNodeUpdate: (nodeId: string, data: any) => void;
@@ -28,6 +29,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   edges,
   mode,
   selectedNodeId,
+  activePageId,
   onNodeCreate,
   onNodeSelect,
   onNodeUpdate,
@@ -792,6 +794,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         key={node.id}
         node={node}
         selected={selectedNodeId === node.id}
+        isActive={activePageId === node.id && node.type === "set"}
         onSelect={handleNodeSelectWithConnection}
         onDragStart={handleNodeDragStart}
         onDelete={onNodeDelete}
@@ -802,7 +805,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         connectionSourceId={connectionState.sourceNodeId}
       />
     ));
-  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, onNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
+  }, [nodes, selectedNodeId, activePageId, handleNodeSelectWithConnection, handleNodeDragStart, onNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
 
   const renderedEdges = useMemo(() => {
     return edges.map(edge => (

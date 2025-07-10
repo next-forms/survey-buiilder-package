@@ -9,6 +9,7 @@ import { useBuilderDebug } from "../../utils/debugUtils";
 interface FlowNodeComponentProps {
   node: FlowNode;
   selected: boolean;
+  isActive?: boolean;
   onSelect: (nodeId: string) => void;
   onDragStart: (e: React.MouseEvent, nodeId: string) => void;
   onDelete: (nodeId: string) => void;
@@ -22,6 +23,7 @@ interface FlowNodeComponentProps {
 export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
   node,
   selected,
+  isActive = false,
   onSelect,
   onDragStart,
   onDelete,
@@ -127,10 +129,16 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
           <div className="flex items-center gap-2 p-2 bg-green-100 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
             <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
             <span className="font-medium text-xs text-green-900 dark:text-green-100">{nodeData.name || "Untitled Page"}</span>
+            {isActive && (
+              <div className="ml-auto">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" title="Active page - new blocks will be added here"></div>
+              </div>
+            )}
           </div>
           <div className="p-2">
             <div className="text-xs text-muted-foreground mt-1">
               {nodeData.items?.length || 0} blocks
+              {isActive && <span className=" text-blue-600 font-medium"> • Active</span>}
             </div>
           </div>
         </div>
@@ -240,6 +248,9 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     const selectedClasses = selected ? "border-primary shadow-xl ring-2 ring-primary/20" : "border-border hover:border-accent";
     const dragOverClasses = isDragOver ? "ring-4 ring-green-400 border-green-500 bg-green-100/70 dark:bg-green-900/70 shadow-xl shadow-green-400/20" : "";
     
+    // Active page styling - subtle highlight for the current active page
+    const activeClasses = isActive && node.type === "set" ? "ring-2 ring-blue-300 border-blue-400 bg-blue-50/30 dark:bg-blue-900/30" : "";
+    
     // Connection state styling
     const isConnectionSource = connectionSourceId === node.id;
     const canBeTarget = isConnecting && connectionSourceId !== node.id && 
@@ -252,7 +263,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     }
     
     if (node.type === "set") {
-      return `${baseClasses} bg-card border-2 border-green-200 dark:border-green-800 rounded-lg shadow-lg ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
+      return `${baseClasses} bg-card border-2 border-green-200 dark:border-green-800 rounded-lg shadow-lg ${selectedClasses} ${dragOverClasses} ${connectionClasses} ${activeClasses}`;
     }
     
     if (node.type === "block") {

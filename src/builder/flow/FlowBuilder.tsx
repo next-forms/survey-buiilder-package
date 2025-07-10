@@ -17,6 +17,7 @@ export const FlowBuilder: React.FC = () => {
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const [showNodeConfig, setShowNodeConfig] = useState(false);
   const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
+  const [activePageId, setActivePageId] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   
   // Convert survey structure to flow format with positions
@@ -41,6 +42,17 @@ export const FlowBuilder: React.FC = () => {
     
     return data;
   }, [state.rootNode, nodePositions]);
+
+  // Auto-set active page when flow loads or when no active page is set
+  React.useEffect(() => {
+    if (flowData.nodes.length > 0 && !activePageId) {
+      const firstPage = flowData.nodes.find(node => node.type === "set");
+      if (firstPage) {
+        setActivePageId(firstPage.id);
+        debug.log("Auto-selected active page:", firstPage.id);
+      }
+    }
+  }, [flowData.nodes, activePageId]);
 
   // Track previous flow data to detect changes
   const prevFlowDataRef = React.useRef<{ nodeCount: number; pageCount: number; blockCount: number }>({
@@ -244,15 +256,54 @@ export const FlowBuilder: React.FC = () => {
       }
       
       if (!targetPage) {
-        // Fallback to first available page - check items array first
-        const pageFromItems = state.rootNode.items?.find(item => item.type === 'set') as NodeData;
-        if (pageFromItems) {
-          targetPage = pageFromItems;
-        } else {
-          // Fallback to nodes array
-          targetPage = state.rootNode.nodes?.[0] as NodeData;
-          if (targetPage && typeof targetPage === 'string') {
-            targetPage = null;
+        // Try to use the active page first
+        if (activePageId) {
+          const findPageById = (node: NodeData, id: string): NodeData | null => {
+            if (node.uuid === id) return node;
+            
+            // Check in items (for nested pages)
+            if (node.items) {
+              for (const item of node.items) {
+                if (item.type === 'set' && typeof item !== 'string') {
+                  const found = findPageById(item as NodeData, id);
+                  if (found) return found;
+                }
+              }
+            }
+            
+            // Check in child nodes
+            if (node.nodes) {
+              for (const childNode of node.nodes) {
+                if (typeof childNode !== 'string') {
+                  const found = findPageById(childNode, id);
+                  if (found) return found;
+                }
+              }
+            }
+            
+            return null;
+          };
+          
+          targetPage = findPageById(state.rootNode, activePageId);
+          if (targetPage) {
+            debug.log("Using active page for block creation:", activePageId);
+          }
+        }
+        
+        // Fallback to first available page if no active page or active page not found
+        if (!targetPage) {
+          const pageFromItems = state.rootNode.items?.find(item => item.type === 'set') as NodeData;
+          if (pageFromItems) {
+            targetPage = pageFromItems;
+            debug.log("Fallback to first page in items:", pageFromItems.uuid);
+          } else {
+            // Fallback to nodes array
+            targetPage = state.rootNode.nodes?.[0] as NodeData;
+            if (targetPage && typeof targetPage === 'string') {
+              targetPage = null;
+            } else if (targetPage) {
+              debug.log("Fallback to first page in nodes:", targetPage.uuid);
+            }
           }
         }
       }
@@ -292,13 +343,33 @@ export const FlowBuilder: React.FC = () => {
         debug.error("No page available to add block to");
       }
     }
-  }, [createNode, updateNode, state.rootNode, state.definitions]);
+  }, [createNode, updateNode, state.rootNode, state.definitions, activePageId]);
 
   // Handle node selection
   const handleNodeSelect = useCallback((nodeId: string) => {
     debug.log("Node selected:", nodeId);
     setSelectedNodeId(nodeId || null);
-  }, []);
+    
+    // Update active page based on selection
+    if (nodeId) {
+      const selectedNode = flowData.nodes.find(n => n.id === nodeId);
+      if (selectedNode) {
+        if (selectedNode.type === "set") {
+          // If a page is selected, make it the active page
+          setActivePageId(nodeId);
+          debug.log("Set active page from selection:", nodeId);
+        } else if (selectedNode.type === "block") {
+          // If a block is selected, determine its parent page and make that active
+          const blockMatch = nodeId.match(/^(.+)-block-(\d+)$/);
+          if (blockMatch) {
+            const pageId = blockMatch[1];
+            setActivePageId(pageId);
+            debug.log("Set active page from block selection:", pageId);
+          }
+        }
+      }
+    }
+  }, [flowData.nodes]);
 
   // Handle node update
   const handleNodeUpdate = useCallback((nodeId: string, data: any) => {
@@ -931,6 +1002,7 @@ export const FlowBuilder: React.FC = () => {
             edges={flowData.edges}
             mode={flowMode}
             selectedNodeId={selectedNodeId}
+            activePageId={activePageId}
             onNodeCreate={handleNodeCreate}
             onNodeSelect={handleNodeSelect}
             onNodeUpdate={handleNodeUpdate}
