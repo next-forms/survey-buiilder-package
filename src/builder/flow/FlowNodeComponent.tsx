@@ -312,7 +312,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       {/* Node controls */}
       {selected && node.type !== "submit" && node.type !== "start" && (
         <div className="absolute -top-3 -right-3 flex gap-1">
-          { node.type !== "set" ? <Button
+          <Button
             type="button"
             size="sm"
             variant="outline"
@@ -322,7 +322,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
             title="Configure Node"
           >
             <Settings className="w-3.5 h-3.5" />
-          </Button> : null }
+          </Button>
           {node.type !== "section" && (
             <Button
               type="button"
