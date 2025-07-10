@@ -46,8 +46,12 @@ export function validateConnection(
       return validateSequentialConnection(sourceNode, targetNode, allNodes);
     
     case "default":
-      if (edge.data?.isPageEntry) {
+      if (edge.data?.isStartEntry) {
+        return validateStartEntryConnection(sourceNode, targetNode);
+      } else if (edge.data?.isPageEntry) {
         return validatePageEntryConnection(sourceNode, targetNode);
+      } else if (edge.data?.isPageToPage) {
+        return validatePageToPageConnection(sourceNode, targetNode);
       }
       return validateDefaultConnection(sourceNode, targetNode);
     
@@ -134,6 +138,26 @@ function validateSequentialConnection(
 }
 
 /**
+ * Validates start entry connections (from start to pages)
+ */
+function validateStartEntryConnection(
+  sourceNode: FlowNode,
+  targetNode: FlowNode
+): ConnectionValidationResult {
+  // Source must be a start node
+  if (sourceNode.type !== "start") {
+    return { isValid: false, reason: "Start entry connections must start from a start node" };
+  }
+
+  // Target must be a page
+  if (targetNode.type !== "set") {
+    return { isValid: false, reason: "Start entry connections must target a page" };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Validates page entry connections (from page to first block)
  */
 function validatePageEntryConnection(
@@ -160,6 +184,26 @@ function validatePageEntryConnection(
 }
 
 /**
+ * Validates page-to-page connections (direct page connections)
+ */
+function validatePageToPageConnection(
+  sourceNode: FlowNode,
+  targetNode: FlowNode
+): ConnectionValidationResult {
+  // Source must be a page
+  if (sourceNode.type !== "set") {
+    return { isValid: false, reason: "Page-to-page connections must start from a page" };
+  }
+
+  // Target must be a page
+  if (targetNode.type !== "set") {
+    return { isValid: false, reason: "Page-to-page connections must target a page" };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Validates default connections
  */
 function validateDefaultConnection(
@@ -168,6 +212,7 @@ function validateDefaultConnection(
 ): ConnectionValidationResult {
   // Most flexible validation - allow connections between compatible types
   const validConnections = {
+    "start": ["set"], // Start can connect to pages
     "set": ["block"], // Pages can connect to blocks
     "block": ["block", "set", "submit"], // Blocks can connect to blocks, pages, or submit
     "submit": [] // Submit nodes don't have outgoing connections

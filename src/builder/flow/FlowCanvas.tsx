@@ -563,6 +563,49 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     }
   }, [viewport]);
 
+  // Handle zoom in/out with buttons
+  const handleZoomIn = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const zoomFactor = 1.2;
+    const newZoom = Math.min(3, viewport.zoom * zoomFactor);
+    
+    if (newZoom === viewport.zoom) return;
+    
+    // Zoom towards center
+    const zoomRatio = newZoom / viewport.zoom;
+    setViewport(prev => ({
+      ...prev,
+      zoom: newZoom,
+      x: centerX - (centerX - prev.x) * zoomRatio,
+      y: centerY - (centerY - prev.y) * zoomRatio
+    }));
+  }, [viewport]);
+
+  const handleZoomOut = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const zoomFactor = 1 / 1.2;
+    const newZoom = Math.max(0.2, viewport.zoom * zoomFactor);
+    
+    if (newZoom === viewport.zoom) return;
+    
+    // Zoom towards center
+    const zoomRatio = newZoom / viewport.zoom;
+    setViewport(prev => ({
+      ...prev,
+      zoom: newZoom,
+      x: centerX - (centerX - prev.x) * zoomRatio,
+      y: centerY - (centerY - prev.y) * zoomRatio
+    }));
+  }, [viewport]);
+
   // Fit view to show all nodes
   const fitView = useCallback(() => {
     if (nodes.length === 0 || !canvasRef.current) return;
@@ -878,6 +921,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
               overflow: "visible",
               pointerEvents: "none"
             }}
+            preserveAspectRatio="none"
           >
             
             {renderedEdges}
@@ -950,6 +994,29 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           <div className="relative">
             {renderedNodes}
           </div>
+        </div>
+      </div>
+
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+        <div className="flex flex-col">
+          <button
+            onClick={handleZoomIn}
+            className="px-3 py-2 text-lg font-bold text-foreground hover:bg-accent rounded-t-lg transition-colors"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <div className="px-3 py-1 text-xs text-center text-muted-foreground border-t border-b border-border">
+            {Math.round(viewport.zoom * 100)}%
+          </div>
+          <button
+            onClick={handleZoomOut}
+            className="px-3 py-2 text-lg font-bold text-foreground hover:bg-accent rounded-b-lg transition-colors"
+            title="Zoom Out"
+          >
+            −
+          </button>
         </div>
       </div>
 

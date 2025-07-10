@@ -30,6 +30,7 @@ export interface FlowEdge {
     isSequential?: boolean;
     isPageEntry?: boolean;
     isStartEntry?: boolean;
+    isPageToPage?: boolean;
   };
 }
 

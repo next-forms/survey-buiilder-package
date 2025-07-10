@@ -552,6 +552,144 @@ export const FlowBuilder: React.FC = () => {
         }
       }
     }
+    // Handle page-to-page connections (direct page reordering)
+    else if (edge.type === "default" && edge.data?.isPageToPage) {
+      // For page-to-page edges, we need to reorder the pages
+      const currentTargetPageId = edge.target;
+      const newTargetPageId = newTargetId;
+      
+      debug.log(`Reordering pages via page-to-page connection: moving page ${newTargetPageId} to position 0 (was ${currentTargetPageId})`);
+      
+      // Find and reorder pages in the survey structure
+      const findAndReorderPages = (node: NodeData): NodeData | null => {
+        if (node.items) {
+          // Find pages in the items array
+          const pages = node.items.filter(item => item.type === 'set');
+          const nonPages = node.items.filter(item => item.type !== 'set');
+          
+          if (pages.length > 0) {
+            debug.log(`Original page order:`, pages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
+            
+            // Find the target page to move
+            const targetPageIndex = pages.findIndex(page => (page as NodeData).uuid === newTargetPageId);
+            
+            if (targetPageIndex >= 0) {
+              // Remove the target page and insert at beginning
+              const updatedPages = [...pages];
+              const [targetPage] = updatedPages.splice(targetPageIndex, 1);
+              updatedPages.unshift(targetPage);
+              
+              debug.log(`New page order:`, updatedPages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
+              
+              // Combine back with non-page items
+              return {
+                ...node,
+                items: [...updatedPages, ...nonPages]
+              };
+            }
+          }
+        }
+        
+        // Search in child nodes if not found in items
+        if (node.nodes) {
+          for (let i = 0; i < node.nodes.length; i++) {
+            const childNode = node.nodes[i];
+            if (typeof childNode !== 'string') {
+              const updated = findAndReorderPages(childNode);
+              if (updated) {
+                const updatedNodes = [...node.nodes];
+                updatedNodes[i] = updated;
+                return {
+                  ...node,
+                  nodes: updatedNodes
+                };
+              }
+            }
+          }
+        }
+        
+        return null;
+      };
+      
+      if (state.rootNode) {
+        const updatedRootNode = findAndReorderPages(state.rootNode);
+        if (updatedRootNode) {
+          debug.log("Updating root node with reordered pages via page-to-page connection");
+          updateNode(state.rootNode.uuid!, updatedRootNode);
+        } else {
+          debug.log("Could not find and reorder pages via page-to-page connection");
+        }
+      }
+    }
+    // Handle start entry connections (from start to pages)
+    else if (edge.type === "default" && edge.data?.isStartEntry) {
+      // For start entry edges, we need to reorder the pages
+      const currentTargetPageId = edge.target;
+      const newTargetPageId = newTargetId;
+      
+      debug.log(`Reordering pages: moving page ${newTargetPageId} to position 0 (was ${currentTargetPageId})`);
+      
+      // Find and reorder pages in the survey structure
+      const findAndReorderPages = (node: NodeData): NodeData | null => {
+        if (node.items) {
+          // Find pages in the items array
+          const pages = node.items.filter(item => item.type === 'set');
+          const nonPages = node.items.filter(item => item.type !== 'set');
+          
+          if (pages.length > 0) {
+            debug.log(`Original page order:`, pages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
+            
+            // Find the target page to move
+            const targetPageIndex = pages.findIndex(page => (page as NodeData).uuid === newTargetPageId);
+            
+            if (targetPageIndex >= 0) {
+              // Remove the target page and insert at beginning
+              const updatedPages = [...pages];
+              const [targetPage] = updatedPages.splice(targetPageIndex, 1);
+              updatedPages.unshift(targetPage);
+              
+              debug.log(`New page order:`, updatedPages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
+              
+              // Combine back with non-page items
+              return {
+                ...node,
+                items: [...updatedPages, ...nonPages]
+              };
+            }
+          }
+        }
+        
+        // Search in child nodes if not found in items
+        if (node.nodes) {
+          for (let i = 0; i < node.nodes.length; i++) {
+            const childNode = node.nodes[i];
+            if (typeof childNode !== 'string') {
+              const updated = findAndReorderPages(childNode);
+              if (updated) {
+                const updatedNodes = [...node.nodes];
+                updatedNodes[i] = updated;
+                return {
+                  ...node,
+                  nodes: updatedNodes
+                };
+              }
+            }
+          }
+        }
+        
+        return null;
+      };
+      
+      if (state.rootNode) {
+        const updatedRootNode = findAndReorderPages(state.rootNode);
+        if (updatedRootNode) {
+          debug.log("Updating root node with reordered pages");
+          updateNode(state.rootNode.uuid!, updatedRootNode);
+        } else {
+          debug.log("Could not find and reorder pages");
+        }
+      }
+    }
     // Handle page entry connections (from page to first block)
     else if (edge.type === "default" && edge.data?.isPageEntry) {
       // For page entry edges, we need to reorder the blocks within the page

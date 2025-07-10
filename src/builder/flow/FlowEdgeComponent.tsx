@@ -29,6 +29,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   if (!sourceNode || !targetNode) {
     return null;
   }
+  
 
   // Get node sizes from their data
   const sourceData = sourceNode.data as any;
@@ -40,27 +41,74 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   const isConditional = edge.type === "conditional";
   const isSequential = edge.data?.isSequential || false;
   const isPageEntry = edge.data?.isPageEntry || false;
+  const isPageToPage = edge.data?.isPageToPage || false;
 
-  // Calculate connection points more accurately
+  // Calculate connection points based on actual connection handles
+  // Since the SVG is inside the transformed container, we use world coordinates directly
+  // Connection handles are positioned at specific locations on nodes:
+  // - Blocks: top handle at -1px from top center, bottom handle at -1px from bottom center
+  // - Pages: top handle at -2px from top center, bottom handle at -2px from bottom center
+  // - Start/Submit: similar positioning
+  
+  // Calculate center positions with higher precision
   let sourceX = sourceNode.position.x + sourceSize.width / 2; // Center of source node
   let sourceY: number;
+  let targetX = targetNode.position.x + targetSize.width / 2; // Center of target node
+  let targetY: number;
   
-  // For page entry connections, connect from top middle of page
-  if (isPageEntry) {
-    sourceY = sourceNode.position.y; // Top of source node (page)
-  } else {
-    sourceY = sourceNode.position.y + sourceSize.height; // Bottom of source node
+  // Get connection handle offsets based on node type
+  const getConnectionHandleOffset = (nodeType: string) => {
+    switch (nodeType) {
+      case 'set': return 2; // Pages have 2px offset
+      case 'block': return 1; // Blocks have 1px offset
+      case 'start':
+      case 'submit': return 1; // Start/Submit have 1px offset
+      default: return 0;
+    }
+  };
+  
+  const sourceHandleOffset = getConnectionHandleOffset(sourceNode.type);
+  const targetHandleOffset = getConnectionHandleOffset(targetNode.type);
+  
+  if (isPageToPage) {
+    // Page-to-page: connect from bottom handle to top handle
+    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
+    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
   }
-  
-  const targetX = targetNode.position.x + targetSize.width / 2; // Center of target node
-  const targetY = targetNode.position.y;                        // Top of target node
+  else if (isPageEntry) {
+    // Page entry: connect from top handle of page to top handle of first block
+    sourceY = sourceNode.position.y - sourceHandleOffset; // Top connection handle of page
+    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle of block
+  } 
+  else if (isSequential) {
+    // Sequential block-to-block: connect from bottom handle to top handle
+    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
+    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
+  }
+  else {
+    // Default: connect from bottom handle to top handle
+    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
+    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
+  }
 
   // Create smooth curve path with better control points
   const deltaY = Math.abs(targetY - sourceY);
   const controlPointOffset = Math.max(30, deltaY * 0.3); // Minimum 30px curve
   
   let path: string;
-  if (isPageEntry) {
+  if (isPageToPage) {
+    // For page-to-page connections, create a larger curve for better visibility
+    const pageControlPointOffset = Math.max(50, deltaY * 0.4); // Larger curve for page connections
+    if (targetY > sourceY) {
+      // Normal case: target page is below source page
+      path = `M ${sourceX} ${sourceY} 
+              C ${sourceX} ${sourceY + pageControlPointOffset} ${targetX} ${targetY - pageControlPointOffset} ${targetX} ${targetY}`;
+    } else {
+      // Edge case: target page is above source page
+      path = `M ${sourceX} ${sourceY} 
+              C ${sourceX} ${sourceY - pageControlPointOffset} ${targetX} ${targetY + pageControlPointOffset} ${targetX} ${targetY}`;
+    }
+  } else if (isPageEntry) {
     // For page entry connections, create a downward curve from page top to block top
     if (targetY > sourceY) {
       // Normal case: target block is below page top
@@ -89,6 +137,8 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   if (!strokeColor) {
     if (isConditional) {
       strokeColor = edge.data?.isDefault ? "#f59e0b" : "#3b82f6"; // Orange for default nav, blue for conditional nav
+    } else if (isPageToPage) {
+      strokeColor = "#3b82f6"; // Blue for page-to-page connections
     } else if (isSequential) {
       strokeColor = "#94a3b8"; // Gray for sequential flow
     } else if (isPageEntry) {
@@ -98,7 +148,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
     }
   }
   
-  // Use custom stroke dash array if provided
+  // Use custom stroke dash array if provided, scaling with zoom
   let strokeDasharray = edge.style?.strokeDasharray as string || "none";
   if (strokeDasharray === "none" && isConditional) {
     strokeDasharray = "none"; // Solid line for navigation rules
@@ -106,8 +156,11 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
     strokeDasharray = edge.style.strokeDasharray as string; // Dashed line for sequential with nav rules
   }
   
-  // Use custom stroke width if provided
-  const strokeWidth = edge.style?.strokeWidth || (isConditional ? 2 : 1.5);
+  // Keep dash array as-is since SVG is in transformed container
+  // No need to scale dash array - transform handles it
+  
+  // Use custom stroke width if provided - no zoom scaling needed since SVG is in transformed container
+  const strokeWidth = typeof edge.style?.strokeWidth === 'number' ? edge.style.strokeWidth : (isConditional ? 2 : (isPageToPage ? 3 : 1.5));
   
   const markerEnd = isConditional ? "url(#arrowhead-conditional)" : "url(#arrowhead-default)";
 
@@ -231,17 +284,17 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
             textAnchor="middle"
             className="text-xs font-medium"
             style={{
-              fontSize: Math.max(9, 10 * zoom),
+              fontSize: Math.max(9, 10),
               fill: isConditional ? '#374151' : '#6b7280'
             }}
           >
             {/* Truncate long labels */}
-            {edge.data.label.length > 20 ? edge.data.label.substring(0, 17) + '...' : edge.data.label}
+            {edge.data.label.length > 20 ? edge.data.label : edge.data.label}
           </text>
         </g>
       )}
 
-      {/* Simple dot indicator for sequential connections */}
+      {/* Simple dot indicator for sequential connections - scale with zoom */}
       {isSequential && edge.data?.label && (
         <circle
           cx={(sourceX + targetX) / 2}

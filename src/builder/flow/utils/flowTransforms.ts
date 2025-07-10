@@ -202,6 +202,32 @@ export function surveyToFlow(rootNode: NodeData, enableDebug: boolean = false): 
     // Now add sequential flow connections and navigation rule connections
     debugLog(enableDebug, "Sequential blocks order:", sequentialBlocks);
     
+    // Add page-to-page connections for sequential flow
+    for (let i = 0; i < pagesToProcess.length - 1; i++) {
+      const currentPage = pagesToProcess[i];
+      const nextPage = pagesToProcess[i + 1];
+      
+      const currentPageNode = typeof currentPage === 'string' ? { uuid: currentPage } : currentPage;
+      const nextPageNode = typeof nextPage === 'string' ? { uuid: nextPage } : nextPage;
+      
+      // Add page-to-page connection edge
+      const pageToPageEdgeId = `${currentPageNode.uuid}-page-to-page-${nextPageNode.uuid}`;
+      edges.push({
+        id: pageToPageEdgeId,
+        source: currentPageNode.uuid,
+        target: nextPageNode.uuid,
+        type: "default",
+        style: {
+          stroke: '#3b82f6', // Blue color for page-to-page flow
+          strokeWidth: 3
+        },
+        data: {
+          label: `Page ${i + 1} → Page ${i + 2}`,
+          isPageToPage: true
+        }
+      });
+    }
+    
     // Add sequential flow edges between all blocks
     for (let i = 0; i < sequentialBlocks.length - 1; i++) {
       const currentBlock = sequentialBlocks[i];
