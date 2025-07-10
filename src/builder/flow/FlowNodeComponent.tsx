@@ -126,12 +126,9 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
         <div className="flow-node-set h-full">
           <div className="flex items-center gap-2 p-2 bg-green-100 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
             <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
-            <span className="font-medium text-xs text-green-900 dark:text-green-100">Page</span>
+            <span className="font-medium text-xs text-green-900 dark:text-green-100">{nodeData.name || "Untitled Page"}</span>
           </div>
           <div className="p-2">
-            <div className="text-xs font-medium text-foreground truncate">
-              {nodeData.name || "Untitled Page"}
-            </div>
             <div className="text-xs text-muted-foreground mt-1">
               {nodeData.items?.length || 0} blocks
             </div>
