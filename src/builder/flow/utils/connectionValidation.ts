@@ -67,12 +67,12 @@ function validateConditionalConnection(
   sourceNode: FlowNode,
   targetNode: FlowNode
 ): ConnectionValidationResult {
-  // Source must be a block
+  // Source must be a block (cannot be set or section)
   if (sourceNode.type !== "block") {
-    return { isValid: false, reason: "Navigation rules can only start from blocks" };
+    return { isValid: false, reason: "Navigation rules can only start from blocks (not from sets or sections)" };
   }
 
-  // Target can be block, page, or submit
+  // Target can be block, page (set), or submit
   if (!["block", "set", "submit"].includes(targetNode.type)) {
     return { isValid: false, reason: "Invalid target for navigation rule" };
   }
@@ -104,7 +104,7 @@ function validateConditionalConnection(
 function validateSequentialConnection(
   sourceNode: FlowNode,
   targetNode: FlowNode,
-  allNodes: FlowNode[]
+  _allNodes: FlowNode[]
 ): ConnectionValidationResult {
   // Sequential connections are between blocks or from blocks to submit
   if (sourceNode.type !== "block") {
@@ -210,10 +210,12 @@ function validateDefaultConnection(
   sourceNode: FlowNode,
   targetNode: FlowNode
 ): ConnectionValidationResult {
-  // Most flexible validation - allow connections between compatible types
+  // Apply user requirements: cannot create navigation rules for set and section as origin
+  // But sets can be targets, any node that is not set or section can be origin
   const validConnections = {
     "start": ["set"], // Start can connect to pages
-    "set": ["block"], // Pages can connect to blocks
+    "set": [], // Sets (pages) cannot have navigation rules as origin
+    "section": [], // Sections cannot have navigation rules as origin  
     "block": ["block", "set", "submit"], // Blocks can connect to blocks, pages, or submit
     "submit": [] // Submit nodes don't have outgoing connections
   };
@@ -221,6 +223,12 @@ function validateDefaultConnection(
   const allowedTargets = validConnections[sourceNode.type as keyof typeof validConnections] || [];
   
   if (!allowedTargets.includes(targetNode.type)) {
+    if (sourceNode.type === "set" || sourceNode.type === "section") {
+      return { 
+        isValid: false, 
+        reason: `Cannot create navigation rules for ${sourceNode.type} nodes as origin. Only blocks can be connection origins.` 
+      };
+    }
     return { 
       isValid: false, 
       reason: `${sourceNode.type} nodes cannot connect to ${targetNode.type} nodes` 

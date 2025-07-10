@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
@@ -16,13 +15,15 @@ interface NodeConfigPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: (nodeId: string, data: any) => void;
+  mode?: "full" | "navigation-only"; // Add mode prop to control what's shown
 }
 
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   nodeId,
   open,
   onOpenChange,
-  onUpdate
+  onUpdate,
+  mode = "full"
 }) => {
   const { state } = useSurveyBuilder();
   
@@ -102,16 +103,10 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 
   const nodeResult = findNodeData(state.rootNode, nodeId);
   const nodeData = nodeResult?.data;
-  const nodePath = nodeResult?.path;
 
   const isBlockData = (data: any): data is BlockData => {
     // A block is anything that's not a section or set type
     return data && typeof data === 'object' && data.type && data.type !== 'section' && data.type !== 'set';
-  };
-
-  const isNodeData = (data: any): data is NodeData => {
-    // A node is a section or set type
-    return data && typeof data === 'object' && (data.type === 'section' || data.type === 'set');
   };
 
   const handleUpdateField = (field: string, value: any) => {
@@ -126,6 +121,26 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   const renderBlockConfig = (blockData: BlockData) => {
     const definition = state.definitions.blocks[blockData.type];
     
+    // If in navigation-only mode, only show NavigationRulesEditor
+    if (mode === "navigation-only") {
+      return (
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+            <div className="text-sm text-blue-800 font-medium">Creating Navigation Rule</div>
+            <div className="text-xs text-blue-600 mt-1">
+              Configure when this block should navigate to the connected target.
+            </div>
+          </div>
+          
+          <NavigationRulesEditor
+            data={blockData}
+            onUpdate={handleBlockUpdate}
+          />
+        </div>
+      );
+    }
+    
+    // Full mode shows all sections
     return (
       <div className="space-y-4">
         {/* Common Block Rules */}
@@ -218,10 +233,21 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             <Settings className="w-5 h-5 text-muted-foreground" />
             {nodeData ? (
               <>
-                {isBlockData(nodeData) ? `Edit ${nodeData.type} Block` : `Edit ${nodeData.type} Node`}
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ID: {nodeId}
-                </span>
+                {mode === "navigation-only" && isBlockData(nodeData) ? (
+                  <>
+                    Create Navigation Rule
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      From: {nodeData.fieldName || nodeData.label || "Block"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {isBlockData(nodeData) ? `Edit ${nodeData.type} Block` : `Edit ${nodeData.type} Node`}
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      ID: {nodeId}
+                    </span>
+                  </>
+                )}
               </>
             ) : (
               "Node Configuration"
@@ -231,7 +257,16 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         
         <div className="py-4">
           {nodeData ? (
-            isBlockData(nodeData) ? renderBlockConfig(nodeData) : renderNodeConfig(nodeData)
+            isBlockData(nodeData) ? (
+              renderBlockConfig(nodeData)
+            ) : mode === "navigation-only" ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">Navigation rules can only be created for blocks</p>
+                <p className="text-xs text-muted-foreground mt-2">This node type does not support navigation rules</p>
+              </div>
+            ) : (
+              renderNodeConfig(nodeData)
+            )
           ) : (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">Node not found</p>

@@ -261,19 +261,24 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           const containerSize = pageData?.containerSize || { width: 300, height: 200 };
           const nodeData = node.data as any;
           const blockSize = nodeData?.containerSize || { width: 120, height: 60 };
+          const nodeZoomScale = Math.max(0.7, Math.min(1, viewport.zoom));
+          const containerWidth = containerSize.width * nodeZoomScale;
+          const containerHeight = containerSize.height * nodeZoomScale;
+          const blockWidth = blockSize.width * nodeZoomScale;
+          const blockHeight = blockSize.height * nodeZoomScale;
           if(type === "position") {
             return {
               minX: parentPage.position.x + 15, // 15px padding
               minY: parentPage.position.y + 35, // 35px for page header
-              maxX: parentPage.position.x + containerSize.width - blockSize.width - 15,
-              maxY: parentPage.position.y + containerSize.height - blockSize.height - 15
+              maxX: parentPage.position.x + containerWidth - blockWidth - 15,
+              maxY: parentPage.position.y + containerHeight - blockHeight - 15
             };
           }
           return {
             minX: parentPage.position.x + 15, // 15px padding
             minY: parentPage.position.y + 35, // 35px for page header
-            maxX: parentPage.position.x + containerSize.width - 15,
-            maxY: parentPage.position.y + containerSize.height - 15
+            maxX: parentPage.position.x + containerWidth - 15,
+            maxY: parentPage.position.y + containerHeight - 15
           };
         }
       }
@@ -286,7 +291,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     }
 
     return null;
-  }, [nodes]);
+  }, [nodes, viewport.zoom]);
 
   // Handle node drag start
   const handleNodeDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
@@ -337,21 +342,31 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           const sourceNode = nodes.find(n => n.id === connectionState.sourceNodeId);
           const targetNode = nodes.find(n => n.id === nodeId);
           
-          // Only allow connections from blocks to other blocks/pages/submit
+          // Apply user constraints: Only allow connections from blocks (not sets/sections) to any valid target
           if (sourceNode?.type === "block" && (targetNode?.type === "block" || targetNode?.type === "set" || targetNode?.type === "submit")) {
+            debugLog(enableDebug, "Creating connection:", { source: sourceNode.id, target: targetNode.id });
             onConnectionCreate(connectionState.sourceNodeId, nodeId);
+          } else {
+            debugLog(enableDebug, "Invalid connection attempt:", { 
+              sourceType: sourceNode?.type, 
+              targetType: targetNode?.type,
+              reason: sourceNode?.type !== "block" ? "Source must be a block" : "Invalid target type"
+            });
           }
         }
         // Reset connection state
         setConnectionState({ isConnecting: false });
       } else {
-        // Start a new connection from this node (only if it's a block)
+        // Start a new connection from this node (only if it's a block, not set/section)
         const node = nodes.find(n => n.id === nodeId);
         if (node?.type === "block") {
+          debugLog(enableDebug, "Starting connection from block:", nodeId);
           setConnectionState({
             isConnecting: true,
             sourceNodeId: nodeId
           });
+        } else {
+          debugLog(enableDebug, "Cannot start connection from non-block node:", { nodeId, nodeType: node?.type });
         }
       }
       return;
@@ -359,7 +374,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     
     // Normal selection behavior
     onNodeSelect(nodeId);
-  }, [mode, connectionState, nodes, onConnectionCreate, onNodeSelect]);
+  }, [mode, connectionState, nodes, onConnectionCreate, onNodeSelect, enableDebug]);
 
   // Handle mouse move for dragging and panning - optimized for smoothness
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -975,6 +990,38 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
                     </div>
                     <div className="absolute top-2 left-2 text-xs text-green-700 bg-white/90 px-1 rounded">
                       {targetId.includes('block-') ? `Block ${targetId.split('block-')[1]}` : targetId}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* Connection mode: highlight valid targets when starting a connection */}
+          {mode === "connect" && connectionState.isConnecting && connectionState.sourceNodeId && (
+            <>
+              {nodes.filter(node => {
+                // Only show valid targets: blocks, sets, submit (but not the source)
+                return node.id !== connectionState.sourceNodeId && 
+                       (node.type === "block" || node.type === "set" || node.type === "submit");
+              }).map(targetNode => {
+                const nodeData = targetNode.data as any;
+                const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
+                
+                return (
+                  <div
+                    key={targetNode.id}
+                    className="absolute border-4 border-blue-500 border-dashed bg-blue-500/20 pointer-events-none rounded animate-pulse"
+                    style={{
+                      left: targetNode.position.x - 8,
+                      top: targetNode.position.y - 8,
+                      width: containerSize.width + 16,
+                      height: containerSize.height + 16,
+                      zIndex: 12
+                    }}
+                  >
+                    <div className="absolute -top-8 left-2 text-sm font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded shadow-lg border border-blue-500">
+                      📍 Click to connect
                     </div>
                   </div>
                 );

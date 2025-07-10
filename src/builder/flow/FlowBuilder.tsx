@@ -1,14 +1,12 @@
 import React, { useState, useCallback, useRef } from "react";
-import { Button } from "../../components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { FlowCanvas } from "./FlowCanvas";
 import { FlowSidebar } from "./FlowSidebar";
 import { NodeConfigPanel } from "./NodeConfigPanel";
 import { FlowToolbar } from "./FlowToolbar";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
-import { flowToSurvey, surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
-import { FlowNode, FlowEdge, FlowMode } from "./types";
+import { surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
+import { FlowMode } from "./types";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 export const FlowBuilder: React.FC = () => {
@@ -18,6 +16,7 @@ export const FlowBuilder: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const [showNodeConfig, setShowNodeConfig] = useState(false);
+  const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   
   // Convert survey structure to flow format with positions
@@ -267,8 +266,12 @@ export const FlowBuilder: React.FC = () => {
         }
 
         const blockId = `${targetPage.uuid}-block-${(targetPage.items?.length || 0)}`;
-        const blockData: BlockData = {
-          ...blockDefinition.defaultData,
+        const genBlockData = blockDefinition.generateDefaultData 
+          ? blockDefinition.generateDefaultData()
+          : blockDefinition.defaultData;
+
+          const blockData: BlockData = {
+          ...genBlockData,
           uuid: `block_${Date.now()}`,
         };
         
@@ -490,6 +493,7 @@ export const FlowBuilder: React.FC = () => {
   // Handle node configuration
   const handleNodeConfigure = useCallback((nodeId: string) => {
     debug.log("Configure node requested:", nodeId);
+    setConfigMode("full"); // Use full mode for regular configuration
     setConfigNodeId(nodeId);
     setShowNodeConfig(true);
   }, []);
@@ -705,7 +709,6 @@ export const FlowBuilder: React.FC = () => {
           const newBlockMatch = newTargetBlockId.match(/^(.+)-block-(\d+)$/);
           
           if (currentBlockMatch && newBlockMatch) {
-            const currentBlockIndex = parseInt(currentBlockMatch[2]);
             const newBlockIndex = parseInt(newBlockMatch[2]);
             
             // Insertion-based reordering: move the target block to position 0 and shift others
@@ -786,16 +789,22 @@ export const FlowBuilder: React.FC = () => {
     
     // Determine the target string based on target node type
     let targetString = "";
+    let isPageTarget = false;
+    
     if (targetNode.type === "submit") {
       targetString = "submit";
     } else if (targetNode.type === "block") {
-      // For block targets, use the field name
+      // For block targets, we need to find the actual block UUID from the node data
       const targetBlockData = targetNode.data as any;
-      targetString = targetBlockData.fieldName || targetBlockData.label || targetNode.id;
+      // For blocks, the navigation rules expect the block's UUID, not its fieldName
+      targetString = targetBlockData.uuid || targetNode.id;
+      isPageTarget = false;
     } else if (targetNode.type === "set") {
-      // For page targets, use the page name or UUID
+      // For page targets, use the page UUID from the node data
       const targetPageData = targetNode.data as any;
-      targetString = targetPageData.name || targetPageData.uuid || targetNode.id;
+      // For pages, use the uuid property which is what collectPages returns
+      targetString = targetPageData.uuid || targetNode.id;
+      isPageTarget = true;
     }
 
     if (!targetString) {
@@ -803,12 +812,15 @@ export const FlowBuilder: React.FC = () => {
       return;
     }
 
-    // Add the navigation rule to the source block
+    // Get the source field name for pre-populating the condition
+    const sourceFieldName = blockData.fieldName || blockData.label || "field";
+
+    // Add the navigation rule to the source block with better defaults
     const existingRules = blockData.navigationRules || [];
     const newRule = {
-      condition: "", // Default empty condition - user will need to configure this
+      condition: `${sourceFieldName} == ""`, // Pre-populate with source field
       target: targetString,
-      isPage: targetNode.type === "set",
+      isPage: isPageTarget,
       isDefault: false
     };
 
@@ -817,11 +829,28 @@ export const FlowBuilder: React.FC = () => {
       navigationRules: [...existingRules, newRule]
     };
 
+    debug.log("Creating navigation rule:", {
+      sourceNode: sourceNodeId,
+      sourceFieldName,
+      targetNode: targetNodeId,
+      targetString,
+      targetNodeData: targetNode.data,
+      newRule
+    });
+
     // Update the node with the new navigation rule
-    updateNode(sourceNodeId, updatedBlockData);
+    handleNodeUpdate(sourceNodeId, updatedBlockData);
     
-    debug.log("Added navigation rule:", newRule);
-  }, [flowData.nodes, updateNode]);
+    // Small delay to ensure the update is processed before opening the editor
+    setTimeout(() => {
+      // Open the NavigationRulesEditor in navigation-only mode
+      setConfigMode("navigation-only");
+      setConfigNodeId(sourceNodeId);
+      setShowNodeConfig(true);
+    }, 100);
+    
+    debug.log("Added navigation rule and opened editor:", newRule);
+  }, [flowData.nodes, handleNodeUpdate]);
 
   // Handle fit view
   const fitViewRef = useRef<(() => void) | undefined>(undefined);
@@ -922,6 +951,7 @@ export const FlowBuilder: React.FC = () => {
           open={showNodeConfig}
           onOpenChange={setShowNodeConfig}
           onUpdate={handleNodeUpdate}
+          mode={configMode}
         />
       </div>
     </div>

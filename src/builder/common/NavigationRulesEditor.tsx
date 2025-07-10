@@ -379,8 +379,20 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
     return (data.navigationRules || []).map(parseRule);
   });
 
+  // Track if we're internally updating to prevent sync loops
+  const isInternalUpdateRef = React.useRef(false);
+  
+  // Sync rules when data.navigationRules changes externally
+  React.useEffect(() => {
+    if (!isInternalUpdateRef.current) {
+      setRules((data.navigationRules || []).map(parseRule));
+    }
+    isInternalUpdateRef.current = false;
+  }, [data.navigationRules]);
+
   React.useEffect(() => {
     const converted = rules.map(buildRule);
+    isInternalUpdateRef.current = true;
     onUpdate?.({ ...data, navigationRules: converted });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rules]);

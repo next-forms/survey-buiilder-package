@@ -136,7 +136,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
           Flow Builder
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto">
+      <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" onEscapeKeyDown={(event) => {event.preventDefault();}}>
         <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
           <div className="survey-flow h-full">
             {state.rootNode ? (
