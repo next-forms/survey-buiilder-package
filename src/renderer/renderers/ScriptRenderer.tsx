@@ -15,7 +15,7 @@ interface ScriptRendererProps {
  * validate fields, etc. based on the script's logic.
  */
 export const ScriptRenderer: React.FC<ScriptRendererProps> = ({ block }) => {
-  const { values, setValue, currentPage, setError } = useContext(SurveyFormContext);
+  const { values, setValue, currentPage, setError, enableDebug } = useContext(SurveyFormContext);
 
   // Run the script when values change, the page changes, or on initial render
   useEffect(() => {
@@ -32,20 +32,22 @@ export const ScriptRenderer: React.FC<ScriptRendererProps> = ({ block }) => {
         // Additional safe helper functions could be provided here
         // For example:
         getFieldValue: (fieldName: string) => values[fieldName],
-        showAlert: (message: string) => console.log('Script alert:', message), // Safe console log
+        showAlert: (message: string) => enableDebug ? console.log('Script alert:', message) : undefined, // Safe console log
       };
 
       // Evaluate the script safely
       evaluateLogic(block.script, context);
     } catch (error) {
-      console.error('Error executing script block:', error);
+      if (enableDebug) {
+        console.error('Error executing script block:', error);
+      }
 
       // Optionally set an error on the block itself if needed
       if (block.fieldName) {
         setError(block.fieldName, `Script error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-  }, [values, currentPage, block.script, block.fieldName, setValue, setError]);
+  }, [values, currentPage, block.script, block.fieldName, setValue, setError, enableDebug]);
 
   // This component doesn't render anything visible
   return null;

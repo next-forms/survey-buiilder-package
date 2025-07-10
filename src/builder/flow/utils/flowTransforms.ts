@@ -1,20 +1,21 @@
 import { NodeData, BlockData } from "../../../types";
 import { FlowNode, FlowEdge } from "../types";
+import { debugLog, debugError } from "../../../utils/debugUtils";
 
 export interface FlowData {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }
 
-export function surveyToFlow(rootNode: NodeData): FlowData {
+export function surveyToFlow(rootNode: NodeData, enableDebug: boolean = false): FlowData {
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
   
-  console.log("surveyToFlow called with rootNode:", rootNode);
+  debugLog(enableDebug, "surveyToFlow called with rootNode:", rootNode);
   
   // Ensure root node has a UUID
   if (!rootNode.uuid) {
-    console.error("Root node missing UUID, generating one");
+    debugError(enableDebug, "Root node missing UUID, generating one");
     rootNode.uuid = `root_${Date.now()}`;
   }
   
@@ -35,9 +36,9 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
   // Combine both sources of pages
   const pagesToProcess = [...pagesFromItems, ...pagesFromNodes];
   
-  console.log("Pages from items:", pagesFromItems.length);
-  console.log("Pages from nodes:", pagesFromNodes.length);
-  console.log("Total pages to process:", pagesToProcess.length);
+  debugLog(enableDebug, "Pages from items:", pagesFromItems.length);
+  debugLog(enableDebug, "Pages from nodes:", pagesFromNodes.length);
+  debugLog(enableDebug, "Total pages to process:", pagesToProcess.length);
 
   // Create a sequential flow map to track all blocks in order
   const sequentialBlocks: Array<{
@@ -48,7 +49,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
   }> = [];
 
   if (pagesToProcess.length > 0) {
-    console.log("Processing pages:", pagesToProcess);
+    debugLog(enableDebug, "Processing pages:", pagesToProcess);
     
     // Better page layout algorithm - calculate optimal grid layout
     const optimalPagesPerRow = Math.min(pagesToProcess.length, 3); // Max 3 pages per row for better visibility
@@ -58,7 +59,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
       let actualChildNode: NodeData;
       
       if (typeof childNode === 'string') {
-        console.log("Found string node UUID:", childNode);
+        debugLog(enableDebug, "Found string node UUID:", childNode);
         actualChildNode = {
           uuid: childNode,
           type: "set",
@@ -101,7 +102,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
         height: requiredHeight
       };
       
-      console.log(`Adding page node ${pageIndex} with size (${dynamicPageSize.width} x ${dynamicPageSize.height}):`, actualChildNode);
+      debugLog(enableDebug, `Adding page node ${pageIndex} with size (${dynamicPageSize.width} x ${dynamicPageSize.height}):`, actualChildNode);
       
       // Add page node with dynamic container size, position will be set by hierarchical layout
       nodes.push({
@@ -115,14 +116,14 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
       
       // Process blocks within this page in a smart grid layout
       if (actualChildNode.items && actualChildNode.items.length > 0) {
-        console.log(`Processing ${actualChildNode.items.length} blocks in page:`, actualChildNode.name);
+        debugLog(enableDebug, `Processing ${actualChildNode.items.length} blocks in page:`, actualChildNode.name);
         
         // Process blocks within this page
         
         actualChildNode.items.forEach((item, blockIndex) => {
           // Skip non-block items (like other sets)
           if (item.type === "set") {
-            console.log("Skipping nested set in page items");
+            debugLog(enableDebug, "Skipping nested set in page items");
             return;
           }
           
@@ -138,7 +139,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
             hasNavigationRules: !!(block.navigationRules && block.navigationRules.length > 0)
           });
           
-          console.log(`Adding block node ${blockIndex}:`, block);
+          debugLog(enableDebug, `Adding block node ${blockIndex}:`, block);
           
           // Add block node, position will be set by hierarchical layout
           nodes.push({
@@ -170,7 +171,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
     });
 
     // Now add sequential flow connections and navigation rule connections
-    console.log("Sequential blocks order:", sequentialBlocks);
+    debugLog(enableDebug, "Sequential blocks order:", sequentialBlocks);
     
     // Add sequential flow edges between all blocks
     for (let i = 0; i < sequentialBlocks.length - 1; i++) {
@@ -334,7 +335,7 @@ export function surveyToFlow(rootNode: NodeData): FlowData {
       }
     });
   } else {
-    console.log("No child nodes found in root node");
+    debugLog(enableDebug, "No child nodes found in root node");
   }
   
   return { nodes, edges };
@@ -456,7 +457,7 @@ export function autoLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): FlowNode[
   return layoutNodes;
 }
 
-export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): FlowNode[] {
+export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], enableDebug: boolean = false): FlowNode[] {
   const layoutNodes = [...nodes];
   
   // Layout configuration
@@ -473,7 +474,7 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): F
   const blockNodes = layoutNodes.filter(node => node.type === "block");
   const submitNodes = layoutNodes.filter(node => node.type === "submit");
   
-  console.log("Pages:", pageNodes.length, "Blocks:", blockNodes.length, "Submit:", submitNodes.length);
+  debugLog(enableDebug, "Pages:", pageNodes.length, "Blocks:", blockNodes.length, "Submit:", submitNodes.length);
   
   // Build navigation graph for conditional flows
   const navigationEdges = edges.filter(edge => edge.type === "conditional");
@@ -523,8 +524,8 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): F
     return !Array.from(pageNavigationGraph.values()).flat().includes(page.id);
   });
   
-  console.log("Root pages:", rootPages.map(p => p.id));
-  console.log("Page navigation graph:", Array.from(pageNavigationGraph.entries()));
+  debugLog(enableDebug, "Root pages:", rootPages.map(p => p.id));
+  debugLog(enableDebug, "Page navigation graph:", Array.from(pageNavigationGraph.entries()));
   
   // Calculate levels for pages using BFS
   const pageLevels = new Map<string, number>();
@@ -646,10 +647,10 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): F
     }
   });
   
-  console.log("Hierarchical layout results:");
-  console.log("Page levels:", Array.from(pageLevels.entries()));
-  console.log("Page positions:", Array.from(pagePositions.entries()));
-  console.log("Block positions:", Array.from(blockPositions.entries()));
+  debugLog(enableDebug, "Hierarchical layout results:");
+  debugLog(enableDebug, "Page levels:", Array.from(pageLevels.entries()));
+  debugLog(enableDebug, "Page positions:", Array.from(pagePositions.entries()));
+  debugLog(enableDebug, "Block positions:", Array.from(blockPositions.entries()));
   
   return layoutNodes;
 }
@@ -657,7 +658,8 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[]): F
 export function repositionBlocksInPage(
   pageId: string, 
   nodes: FlowNode[], 
-  nodePositions: Record<string, { x: number; y: number }>
+  nodePositions: Record<string, { x: number; y: number }>,
+  enableDebug: boolean = false
 ): Record<string, { x: number; y: number }> {
   const updatedPositions: Record<string, { x: number; y: number }> = {};
   
@@ -694,6 +696,6 @@ export function repositionBlocksInPage(
     }
   });
   
-  console.log(`Repositioned ${blocksInPage.length} blocks in page ${pageId}:`, updatedPositions);
+  debugLog(enableDebug, `Repositioned ${blocksInPage.length} blocks in page ${pageId}:`, updatedPositions);
   return updatedPositions;
 }

@@ -132,6 +132,7 @@ export interface SurveyBuilderState {
   theme: ThemeDefinition;
   selectedNode: UUID | null;
   displayMode: 'list' | 'graph' | 'flow' | 'lang' | 'theme';
+  enableDebug?: boolean;
 }
 
 export interface SurveyBuilderAction {
@@ -260,6 +261,7 @@ export interface SurveyFormContextProps {
   getNextPageIndex: () => number | null;
   getVisibleBlocks: (blocks: BlockData[]) => BlockData[];
   validateField: (fieldName: string, value: any) => string | null;
+  enableDebug?: boolean;
   logo?: any;
 }
 

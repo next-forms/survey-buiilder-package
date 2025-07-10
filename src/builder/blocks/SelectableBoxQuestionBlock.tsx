@@ -325,7 +325,7 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
   },
   generateDefaultData: () => ({
     type: "selectablebox",
-    fieldName: "", // Will be generated when block is created
+    fieldName: generateFieldName("selectablebox"),
     label: "Select an option",
     description: "",
     boxSpacing: "4",

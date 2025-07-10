@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useMemo } from "react";
 import { FlowNode, FlowEdge, FlowMode } from "./types";
 import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
+import { debugLog } from "../../utils/debugUtils";
 
 interface FlowCanvasProps {
   nodes: FlowNode[];
@@ -17,6 +18,7 @@ interface FlowCanvasProps {
   onModeChange: (mode: FlowMode) => void;
   onFitView?: React.MutableRefObject<(() => void) | undefined>;
   onConnectionCreate?: (sourceNodeId: string, targetNodeId: string) => void;
+  enableDebug?: boolean;
 }
 
 export const FlowCanvas: React.FC<FlowCanvasProps> = ({
@@ -32,7 +34,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   onNodeConfigure,
   onModeChange,
   onFitView,
-  onConnectionCreate
+  onConnectionCreate,
+  enableDebug = false
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -130,7 +133,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       
       if (targetPage && nodeType !== "set") {
         // Dropping a block onto a specific page
-        console.log(`Dropping ${nodeType} block onto page:`, targetPage.id);
+        debugLog(enableDebug, `Dropping ${nodeType} block onto page:`, targetPage.id);
         
         // Calculate position within the page container
         const pageData = targetPage.data as any;
@@ -232,7 +235,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
   // Handle node selection with connection logic
   const handleNodeSelectWithConnection = useCallback((nodeId: string) => {
-    console.log("Node selected:", nodeId, "Connection state:", connectionState);
+    debugLog(enableDebug, "Node selected:", nodeId, "Connection state:", connectionState);
     
     // Handle connection mode
     if (mode === "connect") {

@@ -360,14 +360,16 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   
   // Only show navigation rules editor if there are multiple pages or blocks to navigate to
   const shouldShowEditor = React.useMemo(() => {
-    console.log('NavigationRulesEditor debug:', {
-      pageOptions: pageOptions.length,
-      blockOptions: blockOptions.length,
-      allBlockOptions: allBlockOptions.length,
-      shouldShow: pageOptions.length > 1 || allBlockOptions.length > 1
-    });
+    if (state.enableDebug) {
+      console.log('NavigationRulesEditor debug:', {
+        pageOptions: pageOptions.length,
+        blockOptions: blockOptions.length,
+        allBlockOptions: allBlockOptions.length,
+        shouldShow: pageOptions.length > 1 || allBlockOptions.length > 1
+      });
+    }
     return pageOptions.length > 1 || allBlockOptions.length > 1;
-  }, [pageOptions.length, blockOptions.length, allBlockOptions.length]);
+  }, [pageOptions.length, blockOptions.length, allBlockOptions.length, state.enableDebug]);
 
   const navigationCycles = React.useMemo(() => {
     return detectNavigationCycles(state.rootNode);

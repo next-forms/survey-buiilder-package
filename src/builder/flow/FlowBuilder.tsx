@@ -9,9 +9,11 @@ import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
 import { flowToSurvey, surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
 import { FlowNode, FlowEdge, FlowMode } from "./types";
+import { useBuilderDebug } from "../../utils/debugUtils";
 
 export const FlowBuilder: React.FC = () => {
   const { state, updateNode, createNode, removeNode } = useSurveyBuilder();
+  const debug = useBuilderDebug();
   const [flowMode, setFlowMode] = useState<FlowMode>("select");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
@@ -21,13 +23,13 @@ export const FlowBuilder: React.FC = () => {
   // Convert survey structure to flow format with positions
   const flowData = React.useMemo(() => {
     if (!state.rootNode) {
-      console.log("No root node available for flow");
+      debug.log("No root node available for flow");
       return { nodes: [], edges: [] };
     }
     
-    console.log("Converting survey to flow, root node:", state.rootNode);
-    const data = surveyToFlow(state.rootNode);
-    console.log("Flow data before applying positions:", data);
+    debug.log("Converting survey to flow, root node:", state.rootNode);
+    const data = surveyToFlow(state.rootNode, state.enableDebug);
+    debug.log("Flow data before applying positions:", data);
     
     // Apply stored positions
     data.nodes = data.nodes.map(node => ({
@@ -35,8 +37,8 @@ export const FlowBuilder: React.FC = () => {
       position: nodePositions[node.id] || node.position
     }));
     
-    console.log("Final flow data with positions:", data);
-    console.log("Current node positions:", nodePositions);
+    debug.log("Final flow data with positions:", data);
+    debug.log("Current node positions:", nodePositions);
     
     return data;
   }, [state.rootNode, nodePositions]);
@@ -60,7 +62,7 @@ export const FlowBuilder: React.FC = () => {
       const pageCountChanged = currentPageCount !== prevData.pageCount;
       const newNodesWithoutPositions = flowData.nodes.filter(node => !nodePositions[node.id]);
       
-      console.log("Layout check:", {
+      debug.log("Layout check:", {
         isInitialLoad,
         pageCountChanged,
         currentPageCount,
@@ -75,10 +77,10 @@ export const FlowBuilder: React.FC = () => {
       // 2. Page count changed (new page added)
       // 3. Major structural changes
       if (isInitialLoad || pageCountChanged) {
-        console.log("Applying full hierarchical layout");
+        debug.log("Applying full hierarchical layout");
         
         // Apply hierarchical layout based on navigation rules
-        const layoutedNodes = hierarchicalLayoutNodes(flowData.nodes, flowData.edges);
+        const layoutedNodes = hierarchicalLayoutNodes(flowData.nodes, flowData.edges, state.enableDebug);
         
         // Extract positions from layouted nodes
         const newPositions: Record<string, { x: number; y: number }> = {};
@@ -86,12 +88,12 @@ export const FlowBuilder: React.FC = () => {
           newPositions[node.id] = node.position;
         });
         
-        console.log("Setting full layout positions:", newPositions);
+        debug.log("Setting full layout positions:", newPositions);
         setNodePositions(newPositions); // Complete replacement
       }
       // Partial layout for block additions within existing pages
       else if (currentBlockCount !== prevData.blockCount && newNodesWithoutPositions.length > 0) {
-        console.log("Applying partial layout for new blocks");
+        debug.log("Applying partial layout for new blocks");
         
         const partialPositions: Record<string, { x: number; y: number }> = {};
         const affectedPages = new Set<string>();
@@ -117,12 +119,12 @@ export const FlowBuilder: React.FC = () => {
         
         // Reposition all blocks in affected pages to maintain proper layout
         affectedPages.forEach(pageId => {
-          const repositionedBlocks = repositionBlocksInPage(pageId, flowData.nodes, nodePositions);
+          const repositionedBlocks = repositionBlocksInPage(pageId, flowData.nodes, nodePositions, state.enableDebug);
           Object.assign(partialPositions, repositionedBlocks);
         });
         
         if (Object.keys(partialPositions).length > 0) {
-          console.log("Setting partial layout positions:", partialPositions);
+          debug.log("Setting partial layout positions:", partialPositions);
           setNodePositions(prev => ({ ...prev, ...partialPositions }));
         }
       }
@@ -154,7 +156,7 @@ export const FlowBuilder: React.FC = () => {
       // If moving a page (set), also move all its child blocks
       const nodeInFlow = flowData.nodes.find(n => n.id === nodeId);
       if (nodeInFlow?.type === "set") {
-        console.log(`Moving page ${nodeId} and its children by (${deltaX}, ${deltaY})`);
+        debug.log(`Moving page ${nodeId} and its children by (${deltaX}, ${deltaY})`);
         
         // Find all child blocks of this page
         flowData.nodes.forEach(node => {
@@ -165,7 +167,7 @@ export const FlowBuilder: React.FC = () => {
                 x: childOldPos.x + deltaX,
                 y: childOldPos.y + deltaY
               };
-              console.log(`Moving child block ${node.id} to (${newPositions[node.id].x}, ${newPositions[node.id].y})`);
+              debug.log(`Moving child block ${node.id} to (${newPositions[node.id].x}, ${newPositions[node.id].y})`);
             }
           }
         });
@@ -181,9 +183,9 @@ export const FlowBuilder: React.FC = () => {
   const handleNodeCreate = useCallback((position: { x: number; y: number }, nodeType: string, targetPageId?: string) => {
     if (!state.rootNode) return;
 
-    console.log("Creating node of type:", nodeType, "at position:", position, "targetPage:", targetPageId);
-    console.log("Available node definitions:", Object.keys(state.definitions.nodes));
-    console.log("Available block definitions:", Object.keys(state.definitions.blocks));
+    debug.log("Creating node of type:", nodeType, "at position:", position, "targetPage:", targetPageId);
+    debug.log("Available node definitions:", Object.keys(state.definitions.nodes));
+    debug.log("Available block definitions:", Object.keys(state.definitions.blocks));
 
     // Create node based on type
     if (nodeType === "set") {
@@ -239,7 +241,7 @@ export const FlowBuilder: React.FC = () => {
         };
         
         targetPage = findPageById(state.rootNode, targetPageId);
-        console.log("Found target page:", targetPage);
+        debug.log("Found target page:", targetPage);
       }
       
       if (!targetPage) {
@@ -282,7 +284,7 @@ export const FlowBuilder: React.FC = () => {
         };
         updateNode(targetPage.uuid!, updatedPage);
         
-        console.log(`Added block ${nodeType} to page ${targetPage.name || targetPage.uuid}`);
+        debug.log(`Added block ${nodeType} to page ${targetPage.name || targetPage.uuid}`);
       } else {
         console.error("No page available to add block to");
       }
@@ -291,13 +293,13 @@ export const FlowBuilder: React.FC = () => {
 
   // Handle node selection
   const handleNodeSelect = useCallback((nodeId: string) => {
-    console.log("Node selected:", nodeId);
+    debug.log("Node selected:", nodeId);
     setSelectedNodeId(nodeId || null);
   }, []);
 
   // Handle node update
   const handleNodeUpdate = useCallback((nodeId: string, data: any) => {
-    console.log("Updating node:", nodeId, "with data:", data);
+    debug.log("Updating node:", nodeId, "with data:", data);
     
     if (!state.rootNode) {
       console.error("No root node available for update");
@@ -398,7 +400,7 @@ export const FlowBuilder: React.FC = () => {
       
       const updatedRootNode = findAndUpdateBlockByIndex(state.rootNode);
       if (updatedRootNode) {
-        console.log("Updated root node with composite block ID changes");
+        debug.log("Updated root node with composite block ID changes");
         updateNode(state.rootNode.uuid!, updatedRootNode);
         return;
       }
@@ -407,18 +409,70 @@ export const FlowBuilder: React.FC = () => {
     // Try to find and update as a regular block UUID (survey builder format)
     const updatedRootNode = findAndUpdateBlock(state.rootNode, nodeId);
     if (updatedRootNode) {
-      console.log("Updated root node with block UUID changes");
+      debug.log("Updated root node with block UUID changes");
       updateNode(state.rootNode.uuid!, updatedRootNode);
     } else {
       // If not found as a block, treat as regular node update
-      console.log("Treating as regular node update");
+      debug.log("Treating as regular node update");
       updateNode(nodeId, data);
     }
   }, [updateNode, state.rootNode]);
 
   // Handle node deletion
   const handleNodeDelete = useCallback((nodeId: string) => {
-    removeNode(nodeId);
+    if (!state.rootNode) {
+      console.error("No root node available for deletion");
+      return;
+    }
+    
+    // Handle composite block IDs (flow builder format: pageUuid-block-index)
+    const blockMatch = nodeId.match(/^(.+)-block-(\d+)$/);
+    if (blockMatch) {
+      const [, pageUuid, blockIndexStr] = blockMatch;
+      const blockIndex = parseInt(blockIndexStr, 10);
+      
+      // Find the page and remove the block at the specific index
+      const findAndRemoveBlockByIndex = (node: NodeData): NodeData | null => {
+        if (node.uuid === pageUuid && node.items && node.items[blockIndex]) {
+          const updatedItems = [...node.items];
+          updatedItems.splice(blockIndex, 1);
+          return {
+            ...node,
+            items: updatedItems
+          };
+        }
+        
+        // Search in nested items
+        if (node.items) {
+          for (let i = 0; i < node.items.length; i++) {
+            const item = node.items[i];
+            if (item.type === 'set' && typeof item !== 'string') {
+              const updated = findAndRemoveBlockByIndex(item as NodeData);
+              if (updated) {
+                const updatedItems = [...node.items];
+                updatedItems[i] = updated;
+                return {
+                  ...node,
+                  items: updatedItems
+                };
+              }
+            }
+          }
+        }
+        
+        return null;
+      };
+      
+      const updatedRootNode = findAndRemoveBlockByIndex(state.rootNode);
+      if (updatedRootNode) {
+        debug.log("Updated root node with block removal");
+        updateNode(state.rootNode.uuid!, updatedRootNode);
+      }
+    } else {
+      // Handle regular node deletion (pages, submit nodes, etc.)
+      removeNode(nodeId);
+    }
+    
     if (selectedNodeId === nodeId) {
       setSelectedNodeId(null);
     }
@@ -426,7 +480,7 @@ export const FlowBuilder: React.FC = () => {
       setConfigNodeId(null);
       setShowNodeConfig(false);
     }
-  }, [removeNode, selectedNodeId, configNodeId]);
+  }, [removeNode, selectedNodeId, configNodeId, state.rootNode, updateNode]);
 
   // Handle flow mode changes
   const handleModeChange = useCallback((mode: FlowMode) => {
@@ -435,14 +489,14 @@ export const FlowBuilder: React.FC = () => {
 
   // Handle node configuration
   const handleNodeConfigure = useCallback((nodeId: string) => {
-    console.log("Configure node requested:", nodeId);
+    debug.log("Configure node requested:", nodeId);
     setConfigNodeId(nodeId);
     setShowNodeConfig(true);
   }, []);
 
   // Handle connection creation for navigation rules
   const handleConnectionCreate = useCallback((sourceNodeId: string, targetNodeId: string) => {
-    console.log("Creating connection from", sourceNodeId, "to", targetNodeId);
+    debug.log("Creating connection from", sourceNodeId, "to", targetNodeId);
     
     // Find the source node data
     const sourceNode = flowData.nodes.find(n => n.id === sourceNodeId);
@@ -497,7 +551,7 @@ export const FlowBuilder: React.FC = () => {
     // Update the node with the new navigation rule
     updateNode(sourceNodeId, updatedBlockData);
     
-    console.log("Added navigation rule:", newRule);
+    debug.log("Added navigation rule:", newRule);
   }, [flowData.nodes, updateNode]);
 
   // Handle fit view
@@ -554,7 +608,7 @@ export const FlowBuilder: React.FC = () => {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => console.log("Root Node Structure:", state.rootNode)}
+            onClick={() => debug.log("Root Node Structure:", state.rootNode)}
             className="text-xs h-6"
           >
             Log Structure
@@ -567,7 +621,7 @@ export const FlowBuilder: React.FC = () => {
         <FlowSidebar 
           definitions={state.definitions}
           onNodeDragStart={(nodeType) => {
-            console.log("Dragging node type:", nodeType);
+            debug.log("Dragging node type:", nodeType);
           }}
           onNodeCreate={handleNodeCreateFromClick}
         />
@@ -588,6 +642,7 @@ export const FlowBuilder: React.FC = () => {
             onModeChange={handleModeChange}
             onFitView={fitViewRef}
             onConnectionCreate={handleConnectionCreate}
+            enableDebug={state.enableDebug}
           />
         </div>
 

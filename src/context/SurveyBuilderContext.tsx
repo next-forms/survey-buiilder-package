@@ -93,6 +93,7 @@ const initialState: SurveyBuilderState = {
   theme: defaultTheme,
   selectedNode: null,
   displayMode: "list",
+  enableDebug: false,
 };
 
 // Action types
@@ -395,7 +396,7 @@ interface SurveyBuilderContextType {
   exportSurvey: () => { rootNode: NodeData | null; localizations: LocalizationMap; theme: ThemeDefinition };
 }
 
-const SurveyBuilderContext = createContext<SurveyBuilderContextType | undefined>(
+export const SurveyBuilderContext = createContext<SurveyBuilderContextType | undefined>(
   undefined
 );
 
@@ -407,11 +408,13 @@ interface SurveyBuilderProviderProps {
     localizations?: LocalizationMap;
     theme?: ThemeDefinition;
   };
+  enableDebug?: boolean;
 }
 
 export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
   children,
   initialData,
+  enableDebug = false,
 }) => {
   const [state, dispatch] = useReducer(
     surveyBuilderReducer,
@@ -420,6 +423,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
       rootNode: initialData?.rootNode || null,
       localizations: initialData?.localizations || { en: {} },
       theme: initialData?.theme || defaultTheme,
+      enableDebug,
     }
   );
 
@@ -469,7 +473,9 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
 
     if (!nodeDefinition) return;
 
-    console.log(nodeDefinition)
+    if (state.enableDebug) {
+      console.log(nodeDefinition);
+    }
 
     const nodeData = {
       ...nodeDefinition.defaultData,

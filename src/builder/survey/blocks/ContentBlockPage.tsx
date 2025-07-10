@@ -43,7 +43,9 @@ export const ContentBlockPage: React.FC<ContentBlockPageProps> = ({
   };
 
   const handleAddBlockItem = (blockType: string) => {
-    console.log(blockType);
+    if (state.enableDebug) {
+      console.log(blockType);
+    }
     const blockDefinition = state.definitions.blocks[blockType];
     if (!blockDefinition) return;
 

@@ -88,18 +88,6 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           onClick: onFitView
         }
       ]
-    },
-    {
-      group: "export",
-      items: [
-        {
-          key: "export",
-          label: "Export",
-          icon: Download,
-          active: false,
-          onClick: onExport
-        }
-      ]
     }
   ];
 
