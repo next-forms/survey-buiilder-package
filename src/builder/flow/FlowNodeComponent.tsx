@@ -3,7 +3,7 @@ import { FlowNode } from "./types";
 import { NodeData, BlockData } from "../../types";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { Button } from "../../components/ui/button";
-import { X, Settings, Copy } from "lucide-react";
+import { X, Settings } from "lucide-react";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 interface FlowNodeComponentProps {
@@ -313,9 +313,9 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       </div>
 
       {/* Node controls */}
-      {selected && node.type !== "submit" && node.type !== "set" && node.type !== "start" && (
+      {selected && node.type !== "submit" && node.type !== "start" && (
         <div className="absolute -top-3 -right-3 flex gap-1">
-          <Button
+          { node.type !== "set" ? <Button
             type="button"
             size="sm"
             variant="outline"
@@ -325,7 +325,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
             title="Configure Node"
           >
             <Settings className="w-3.5 h-3.5" />
-          </Button>
+          </Button> : null }
           {node.type !== "section" && (
             <Button
               type="button"

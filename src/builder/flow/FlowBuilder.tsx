@@ -570,10 +570,19 @@ export const FlowBuilder: React.FC = () => {
             const currentBlockIndex = parseInt(currentBlockMatch[2]);
             const newBlockIndex = parseInt(newBlockMatch[2]);
             
-            // Reorder the blocks array
+            // Insertion-based reordering: move the target block to position 0 and shift others
             const updatedItems = [...node.items];
-            const [movedBlock] = updatedItems.splice(currentBlockIndex, 1);
-            updatedItems.splice(newBlockIndex, 0, movedBlock);
+            
+            debug.log(`Reordering blocks: moving block from index ${newBlockIndex} to position 0`);
+            debug.log(`Original order:`, updatedItems.map((item, i) => `${i}: ${(item as any).fieldName || (item as any).label || item.type}`));
+            
+            // Remove the target block from its current position
+            const [targetBlock] = updatedItems.splice(newBlockIndex, 1);
+            
+            // Insert the target block at the beginning (position 0)
+            updatedItems.unshift(targetBlock);
+            
+            debug.log(`New order:`, updatedItems.map((item, i) => `${i}: ${(item as any).fieldName || (item as any).label || item.type}`));
             
             return {
               ...node,
