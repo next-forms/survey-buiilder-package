@@ -70,6 +70,10 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   
   // Track if mouse is over canvas for better scroll handling
   const [isMouseOverCanvas, setIsMouseOverCanvas] = useState(false);
+  
+  // Pixel grid visibility
+  const [showPixelGrid, setShowPixelGrid] = useState(false);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -179,10 +183,10 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     // Get valid targets for this edge
     const validTargets = getValidTargets(sourceNode, edge.type || "default", nodes, edges, edgeId);
     
-    console.log(`Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
-    console.log(`Initial position:`, initialPosition);
-    console.log(`Valid targets:`, validTargets);
-    console.log(`Viewport:`, viewport);
+    debugLog(enableDebug, `Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
+    debugLog(enableDebug, `Initial position:`, initialPosition);
+    debugLog(enableDebug, `Valid targets:`, validTargets);
+    debugLog(enableDebug, `Viewport:`, viewport);
     
     debugLog(enableDebug, `Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
     debugLog(enableDebug, `Valid targets:`, validTargets);
@@ -355,6 +359,14 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     e.preventDefault(); // Prevent text selection and other browser defaults
     e.stopPropagation(); // Prevent event bubbling
     
+    // Track mouse position for pixel grid display
+    if (showPixelGrid && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const worldX = Math.round((e.clientX - rect.left - viewport.x) / viewport.zoom);
+      const worldY = Math.round((e.clientY - rect.top - viewport.y) / viewport.zoom);
+      setMousePosition({ x: worldX, y: worldY });
+    }
+    
     if (edgeDragState.isDragging && edgeDragState.edgeId) {
       // Edge dragging - convert screen coordinates to world coordinates
       const rect = canvasRef.current!.getBoundingClientRect();
@@ -365,7 +377,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       const worldX = (screenX - viewport.x) / viewport.zoom;
       const worldY = (screenY - viewport.y) / viewport.zoom;
       
-      console.log("Edge drag move:", { 
+      debugLog(enableDebug, "Edge drag move:", { 
         screenX, 
         screenY,
         viewport, 
@@ -426,7 +438,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         const x = (screenX - viewport.x) / viewport.zoom;
         const y = (screenY - viewport.y) / viewport.zoom;
         
-        console.log("Edge drag end at:", { screenX, screenY, worldX: x, worldY: y });
+        debugLog(enableDebug, "Edge drag end at:", { screenX, screenY, worldX: x, worldY: y });
         
         // Find the node at this position - prioritize blocks over pages
         const hitNodes = nodes.filter(node => {
@@ -442,7 +454,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
                          y <= (node.position.y + containerSize.height + padding);
           
           if (node.type === "block" || hitTest) {
-            console.log(`Hit test for node ${node.id}:`, {
+            debugLog(enableDebug, `Hit test for node ${node.id}:`, {
               nodePos: node.position,
               containerSize,
               mousePos: { x, y },
@@ -471,9 +483,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         
         if (targetNode && edgeDragState.validTargets?.includes(targetNode.id)) {
           targetNodeId = targetNode.id;
-          console.log("Valid target found:", targetNodeId);
+          debugLog(enableDebug, "Valid target found:", targetNodeId);
         } else {
-          console.log("No valid target found or not in valid targets list");
+          debugLog(enableDebug, "No valid target found or not in valid targets list");
         }
       }
       
@@ -672,7 +684,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       const worldX = (screenX - viewport.x) / viewport.zoom;
       const worldY = (screenY - viewport.y) / viewport.zoom;
       
-      console.log("Global mouse move during edge drag:", { screenX, screenY, worldX, worldY });
+      debugLog(enableDebug, "Global mouse move during edge drag:", { screenX, screenY, worldX, worldY });
       
       if (edgeDragState.edgeId) {
         handleEdgeDragMove(edgeDragState.edgeId, { x: worldX, y: worldY });
@@ -688,7 +700,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       const worldX = (screenX - viewport.x) / viewport.zoom;
       const worldY = (screenY - viewport.y) / viewport.zoom;
       
-      console.log("Global mouse up during edge drag:", { screenX, screenY, worldX, worldY });
+      debugLog(enableDebug, "Global mouse up during edge drag:", { screenX, screenY, worldX, worldY });
       
       // Find target node - prioritize blocks over pages
       let targetNodeId: string | null = null;
@@ -713,7 +725,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       
       if (targetNode && edgeDragState.validTargets?.includes(targetNode.id)) {
         targetNodeId = targetNode.id;
-        console.log("Global valid target found:", targetNodeId);
+        debugLog(enableDebug, "Global valid target found:", targetNodeId);
       }
       
       handleEdgeDragEnd(edgeDragState.edgeId, targetNodeId);
@@ -850,6 +862,58 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
             backgroundPosition: `${viewport.x}px ${viewport.y}px`
           }}
         />
+        
+        {/* Pixel location grid overlay */}
+        {showPixelGrid && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(255, 0, 0, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 0, 0, 0.3) 1px, transparent 1px)
+              `,
+              backgroundSize: `${50 * viewport.zoom}px ${50 * viewport.zoom}px`,
+              backgroundPosition: `${viewport.x}px ${viewport.y}px`
+            }}
+          />
+        )}
+        
+        {/* Pixel coordinates at regular intervals */}
+        {showPixelGrid && (
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: Math.ceil(4000 / 100) }, (_, i) => (
+              <div key={`x-${i}`} className="absolute">
+                {Array.from({ length: Math.ceil(4000 / 100) }, (_, j) => {
+                  const x = i * 100;
+                  const y = j * 100;
+                  const screenX = x * viewport.zoom + viewport.x;
+                  const screenY = y * viewport.zoom + viewport.y;
+                  
+                  // Only show if visible on screen
+                  if (screenX < -50 || screenX > 2000 || screenY < -50 || screenY > 2000) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div
+                      key={`coord-${i}-${j}`}
+                      className="absolute text-xs text-red-600 bg-white/80 px-1 rounded shadow-sm font-mono"
+                      style={{
+                        left: screenX,
+                        top: screenY,
+                        fontSize: `${10 * viewport.zoom}px`,
+                        transform: `scale(${1 / viewport.zoom})`,
+                        transformOrigin: 'top left'
+                      }}
+                    >
+                      {x},{y}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Transform container */}
         <div
@@ -1019,6 +1083,28 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           </button>
         </div>
       </div>
+      
+      {/* Pixel Grid Toggle */}
+      <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+        <button
+          onClick={() => setShowPixelGrid(!showPixelGrid)}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            showPixelGrid 
+              ? 'bg-red-500 text-white hover:bg-red-600' 
+              : 'text-foreground hover:bg-accent'
+          }`}
+          title="Toggle pixel grid overlay"
+        >
+          📐 Grid
+        </button>
+      </div>
+      
+      {/* Mouse Position Display */}
+      {showPixelGrid && mousePosition && (
+        <div className="absolute top-16 right-4 bg-red-500 text-white px-3 py-2 rounded-lg shadow-lg font-mono text-sm">
+          x: {mousePosition.x}, y: {mousePosition.y}
+        </div>
+      )}
 
       {/* Canvas info and controls */}
       <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-foreground border border-border">

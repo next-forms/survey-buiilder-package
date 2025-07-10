@@ -262,7 +262,7 @@ export const FlowBuilder: React.FC = () => {
         // Use the same format as ContentBlockPage.tsx handleAddBlockItem
         const blockDefinition = state.definitions.blocks[nodeType];
         if (!blockDefinition) {
-          console.error(`No block definition found for type '${nodeType}'`);
+          debug.error(`No block definition found for type '${nodeType}'`);
           return;
         }
 
@@ -286,7 +286,7 @@ export const FlowBuilder: React.FC = () => {
         
         debug.log(`Added block ${nodeType} to page ${targetPage.name || targetPage.uuid}`);
       } else {
-        console.error("No page available to add block to");
+        debug.error("No page available to add block to");
       }
     }
   }, [createNode, updateNode, state.rootNode, state.definitions]);
@@ -302,7 +302,7 @@ export const FlowBuilder: React.FC = () => {
     debug.log("Updating node:", nodeId, "with data:", data);
     
     if (!state.rootNode) {
-      console.error("No root node available for update");
+      debug.error("No root node available for update");
       return;
     }
     
@@ -421,7 +421,7 @@ export const FlowBuilder: React.FC = () => {
   // Handle node deletion
   const handleNodeDelete = useCallback((nodeId: string) => {
     if (!state.rootNode) {
-      console.error("No root node available for deletion");
+      debug.error("No root node available for deletion");
       return;
     }
     
@@ -501,7 +501,7 @@ export const FlowBuilder: React.FC = () => {
     // Find the edge in the current flow data
     const edge = flowData.edges.find(e => e.id === edgeId);
     if (!edge) {
-      console.warn("Edge not found:", edgeId);
+      debug.warn("Edge not found:", edgeId);
       return;
     }
 
@@ -770,14 +770,14 @@ export const FlowBuilder: React.FC = () => {
     // Find the source node data
     const sourceNode = flowData.nodes.find(n => n.id === sourceNodeId);
     if (sourceNode?.type !== "block") {
-      console.warn("Connections can only be created from block nodes");
+      debug.warn("Connections can only be created from block nodes");
       return;
     }
 
     // Find the target node
     const targetNode = flowData.nodes.find(n => n.id === targetNodeId);
     if (!targetNode) {
-      console.warn("Target node not found");
+      debug.warn("Target node not found");
       return;
     }
 
@@ -799,7 +799,7 @@ export const FlowBuilder: React.FC = () => {
     }
 
     if (!targetString) {
-      console.warn("Could not determine target string for connection");
+      debug.warn("Could not determine target string for connection");
       return;
     }
 

@@ -210,14 +210,6 @@ const extractLabelsFromSurvey = (node: any): string[] => {
   const processNode = (currentNode: any) => {
     if (!currentNode) return;
 
-    // console.log('Processing node:', { 
-    //   type: currentNode.type, 
-    //   name: currentNode.name, 
-    //   uuid: currentNode.uuid,
-    //   hasItems: !!currentNode.items,
-    //   itemsLength: currentNode.items?.length 
-    // });
-
     // Extract text content from the current node itself
     if (currentNode.name) labels.add(currentNode.name);
     if (currentNode.label) labels.add(currentNode.label);

@@ -86,7 +86,7 @@ export function surveyToFlow(rootNode: NodeData, enableDebug: boolean = false): 
       
       // Ensure child node has UUID
       if (!actualChildNode.uuid) {
-        console.error("Child node missing UUID, generating one");
+        debugError(enableDebug ,"Child node missing UUID, generating one");
         actualChildNode.uuid = `page_${Date.now()}_${pageIndex}`;
       }
       
