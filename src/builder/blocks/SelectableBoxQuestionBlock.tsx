@@ -304,7 +304,7 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
   icon: <CheckSquare className="w-4 h-4" />,
   defaultData: {
     type: "selectablebox",
-    fieldName: "", // Will be generated when block is created
+    fieldName: generateFieldName("selectablebox"),
     label: "What's your goal?",
     description: "",
     boxSpacing: "4",
