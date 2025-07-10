@@ -246,7 +246,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   }, [edgeDragState, edges, nodes, onEdgeUpdate, enableDebug]);
 
   // Get boundary constraints for a node
-  const getBoundaryConstraints = useCallback((nodeId: string) => {
+  const getBoundaryConstraints = useCallback((nodeId: string, type: string = "bounds") => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return null;
 
@@ -261,12 +261,19 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           const containerSize = pageData?.containerSize || { width: 300, height: 200 };
           const nodeData = node.data as any;
           const blockSize = nodeData?.containerSize || { width: 120, height: 60 };
-          
+          if(type === "position") {
+            return {
+              minX: parentPage.position.x + 15, // 15px padding
+              minY: parentPage.position.y + 35, // 35px for page header
+              maxX: parentPage.position.x + containerSize.width - blockSize.width - 15,
+              maxY: parentPage.position.y + containerSize.height - blockSize.height - 15
+            };
+          }
           return {
             minX: parentPage.position.x + 15, // 15px padding
             minY: parentPage.position.y + 35, // 35px for page header
-            maxX: parentPage.position.x + containerSize.width - blockSize.width - 15,
-            maxY: parentPage.position.y + containerSize.height - blockSize.height - 15
+            maxX: parentPage.position.x + containerSize.width - 15,
+            maxY: parentPage.position.y + containerSize.height - 15
           };
         }
       }
@@ -309,7 +316,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
   // Apply boundary constraints to position
   const constrainPosition = useCallback((nodeId: string, x: number, y: number) => {
-    const constraints = getBoundaryConstraints(nodeId);
+    const constraints = getBoundaryConstraints(nodeId, "position");
     if (!constraints) return { x, y };
 
     return {
