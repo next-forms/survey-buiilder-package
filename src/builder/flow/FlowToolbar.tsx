@@ -21,6 +21,8 @@ interface FlowToolbarProps {
   onRedo: () => void;
   onFitView: () => void;
   onExport: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export const FlowToolbar: React.FC<FlowToolbarProps> = ({
@@ -29,7 +31,9 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
   onUndo,
   onRedo,
   onFitView,
-  onExport
+  onExport,
+  canUndo = false,
+  canRedo = false
 }) => {
   const toolbarItems = [
     {
@@ -66,14 +70,16 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           label: "Undo",
           icon: Undo2,
           active: false,
-          onClick: onUndo
+          onClick: onUndo,
+          disabled: !canUndo
         },
         {
           key: "redo",
           label: "Redo",
           icon: Redo2,
           active: false,
-          onClick: onRedo
+          onClick: onRedo,
+          disabled: !canRedo
         }
       ]
     },
@@ -106,6 +112,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
                     variant={item.active ? "default" : "outline"}
                     size="sm"
                     onClick={item.onClick}
+                    disabled={item.disabled}
                     className="h-8 px-3"
                     title={item.label}
                   >

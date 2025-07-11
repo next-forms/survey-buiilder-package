@@ -4,6 +4,7 @@ import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
 import { debugLog } from "../../utils/debugUtils";
 import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
+import { useFlowHistory, FlowHistoryState } from "./useFlowHistory";
 
 interface FlowCanvasProps {
   nodes: FlowNode[];
@@ -22,6 +23,9 @@ interface FlowCanvasProps {
   onConnectionCreate?: (sourceNodeId: string, targetNodeId: string) => void;
   onEdgeUpdate?: (edgeId: string, newTarget: string) => void;
   enableDebug?: boolean;
+  enableUndoRedo?: boolean;
+  onHistoryChange?: (state: FlowHistoryState) => void;
+  onHistoryStateChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
 export const FlowCanvas: React.FC<FlowCanvasProps> = ({
@@ -40,12 +44,26 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   onFitView,
   onConnectionCreate,
   onEdgeUpdate,
-  enableDebug = false
+  enableDebug = false,
+  enableUndoRedo = false,
+  onHistoryChange,
+  onHistoryStateChange
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  
+  // Initialize history management
+  const history = useFlowHistory({ nodes, edges });
+  
+  // Notify parent about history state changes
+  React.useEffect(() => {
+    if (enableUndoRedo && onHistoryStateChange) {
+      onHistoryStateChange(history.canUndo, history.canRedo);
+    }
+  }, [enableUndoRedo, onHistoryStateChange, history.canUndo, history.canRedo]);
+  
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     nodeId?: string;
@@ -70,12 +88,83 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     isDragging: false
   });
   
-  // Track if mouse is over canvas for better scroll handling
-  const [isMouseOverCanvas, setIsMouseOverCanvas] = useState(false);
-  
   // Pixel grid visibility
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Enhanced callbacks with history tracking
+  const handleNodeCreateWithHistory = useCallback((position: { x: number; y: number }, nodeType: string, targetPageId?: string) => {
+    console.log('Creating node with history:', { enableUndoRedo, nodeType, nodes: nodes.length, edges: edges.length });
+    if (enableUndoRedo) {
+      // Push state BEFORE the operation
+      history.pushState({ nodes, edges }, `Create ${nodeType} node`);
+      console.log('Pushed state to history:', { nodes: nodes.length, edges: edges.length });
+    }
+    onNodeCreate(position, nodeType, targetPageId);
+  }, [onNodeCreate, enableUndoRedo, history, nodes, edges]);
+
+  const handleNodeUpdateWithHistory = useCallback((nodeId: string, data: any) => {
+    if (enableUndoRedo) {
+      history.pushState({ nodes, edges }, `Update node ${nodeId}`);
+    }
+    onNodeUpdate(nodeId, data);
+  }, [onNodeUpdate, enableUndoRedo, history, nodes, edges]);
+
+  const handleNodeDeleteWithHistory = useCallback((nodeId: string) => {
+    if (enableUndoRedo) {
+      history.pushState({ nodes, edges }, `Delete node ${nodeId}`);
+    }
+    onNodeDelete(nodeId);
+  }, [onNodeDelete, enableUndoRedo, history, nodes, edges]);
+
+  const handleNodePositionUpdateWithHistory = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    if (onNodePositionUpdate) {
+      onNodePositionUpdate(nodeId, position);
+    }
+  }, [onNodePositionUpdate]);
+
+  const handleConnectionCreateWithHistory = useCallback((sourceNodeId: string, targetNodeId: string) => {
+    if (onConnectionCreate) {
+      if (enableUndoRedo) {
+        history.pushState({ nodes, edges }, `Create connection from ${sourceNodeId} to ${targetNodeId}`);
+      }
+      onConnectionCreate(sourceNodeId, targetNodeId);
+    }
+  }, [onConnectionCreate, enableUndoRedo, history, nodes, edges]);
+
+  const handleEdgeUpdateWithHistory = useCallback((edgeId: string, newTarget: string) => {
+    if (onEdgeUpdate) {
+      if (enableUndoRedo) {
+        history.pushState({ nodes, edges }, `Update edge ${edgeId}`);
+      }
+      onEdgeUpdate(edgeId, newTarget);
+    }
+  }, [onEdgeUpdate, enableUndoRedo, history, nodes, edges]);
+
+  // Undo/Redo functions
+  const handleUndo = useCallback(() => {
+    console.log('Undo button clicked!', { enableUndoRedo, canUndo: history.canUndo, onHistoryChange: !!onHistoryChange });
+    if (enableUndoRedo && history.canUndo) {
+      const previousState = history.undo();
+      console.log('Undo result:', previousState);
+      if (previousState && onHistoryChange) {
+        console.log('Calling onHistoryChange with:', previousState);
+        onHistoryChange(previousState);
+      }
+    }
+  }, [enableUndoRedo, history, onHistoryChange]);
+
+  const handleRedo = useCallback(() => {
+    console.log('Redo button clicked!', { enableUndoRedo, canRedo: history.canRedo, onHistoryChange: !!onHistoryChange });
+    if (enableUndoRedo && history.canRedo) {
+      const nextState = history.redo();
+      console.log('Redo result:', nextState);
+      if (nextState && onHistoryChange) {
+        console.log('Calling onHistoryChange with:', nextState);
+        onHistoryChange(nextState);
+      }
+    }
+  }, [enableUndoRedo, history, onHistoryChange]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -99,9 +188,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       const y = (e.clientY - rect.top - viewport.y) / viewport.zoom;
       
       // Default to creating a page/set node
-      onNodeCreate({ x, y }, "set");
+      handleNodeCreateWithHistory({ x, y }, "set");
     }
-  }, [onNodeCreate, viewport]);
+  }, [handleNodeCreateWithHistory, viewport]);
 
   // Find which page (if any) contains the given coordinates
   const findPageAtPosition = useCallback((x: number, y: number) => {
@@ -163,16 +252,16 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         };
         
         // Create the block with a custom handler that specifies the target page
-        onNodeCreate(blockPosition, nodeType, targetPage.id);
+        handleNodeCreateWithHistory(blockPosition, nodeType, targetPage.id);
       } else {
         // Default behavior for pages or blocks dropped on empty canvas
-        onNodeCreate({ x, y }, nodeType);
+        handleNodeCreateWithHistory({ x, y }, nodeType);
       }
     }
     
     // Clear drag over state
     setDragOverPageId(null);
-  }, [onNodeCreate, viewport, findPageAtPosition]);
+  }, [handleNodeCreateWithHistory, viewport, findPageAtPosition]);
 
   // Handle edge drag start
   const handleEdgeDragStart = useCallback((edgeId: string, initialPosition: { x: number; y: number }) => {
@@ -235,9 +324,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       
       if (validation.isValid) {
         debugLog(enableDebug, `Updating edge ${edgeId} from ${edge.target} to ${targetNodeId}`);
-        if (onEdgeUpdate) {
-          onEdgeUpdate(edgeId, targetNodeId);
-        }
+        handleEdgeUpdateWithHistory(edgeId, targetNodeId);
       } else {
         debugLog(enableDebug, `Invalid connection: ${validation.message}`);
         // Could show a toast notification here
@@ -245,7 +332,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     }
     
     setEdgeDragState({ isDragging: false });
-  }, [edgeDragState, edges, nodes, onEdgeUpdate, enableDebug]);
+  }, [edgeDragState, edges, nodes, handleEdgeUpdateWithHistory, enableDebug]);
 
   // Get boundary constraints for a node
   const getBoundaryConstraints = useCallback((nodeId: string, type: string = "bounds") => {
@@ -303,6 +390,11 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
     
+    // Push state before starting drag for position tracking
+    if (enableUndoRedo) {
+      history.pushState({ nodes, edges }, `Move node ${nodeId}`);
+    }
+    
     const rect = canvasRef.current!.getBoundingClientRect();
     const offsetX = e.clientX - rect.left - (node.position.x * viewport.zoom + viewport.x);
     const offsetY = e.clientY - rect.top - (node.position.y * viewport.zoom + viewport.y);
@@ -319,7 +411,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     });
     
     onNodeSelect(nodeId);
-  }, [nodes, viewport, onNodeSelect, getBoundaryConstraints]);
+  }, [nodes, viewport, onNodeSelect, getBoundaryConstraints, enableUndoRedo, history, edges]);
 
   // Apply boundary constraints to position
   const constrainPosition = useCallback((nodeId: string, x: number, y: number) => {
@@ -340,20 +432,13 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     if (mode === "connect") {
       if (connectionState.isConnecting && connectionState.sourceNodeId) {
         // Complete the connection
-        if (nodeId !== connectionState.sourceNodeId && onConnectionCreate) {
+        if (nodeId !== connectionState.sourceNodeId) {
           const sourceNode = nodes.find(n => n.id === connectionState.sourceNodeId);
           const targetNode = nodes.find(n => n.id === nodeId);
           
           // Apply user constraints: Only allow connections from blocks (not sets/sections) to any valid target
           if (sourceNode?.type === "block" && (targetNode?.type === "block" || targetNode?.type === "set" || targetNode?.type === "submit")) {
-            debugLog(enableDebug, "Creating connection:", { source: sourceNode.id, target: targetNode.id });
-            onConnectionCreate(connectionState.sourceNodeId, nodeId);
-          } else {
-            debugLog(enableDebug, "Invalid connection attempt:", { 
-              sourceType: sourceNode?.type, 
-              targetType: targetNode?.type,
-              reason: sourceNode?.type !== "block" ? "Source must be a block" : "Invalid target type"
-            });
+            handleConnectionCreateWithHistory(connectionState.sourceNodeId, nodeId);
           }
         }
         // Reset connection state
@@ -376,7 +461,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     
     // Normal selection behavior
     onNodeSelect(nodeId);
-  }, [mode, connectionState, nodes, onConnectionCreate, onNodeSelect, enableDebug]);
+  }, [mode, connectionState, nodes, handleConnectionCreateWithHistory, onNodeSelect]);
 
   // Handle mouse move for dragging and panning - optimized for smoothness
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -426,8 +511,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       }
       
       // Update node position using the position update handler
-      if (onNodePositionUpdate && dragState.nodeId) {
-        onNodePositionUpdate(dragState.nodeId, finalPos);
+      if (dragState.nodeId) {
+        handleNodePositionUpdateWithHistory(dragState.nodeId, finalPos);
       }
     } else if (isPanning) {
       // Canvas panning - improved responsiveness
@@ -442,7 +527,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
-  }, [dragState, isPanning, lastPanPoint, viewport, onNodePositionUpdate, constrainPosition, nodes]);
+  }, [dragState, isPanning, lastPanPoint, viewport, handleNodePositionUpdateWithHistory, constrainPosition, nodes]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((e?: React.MouseEvent) => {
@@ -545,9 +630,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     // 4. Right mouse button for context panning
     const target = e.target as HTMLElement;
     const isCanvasBackground = target === canvasRef.current || 
-                              target.classList.contains('flow-canvas') ||
-                              (target.closest('.flow-canvas') === canvasRef.current && 
-                              !target.closest('.flow-node'));
+                              // Check if we're clicking inside the canvas but not on nodes
+                              (canvasRef.current?.contains(target) && 
+                               !target.closest('.flow-node'));
     
     const shouldPan = (mode === "pan") || 
                       e.button === 1 || // Middle mouse button
@@ -572,9 +657,17 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     
-    // Zoom when Ctrl/Cmd is held, otherwise pan
+    // Zoom by default, pan when Ctrl/Cmd is held
     if (e.ctrlKey || e.metaKey) {
-      // Zoom mode
+      // Pan mode - scroll to move the canvas when modifier is held
+      const panSpeed = 1.5;
+      setViewport(prev => ({
+        ...prev,
+        x: prev.x - e.deltaX * panSpeed,
+        y: prev.y - e.deltaY * panSpeed
+      }));
+    } else {
+      // Zoom mode - default behavior
       const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
       const newZoom = Math.max(0.2, Math.min(3, viewport.zoom * zoomFactor));
       
@@ -587,14 +680,6 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         zoom: newZoom,
         x: mouseX - (mouseX - prev.x) * zoomRatio,
         y: mouseY - (mouseY - prev.y) * zoomRatio
-      }));
-    } else {
-      // Pan mode - scroll to move the canvas
-      const panSpeed = 1.5;
-      setViewport(prev => ({
-        ...prev,
-        x: prev.x - e.deltaX * panSpeed,
-        y: prev.y - e.deltaY * panSpeed
       }));
     }
   }, [viewport]);
@@ -688,6 +773,47 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
     });
   }, [nodes]);
 
+  // Reset view to center nodes at 100% zoom
+  const resetView = useCallback(() => {
+    if (nodes.length === 0 || !canvasRef.current) {
+      // If no nodes, just reset to origin
+      setViewport({ x: 0, y: 0, zoom: 1 });
+      return;
+    }
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Calculate bounds of all nodes
+    const bounds = nodes.reduce((acc, node) => {
+      const nodeWidth = 300; // Estimated node width
+      const nodeHeight = 200; // Estimated node height
+      
+      return {
+        minX: Math.min(acc.minX, node.position.x),
+        minY: Math.min(acc.minY, node.position.y),
+        maxX: Math.max(acc.maxX, node.position.x + nodeWidth),
+        maxY: Math.max(acc.maxY, node.position.y + nodeHeight)
+      };
+    }, {
+      minX: Infinity,
+      minY: Infinity,
+      maxX: -Infinity,
+      maxY: -Infinity
+    });
+    
+    // Center the content at 100% zoom
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const contentCenterX = (bounds.minX + bounds.maxX) / 2;
+    const contentCenterY = (bounds.minY + bounds.maxY) / 2;
+    
+    setViewport({
+      x: centerX - contentCenterX,
+      y: centerY - contentCenterY,
+      zoom: 1
+    });
+  }, [nodes]);
+
   // Expose fit view to parent
   React.useEffect(() => {
     if (onFitView) {
@@ -774,13 +900,19 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         fitView();
       } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        setViewport({ x: 0, y: 0, zoom: 1 });
+        resetView();
+      } else if (enableUndoRedo && e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if (enableUndoRedo && ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fitView]);
+  }, [fitView, resetView, enableUndoRedo, handleUndo, handleRedo]);
 
   // Expose fit view to parent
   React.useEffect(() => {
@@ -797,7 +929,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         isActive={activePageId === node.id && node.type === "set"}
         onSelect={handleNodeSelectWithConnection}
         onDragStart={handleNodeDragStart}
-        onDelete={onNodeDelete}
+        onDelete={handleNodeDeleteWithHistory}
         onConfigure={onNodeConfigure}
         zoom={viewport.zoom}
         isDragOver={dragOverPageId === node.id}
@@ -805,7 +937,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         connectionSourceId={connectionState.sourceNodeId}
       />
     ));
-  }, [nodes, selectedNodeId, activePageId, handleNodeSelectWithConnection, handleNodeDragStart, onNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
+  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDeleteWithHistory, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
 
   const renderedEdges = useMemo(() => {
     return edges.map(edge => (
@@ -832,12 +964,11 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
   // Track mouse over canvas
   const handleCanvasMouseEnter = useCallback(() => {
-    setIsMouseOverCanvas(true);
+    // Mouse entered canvas
   }, []);
 
   // Track mouse leave canvas
   const handleCanvasMouseLeave = useCallback(() => {
-    setIsMouseOverCanvas(false);
     // Stop any active dragging/panning
     setDragState({ isDragging: false });
     setIsPanning(false);
@@ -877,7 +1008,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       >
         {/* Grid background */}
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
             backgroundImage: `
               linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
@@ -1141,8 +1272,40 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         </div>
       </div>
       
+      {/* Undo/Redo Controls */}
+      {enableUndoRedo && (
+        <div className="absolute top-4 right-20 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+          <div className="flex flex-col">
+            <button
+              onClick={handleUndo}
+              disabled={!history.canUndo}
+              className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                history.canUndo 
+                  ? 'text-foreground hover:bg-accent' 
+                  : 'text-muted-foreground cursor-not-allowed'
+              }`}
+              title="Undo (Ctrl+Z)"
+            >
+              ↶
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={!history.canRedo}
+              className={`px-3 py-2 text-sm font-medium rounded-b-lg transition-colors border-t border-border ${
+                history.canRedo 
+                  ? 'text-foreground hover:bg-accent' 
+                  : 'text-muted-foreground cursor-not-allowed'
+              }`}
+              title="Redo (Ctrl+Y)"
+            >
+              ↷
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Pixel Grid Toggle */}
-      <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+      <div className={`absolute top-4 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg ${enableUndoRedo ? 'right-36' : 'right-24'}`}>
         <button
           onClick={() => setShowPixelGrid(!showPixelGrid)}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -1170,8 +1333,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         <div>Nodes: {nodes.length}</div>
         <div>Edges: {edges.length}</div>
         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-          <div>• Ctrl+Scroll to zoom</div>
-          <div>• Scroll to pan canvas</div>
+          <div>• Scroll to zoom in/out</div>
+          <div>• Ctrl+Scroll to pan canvas</div>
           <div>• Drag background to pan</div>
           <div>• Middle/Right-click to pan</div>
           <div>• Double-click to add page</div>
@@ -1184,6 +1347,12 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           )}
           <div>• Press 'F' to fit view</div>
           <div>• Press 'R' to reset view</div>
+          {enableUndoRedo && (
+            <>
+              <div>• Ctrl+Z to undo</div>
+              <div>• Ctrl+Y to redo</div>
+            </>
+          )}
         </div>
         <div className="mt-2 flex gap-1">
           <button
@@ -1194,7 +1363,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
             Fit All
           </button>
           <button
-            onClick={() => setViewport({ x: 0, y: 0, zoom: 1 })}
+            onClick={resetView}
             className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
             title="Reset view"
           >

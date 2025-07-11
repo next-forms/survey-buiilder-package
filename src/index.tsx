@@ -144,4 +144,8 @@ export * from './builder/nodes';
 // Export utility functions
 export * from './utils/nodeUtils';
 
+// Export flow history hook
+export { useFlowHistory } from './builder/flow/useFlowHistory';
+export type { FlowHistoryState, FlowHistoryEntry, FlowHistory, UseFlowHistoryReturn } from './builder/flow/useFlowHistory';
+
 export default SurveyForm;

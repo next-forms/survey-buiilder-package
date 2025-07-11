@@ -5,12 +5,13 @@ import { NodeConfigPanel } from "./NodeConfigPanel";
 import { FlowToolbar } from "./FlowToolbar";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
-import { surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
-import { FlowMode } from "./types";
+import { flowToSurvey, surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
+import { FlowNode, FlowEdge, FlowMode } from "./types";
+import { FlowHistoryState } from "./useFlowHistory";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 export const FlowBuilder: React.FC = () => {
-  const { state, updateNode, createNode, removeNode } = useSurveyBuilder();
+  const { state, updateNode, createNode, removeNode, importSurvey } = useSurveyBuilder();
   const debug = useBuilderDebug();
   const [flowMode, setFlowMode] = useState<FlowMode>("select");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -19,6 +20,12 @@ export const FlowBuilder: React.FC = () => {
   const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  
+  // Undo/Redo state
+  const [undoFunction, setUndoFunction] = useState<(() => void) | null>(null);
+  const [redoFunction, setRedoFunction] = useState<(() => void) | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   
   // Convert survey structure to flow format with positions
   const flowData = React.useMemo(() => {
@@ -938,16 +945,61 @@ export const FlowBuilder: React.FC = () => {
     handleNodeCreate(defaultPosition, nodeType);
   }, [handleNodeCreate]);
 
+  // Handle history state changes (canUndo/canRedo updates)
+  const handleHistoryStateChange = useCallback((canUndoValue: boolean, canRedoValue: boolean) => {
+    console.log('History state changed:', { canUndo: canUndoValue, canRedo: canRedoValue });
+    setCanUndo(canUndoValue);
+    setCanRedo(canRedoValue);
+  }, []);
+
+  // Handle history changes from undo/redo
+  const handleHistoryChange = useCallback((historyState: FlowHistoryState) => {
+    console.log('History change received in FlowBuilder:', historyState);
+    
+    // Extract positions from flow nodes
+    const newPositions: Record<string, { x: number; y: number }> = {};
+    historyState.nodes.forEach(node => {
+      newPositions[node.id] = { x: node.position.x, y: node.position.y };
+    });
+    
+    // Convert flow state back to survey state
+    const newSurvey = flowToSurvey({ nodes: historyState.nodes, edges: historyState.edges });
+    if (newSurvey) {
+      console.log('Restoring survey state and positions:', { newSurvey, newPositions });
+      
+      // Update both the survey state and positions
+      importSurvey({ rootNode: newSurvey });
+      setNodePositions(newPositions);
+    }
+  }, [importSurvey]);
+
+  // Handle undo/redo functions
+  const handleUndo = useCallback(() => {
+    if (undoFunction) {
+      console.log('Executing undo from FlowBuilder');
+      undoFunction();
+    }
+  }, [undoFunction]);
+
+  const handleRedo = useCallback(() => {
+    if (redoFunction) {
+      console.log('Executing redo from FlowBuilder');
+      redoFunction();
+    }
+  }, [redoFunction]);
+
   return (
     <div className="flow-builder h-full flex flex-col">
       {/* Flow Toolbar */}
       <FlowToolbar
         mode={flowMode}
         onModeChange={handleModeChange}
-        onUndo={() => {}}
-        onRedo={() => {}}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onFitView={handleFitView}
         onExport={() => {}}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       
       {/* Debug info */}
@@ -1014,6 +1066,9 @@ export const FlowBuilder: React.FC = () => {
             onConnectionCreate={handleConnectionCreate}
             onEdgeUpdate={handleEdgeUpdate}
             enableDebug={state.enableDebug}
+            enableUndoRedo={true}
+            onHistoryChange={handleHistoryChange}
+            onHistoryStateChange={handleHistoryStateChange}
           />
         </div>
 
