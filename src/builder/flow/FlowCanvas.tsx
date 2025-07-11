@@ -1,14 +1,20 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import { FlowNode, FlowEdge, FlowMode } from "./types";
 import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
 import { debugLog } from "../../utils/debugUtils";
 import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
-import { useFlowHistory, FlowHistoryState } from "./useFlowHistory";
+import { useFlowVersionManager, FlowVersionState } from "./useFlowVersionManager";
+
+export interface FlowCanvasRef {
+  undo: () => void;
+  redo: () => void;
+}
 
 interface FlowCanvasProps {
   nodes: FlowNode[];
   edges: FlowEdge[];
+  nodePositions: Record<string, { x: number; y: number }>;
   mode: FlowMode;
   selectedNodeId: string | null;
   activePageId?: string | null;
@@ -24,13 +30,14 @@ interface FlowCanvasProps {
   onEdgeUpdate?: (edgeId: string, newTarget: string) => void;
   enableDebug?: boolean;
   enableUndoRedo?: boolean;
-  onHistoryChange?: (state: FlowHistoryState) => void;
+  onHistoryChange?: (state: FlowVersionState) => void;
   onHistoryStateChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
-export const FlowCanvas: React.FC<FlowCanvasProps> = ({
+export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   nodes,
   edges,
+  nodePositions,
   mode,
   selectedNodeId,
   activePageId,
@@ -48,21 +55,24 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   enableUndoRedo = false,
   onHistoryChange,
   onHistoryStateChange
-}) => {
+}, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   
-  // Initialize history management
-  const history = useFlowHistory({ nodes, edges });
+  // Initialize version management
+  const versionManager = useFlowVersionManager(
+    { nodes, edges, nodePositions },
+    enableDebug
+  );
   
   // Notify parent about history state changes
   React.useEffect(() => {
     if (enableUndoRedo && onHistoryStateChange) {
-      onHistoryStateChange(history.canUndo, history.canRedo);
+      onHistoryStateChange(versionManager.canUndo, versionManager.canRedo);
     }
-  }, [enableUndoRedo, onHistoryStateChange, history.canUndo, history.canRedo]);
+  }, [enableUndoRedo, onHistoryStateChange, versionManager.canUndo, versionManager.canRedo]);
   
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
@@ -92,79 +102,121 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
 
-  // Enhanced callbacks with history tracking
+  // Enhanced callbacks with version tracking
   const handleNodeCreateWithHistory = useCallback((position: { x: number; y: number }, nodeType: string, targetPageId?: string) => {
     console.log('Creating node with history:', { enableUndoRedo, nodeType, nodes: nodes.length, edges: edges.length });
     if (enableUndoRedo) {
       // Push state BEFORE the operation
-      history.pushState({ nodes, edges }, `Create ${nodeType} node`);
-      console.log('Pushed state to history:', { nodes: nodes.length, edges: edges.length });
+      versionManager.pushVersion(
+        { nodes, edges, nodePositions },
+        'NODE_CREATE',
+        `Create ${nodeType} node`
+      );
+      console.log('Pushed state to version manager:', { nodes: nodes.length, edges: edges.length });
     }
     onNodeCreate(position, nodeType, targetPageId);
-  }, [onNodeCreate, enableUndoRedo, history, nodes, edges]);
+  }, [onNodeCreate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   const handleNodeUpdateWithHistory = useCallback((nodeId: string, data: any) => {
     if (enableUndoRedo) {
-      history.pushState({ nodes, edges }, `Update node ${nodeId}`);
+      versionManager.pushVersion(
+        { nodes, edges, nodePositions },
+        'NODE_UPDATE',
+        `Update node ${nodeId}`,
+        [nodeId]
+      );
     }
     onNodeUpdate(nodeId, data);
-  }, [onNodeUpdate, enableUndoRedo, history, nodes, edges]);
+  }, [onNodeUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   const handleNodeDeleteWithHistory = useCallback((nodeId: string) => {
     if (enableUndoRedo) {
-      history.pushState({ nodes, edges }, `Delete node ${nodeId}`);
+      versionManager.pushVersion(
+        { nodes, edges, nodePositions },
+        'NODE_DELETE',
+        `Delete node ${nodeId}`,
+        [nodeId]
+      );
     }
     onNodeDelete(nodeId);
-  }, [onNodeDelete, enableUndoRedo, history, nodes, edges]);
+  }, [onNodeDelete, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   const handleNodePositionUpdateWithHistory = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    if (enableUndoRedo) {
+      // Create updated position state
+      const updatedPositions = { ...nodePositions, [nodeId]: position };
+      versionManager.pushVersion(
+        { nodes, edges, nodePositions: updatedPositions },
+        'NODE_POSITION_UPDATE',
+        `Move node ${nodeId}`,
+        [nodeId]
+      );
+    }
     if (onNodePositionUpdate) {
       onNodePositionUpdate(nodeId, position);
     }
-  }, [onNodePositionUpdate]);
+  }, [onNodePositionUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   const handleConnectionCreateWithHistory = useCallback((sourceNodeId: string, targetNodeId: string) => {
     if (onConnectionCreate) {
       if (enableUndoRedo) {
-        history.pushState({ nodes, edges }, `Create connection from ${sourceNodeId} to ${targetNodeId}`);
+        versionManager.pushVersion(
+          { nodes, edges, nodePositions },
+          'CONNECTION_CREATE',
+          `Create connection from ${sourceNodeId} to ${targetNodeId}`,
+          [sourceNodeId, targetNodeId]
+        );
       }
       onConnectionCreate(sourceNodeId, targetNodeId);
     }
-  }, [onConnectionCreate, enableUndoRedo, history, nodes, edges]);
+  }, [onConnectionCreate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   const handleEdgeUpdateWithHistory = useCallback((edgeId: string, newTarget: string) => {
     if (onEdgeUpdate) {
       if (enableUndoRedo) {
-        history.pushState({ nodes, edges }, `Update edge ${edgeId}`);
+        const affectedEdges = edges.filter(e => e.id === edgeId).map(e => e.id);
+        versionManager.pushVersion(
+          { nodes, edges, nodePositions },
+          'EDGE_UPDATE',
+          `Update edge ${edgeId}`,
+          undefined,
+          affectedEdges
+        );
       }
       onEdgeUpdate(edgeId, newTarget);
     }
-  }, [onEdgeUpdate, enableUndoRedo, history, nodes, edges]);
+  }, [onEdgeUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
 
   // Undo/Redo functions
   const handleUndo = useCallback(() => {
-    console.log('Undo button clicked!', { enableUndoRedo, canUndo: history.canUndo, onHistoryChange: !!onHistoryChange });
-    if (enableUndoRedo && history.canUndo) {
-      const previousState = history.undo();
+    console.log('Undo button clicked!', { enableUndoRedo, canUndo: versionManager.canUndo, onHistoryChange: !!onHistoryChange });
+    if (enableUndoRedo && versionManager.canUndo) {
+      const previousState = versionManager.undo();
       console.log('Undo result:', previousState);
       if (previousState && onHistoryChange) {
         console.log('Calling onHistoryChange with:', previousState);
         onHistoryChange(previousState);
       }
     }
-  }, [enableUndoRedo, history, onHistoryChange]);
+  }, [enableUndoRedo, versionManager, onHistoryChange]);
 
   const handleRedo = useCallback(() => {
-    console.log('Redo button clicked!', { enableUndoRedo, canRedo: history.canRedo, onHistoryChange: !!onHistoryChange });
-    if (enableUndoRedo && history.canRedo) {
-      const nextState = history.redo();
+    console.log('Redo button clicked!', { enableUndoRedo, canRedo: versionManager.canRedo, onHistoryChange: !!onHistoryChange });
+    if (enableUndoRedo && versionManager.canRedo) {
+      const nextState = versionManager.redo();
       console.log('Redo result:', nextState);
       if (nextState && onHistoryChange) {
         console.log('Calling onHistoryChange with:', nextState);
         onHistoryChange(nextState);
       }
     }
-  }, [enableUndoRedo, history, onHistoryChange]);
+  }, [enableUndoRedo, versionManager, onHistoryChange]);
+
+  // Expose undo/redo functions to parent component
+  useImperativeHandle(ref, () => ({
+    undo: handleUndo,
+    redo: handleRedo
+  }), [handleUndo, handleRedo]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -1278,9 +1330,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           <div className="flex flex-col">
             <button
               onClick={handleUndo}
-              disabled={!history.canUndo}
+              disabled={!versionManager.canUndo}
               className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                history.canUndo 
+                versionManager.canUndo 
                   ? 'text-foreground hover:bg-accent' 
                   : 'text-muted-foreground cursor-not-allowed'
               }`}
@@ -1290,9 +1342,9 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
             </button>
             <button
               onClick={handleRedo}
-              disabled={!history.canRedo}
+              disabled={!versionManager.canRedo}
               className={`px-3 py-2 text-sm font-medium rounded-b-lg transition-colors border-t border-border ${
-                history.canRedo 
+                versionManager.canRedo 
                   ? 'text-foreground hover:bg-accent' 
                   : 'text-muted-foreground cursor-not-allowed'
               }`}
@@ -1373,4 +1425,4 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
       </div>
     </div>
   );
-};
+});

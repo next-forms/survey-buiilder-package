@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
-import { FlowCanvas } from "./FlowCanvas";
+import { Button } from "../../components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { FlowCanvas, FlowCanvasRef } from "./FlowCanvas";
 import { FlowSidebar } from "./FlowSidebar";
 import { NodeConfigPanel } from "./NodeConfigPanel";
 import { FlowToolbar } from "./FlowToolbar";
@@ -7,7 +9,7 @@ import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
 import { flowToSurvey, surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
 import { FlowNode, FlowEdge, FlowMode } from "./types";
-import { FlowHistoryState } from "./useFlowHistory";
+import { FlowVersionState } from "./useFlowVersionManager";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 export const FlowBuilder: React.FC = () => {
@@ -22,10 +24,11 @@ export const FlowBuilder: React.FC = () => {
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   
   // Undo/Redo state
-  const [undoFunction, setUndoFunction] = useState<(() => void) | null>(null);
-  const [redoFunction, setRedoFunction] = useState<(() => void) | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  
+  // Ref for FlowCanvas undo/redo functions
+  const flowCanvasRef = useRef<FlowCanvasRef>(null);
   
   // Convert survey structure to flow format with positions
   const flowData = React.useMemo(() => {
@@ -953,40 +956,21 @@ export const FlowBuilder: React.FC = () => {
   }, []);
 
   // Handle history changes from undo/redo
-  const handleHistoryChange = useCallback((historyState: FlowHistoryState) => {
-    console.log('History change received in FlowBuilder:', historyState);
-    
-    // Extract positions from flow nodes
-    const newPositions: Record<string, { x: number; y: number }> = {};
-    historyState.nodes.forEach(node => {
-      newPositions[node.id] = { x: node.position.x, y: node.position.y };
-    });
+  const handleHistoryChange = useCallback((versionState: FlowVersionState) => {
+    console.log('Version change received in FlowBuilder:', versionState);
     
     // Convert flow state back to survey state
-    const newSurvey = flowToSurvey({ nodes: historyState.nodes, edges: historyState.edges });
+    const newSurvey = flowToSurvey({ nodes: versionState.nodes, edges: versionState.edges });
     if (newSurvey) {
-      console.log('Restoring survey state and positions:', { newSurvey, newPositions });
+      console.log('Restoring survey state and positions:', { newSurvey, positions: versionState.nodePositions });
       
       // Update both the survey state and positions
       importSurvey({ rootNode: newSurvey });
-      setNodePositions(newPositions);
+      setNodePositions(versionState.nodePositions);
     }
   }, [importSurvey]);
 
-  // Handle undo/redo functions
-  const handleUndo = useCallback(() => {
-    if (undoFunction) {
-      console.log('Executing undo from FlowBuilder');
-      undoFunction();
-    }
-  }, [undoFunction]);
-
-  const handleRedo = useCallback(() => {
-    if (redoFunction) {
-      console.log('Executing redo from FlowBuilder');
-      redoFunction();
-    }
-  }, [redoFunction]);
+  // Undo/Redo functions are now handled directly by FlowCanvas via ref
 
   return (
     <div className="flow-builder h-full flex flex-col">
@@ -994,8 +978,8 @@ export const FlowBuilder: React.FC = () => {
       <FlowToolbar
         mode={flowMode}
         onModeChange={handleModeChange}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        onUndo={() => flowCanvasRef.current?.undo()}
+        onRedo={() => flowCanvasRef.current?.redo()}
         onFitView={handleFitView}
         onExport={() => {}}
         canUndo={canUndo}
@@ -1050,8 +1034,10 @@ export const FlowBuilder: React.FC = () => {
         {/* Main canvas area */}
         <div className="flex-1 relative">
           <FlowCanvas
+            ref={flowCanvasRef}
             nodes={flowData.nodes}
             edges={flowData.edges}
+            nodePositions={nodePositions}
             mode={flowMode}
             selectedNodeId={selectedNodeId}
             activePageId={activePageId}
