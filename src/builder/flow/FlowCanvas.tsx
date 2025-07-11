@@ -4,11 +4,9 @@ import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
 import { debugLog } from "../../utils/debugUtils";
 import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
-import { useFlowVersionManager, FlowVersionState } from "./useFlowVersionManager";
 
 export interface FlowCanvasRef {
-  undo: () => void;
-  redo: () => void;
+  // Canvas methods can be added here if needed
 }
 
 interface FlowCanvasProps {
@@ -29,9 +27,6 @@ interface FlowCanvasProps {
   onConnectionCreate?: (sourceNodeId: string, targetNodeId: string) => void;
   onEdgeUpdate?: (edgeId: string, newTarget: string) => void;
   enableDebug?: boolean;
-  enableUndoRedo?: boolean;
-  onHistoryChange?: (state: FlowVersionState) => void;
-  onHistoryStateChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
 export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
@@ -52,27 +47,12 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   onConnectionCreate,
   onEdgeUpdate,
   enableDebug = false,
-  enableUndoRedo = false,
-  onHistoryChange,
-  onHistoryStateChange
 }, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   
-  // Initialize version management
-  const versionManager = useFlowVersionManager(
-    { nodes, edges, nodePositions },
-    enableDebug
-  );
-  
-  // Notify parent about history state changes
-  React.useEffect(() => {
-    if (enableUndoRedo && onHistoryStateChange) {
-      onHistoryStateChange(versionManager.canUndo, versionManager.canRedo);
-    }
-  }, [enableUndoRedo, onHistoryStateChange, versionManager.canUndo, versionManager.canRedo]);
   
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
@@ -102,121 +82,41 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
 
-  // Enhanced callbacks with version tracking
-  const handleNodeCreateWithHistory = useCallback((position: { x: number; y: number }, nodeType: string, targetPageId?: string) => {
-    console.log('Creating node with history:', { enableUndoRedo, nodeType, nodes: nodes.length, edges: edges.length });
-    if (enableUndoRedo) {
-      // Push state BEFORE the operation
-      versionManager.pushVersion(
-        { nodes, edges, nodePositions },
-        'NODE_CREATE',
-        `Create ${nodeType} node`
-      );
-      console.log('Pushed state to version manager:', { nodes: nodes.length, edges: edges.length });
-    }
+  // Node creation handler
+  const handleNodeCreate = useCallback((position: { x: number; y: number }, nodeType: string, targetPageId?: string) => {
     onNodeCreate(position, nodeType, targetPageId);
-  }, [onNodeCreate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onNodeCreate]);
 
-  const handleNodeUpdateWithHistory = useCallback((nodeId: string, data: any) => {
-    if (enableUndoRedo) {
-      versionManager.pushVersion(
-        { nodes, edges, nodePositions },
-        'NODE_UPDATE',
-        `Update node ${nodeId}`,
-        [nodeId]
-      );
-    }
+  const handleNodeUpdate = useCallback((nodeId: string, data: any) => {
     onNodeUpdate(nodeId, data);
-  }, [onNodeUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onNodeUpdate]);
 
-  const handleNodeDeleteWithHistory = useCallback((nodeId: string) => {
-    if (enableUndoRedo) {
-      versionManager.pushVersion(
-        { nodes, edges, nodePositions },
-        'NODE_DELETE',
-        `Delete node ${nodeId}`,
-        [nodeId]
-      );
-    }
+  const handleNodeDelete = useCallback((nodeId: string) => {
     onNodeDelete(nodeId);
-  }, [onNodeDelete, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onNodeDelete]);
 
-  const handleNodePositionUpdateWithHistory = useCallback((nodeId: string, position: { x: number; y: number }) => {
-    if (enableUndoRedo) {
-      // Create updated position state
-      const updatedPositions = { ...nodePositions, [nodeId]: position };
-      versionManager.pushVersion(
-        { nodes, edges, nodePositions: updatedPositions },
-        'NODE_POSITION_UPDATE',
-        `Move node ${nodeId}`,
-        [nodeId]
-      );
-    }
+  const handleNodePositionUpdate = useCallback((nodeId: string, position: { x: number; y: number }) => {
     if (onNodePositionUpdate) {
       onNodePositionUpdate(nodeId, position);
     }
-  }, [onNodePositionUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onNodePositionUpdate]);
 
-  const handleConnectionCreateWithHistory = useCallback((sourceNodeId: string, targetNodeId: string) => {
+  const handleConnectionCreate = useCallback((sourceNodeId: string, targetNodeId: string) => {
     if (onConnectionCreate) {
-      if (enableUndoRedo) {
-        versionManager.pushVersion(
-          { nodes, edges, nodePositions },
-          'CONNECTION_CREATE',
-          `Create connection from ${sourceNodeId} to ${targetNodeId}`,
-          [sourceNodeId, targetNodeId]
-        );
-      }
       onConnectionCreate(sourceNodeId, targetNodeId);
     }
-  }, [onConnectionCreate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onConnectionCreate]);
 
-  const handleEdgeUpdateWithHistory = useCallback((edgeId: string, newTarget: string) => {
+  const handleEdgeUpdate = useCallback((edgeId: string, newTarget: string) => {
     if (onEdgeUpdate) {
-      if (enableUndoRedo) {
-        const affectedEdges = edges.filter(e => e.id === edgeId).map(e => e.id);
-        versionManager.pushVersion(
-          { nodes, edges, nodePositions },
-          'EDGE_UPDATE',
-          `Update edge ${edgeId}`,
-          undefined,
-          affectedEdges
-        );
-      }
       onEdgeUpdate(edgeId, newTarget);
     }
-  }, [onEdgeUpdate, enableUndoRedo, versionManager, nodes, edges, nodePositions]);
+  }, [onEdgeUpdate]);
 
-  // Undo/Redo functions
-  const handleUndo = useCallback(() => {
-    console.log('Undo button clicked!', { enableUndoRedo, canUndo: versionManager.canUndo, onHistoryChange: !!onHistoryChange });
-    if (enableUndoRedo && versionManager.canUndo) {
-      const previousState = versionManager.undo();
-      console.log('Undo result:', previousState);
-      if (previousState && onHistoryChange) {
-        console.log('Calling onHistoryChange with:', previousState);
-        onHistoryChange(previousState);
-      }
-    }
-  }, [enableUndoRedo, versionManager, onHistoryChange]);
-
-  const handleRedo = useCallback(() => {
-    console.log('Redo button clicked!', { enableUndoRedo, canRedo: versionManager.canRedo, onHistoryChange: !!onHistoryChange });
-    if (enableUndoRedo && versionManager.canRedo) {
-      const nextState = versionManager.redo();
-      console.log('Redo result:', nextState);
-      if (nextState && onHistoryChange) {
-        console.log('Calling onHistoryChange with:', nextState);
-        onHistoryChange(nextState);
-      }
-    }
-  }, [enableUndoRedo, versionManager, onHistoryChange]);
-
-  // Expose undo/redo functions to parent component
+  // Expose canvas methods to parent component
   useImperativeHandle(ref, () => ({
-    undo: handleUndo,
-    redo: handleRedo
-  }), [handleUndo, handleRedo]);
+    // Canvas methods can be added here if needed
+  }), []);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -240,9 +140,9 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       const y = (e.clientY - rect.top - viewport.y) / viewport.zoom;
       
       // Default to creating a page/set node
-      handleNodeCreateWithHistory({ x, y }, "set");
+      handleNodeCreate({ x, y }, "set");
     }
-  }, [handleNodeCreateWithHistory, viewport]);
+  }, [handleNodeCreate, viewport]);
 
   // Find which page (if any) contains the given coordinates
   const findPageAtPosition = useCallback((x: number, y: number) => {
@@ -304,16 +204,16 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         };
         
         // Create the block with a custom handler that specifies the target page
-        handleNodeCreateWithHistory(blockPosition, nodeType, targetPage.id);
+        handleNodeCreate(blockPosition, nodeType, targetPage.id);
       } else {
         // Default behavior for pages or blocks dropped on empty canvas
-        handleNodeCreateWithHistory({ x, y }, nodeType);
+        handleNodeCreate({ x, y }, nodeType);
       }
     }
     
     // Clear drag over state
     setDragOverPageId(null);
-  }, [handleNodeCreateWithHistory, viewport, findPageAtPosition]);
+  }, [handleNodeCreate, viewport, findPageAtPosition]);
 
   // Handle edge drag start
   const handleEdgeDragStart = useCallback((edgeId: string, initialPosition: { x: number; y: number }) => {
@@ -376,7 +276,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       if (validation.isValid) {
         debugLog(enableDebug, `Updating edge ${edgeId} from ${edge.target} to ${targetNodeId}`);
-        handleEdgeUpdateWithHistory(edgeId, targetNodeId);
+        handleEdgeUpdate(edgeId, targetNodeId);
       } else {
         debugLog(enableDebug, `Invalid connection: ${validation.message}`);
         // Could show a toast notification here
@@ -384,7 +284,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     }
     
     setEdgeDragState({ isDragging: false });
-  }, [edgeDragState, edges, nodes, handleEdgeUpdateWithHistory, enableDebug]);
+  }, [edgeDragState, edges, nodes, handleEdgeUpdate, enableDebug]);
 
   // Get boundary constraints for a node
   const getBoundaryConstraints = useCallback((nodeId: string, type: string = "bounds") => {
@@ -442,10 +342,6 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
     
-    // Push state before starting drag for position tracking
-    if (enableUndoRedo) {
-      history.pushState({ nodes, edges }, `Move node ${nodeId}`);
-    }
     
     const rect = canvasRef.current!.getBoundingClientRect();
     const offsetX = e.clientX - rect.left - (node.position.x * viewport.zoom + viewport.x);
@@ -463,7 +359,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     });
     
     onNodeSelect(nodeId);
-  }, [nodes, viewport, onNodeSelect, getBoundaryConstraints, enableUndoRedo, history, edges]);
+  }, [nodes, viewport, onNodeSelect, getBoundaryConstraints]);
 
   // Apply boundary constraints to position
   const constrainPosition = useCallback((nodeId: string, x: number, y: number) => {
@@ -490,7 +386,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           
           // Apply user constraints: Only allow connections from blocks (not sets/sections) to any valid target
           if (sourceNode?.type === "block" && (targetNode?.type === "block" || targetNode?.type === "set" || targetNode?.type === "submit")) {
-            handleConnectionCreateWithHistory(connectionState.sourceNodeId, nodeId);
+            handleConnectionCreate(connectionState.sourceNodeId, nodeId);
           }
         }
         // Reset connection state
@@ -513,7 +409,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     
     // Normal selection behavior
     onNodeSelect(nodeId);
-  }, [mode, connectionState, nodes, handleConnectionCreateWithHistory, onNodeSelect]);
+  }, [mode, connectionState, nodes, handleConnectionCreate, onNodeSelect]);
 
   // Handle mouse move for dragging and panning - optimized for smoothness
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -564,7 +460,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       // Update node position using the position update handler
       if (dragState.nodeId) {
-        handleNodePositionUpdateWithHistory(dragState.nodeId, finalPos);
+        handleNodePositionUpdate(dragState.nodeId, finalPos);
       }
     } else if (isPanning) {
       // Canvas panning - improved responsiveness
@@ -579,7 +475,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
-  }, [dragState, isPanning, lastPanPoint, viewport, handleNodePositionUpdateWithHistory, constrainPosition, nodes]);
+  }, [dragState, isPanning, lastPanPoint, viewport, constrainPosition, nodes]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((e?: React.MouseEvent) => {
@@ -953,18 +849,12 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         resetView();
-      } else if (enableUndoRedo && e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      } else if (enableUndoRedo && ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey))) {
-        e.preventDefault();
-        handleRedo();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fitView, resetView, enableUndoRedo, handleUndo, handleRedo]);
+  }, [fitView, resetView]);
 
   // Expose fit view to parent
   React.useEffect(() => {
@@ -981,7 +871,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         isActive={activePageId === node.id && node.type === "set"}
         onSelect={handleNodeSelectWithConnection}
         onDragStart={handleNodeDragStart}
-        onDelete={handleNodeDeleteWithHistory}
+        onDelete={handleNodeDelete}
         onConfigure={onNodeConfigure}
         zoom={viewport.zoom}
         isDragOver={dragOverPageId === node.id}
@@ -989,7 +879,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         connectionSourceId={connectionState.sourceNodeId}
       />
     ));
-  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDeleteWithHistory, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
+  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
 
   const renderedEdges = useMemo(() => {
     return edges.map(edge => (
@@ -1324,40 +1214,9 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         </div>
       </div>
       
-      {/* Undo/Redo Controls */}
-      {enableUndoRedo && (
-        <div className="absolute top-4 right-20 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
-          <div className="flex flex-col">
-            <button
-              onClick={handleUndo}
-              disabled={!versionManager.canUndo}
-              className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                versionManager.canUndo 
-                  ? 'text-foreground hover:bg-accent' 
-                  : 'text-muted-foreground cursor-not-allowed'
-              }`}
-              title="Undo (Ctrl+Z)"
-            >
-              ↶
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={!versionManager.canRedo}
-              className={`px-3 py-2 text-sm font-medium rounded-b-lg transition-colors border-t border-border ${
-                versionManager.canRedo 
-                  ? 'text-foreground hover:bg-accent' 
-                  : 'text-muted-foreground cursor-not-allowed'
-              }`}
-              title="Redo (Ctrl+Y)"
-            >
-              ↷
-            </button>
-          </div>
-        </div>
-      )}
       
       {/* Pixel Grid Toggle */}
-      <div className={`absolute top-4 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg ${enableUndoRedo ? 'right-36' : 'right-24'}`}>
+      {/* <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
         <button
           onClick={() => setShowPixelGrid(!showPixelGrid)}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -1369,7 +1228,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         >
           📐 Grid
         </button>
-      </div>
+      </div> */}
       
       {/* Mouse Position Display */}
       {showPixelGrid && mousePosition && (
@@ -1399,12 +1258,6 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           )}
           <div>• Press 'F' to fit view</div>
           <div>• Press 'R' to reset view</div>
-          {enableUndoRedo && (
-            <>
-              <div>• Ctrl+Z to undo</div>
-              <div>• Ctrl+Y to redo</div>
-            </>
-          )}
         </div>
         <div className="mt-2 flex gap-1">
           <button

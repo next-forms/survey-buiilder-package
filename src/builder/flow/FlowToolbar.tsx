@@ -6,8 +6,6 @@ import {
   MousePointer2, 
   Move, 
   Link, 
-  Undo2, 
-  Redo2, 
   ZoomIn, 
   ZoomOut, 
   Maximize, 
@@ -17,23 +15,15 @@ import {
 interface FlowToolbarProps {
   mode: FlowMode;
   onModeChange: (mode: FlowMode) => void;
-  onUndo: () => void;
-  onRedo: () => void;
   onFitView: () => void;
   onExport: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
 }
 
 export const FlowToolbar: React.FC<FlowToolbarProps> = ({
   mode,
   onModeChange,
-  onUndo,
-  onRedo,
   onFitView,
   onExport,
-  canUndo = false,
-  canRedo = false
 }) => {
   const toolbarItems = [
     {
@@ -59,27 +49,6 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
           icon: Link,
           active: mode === "connect",
           onClick: () => onModeChange("connect")
-        }
-      ]
-    },
-    {
-      group: "history",
-      items: [
-        {
-          key: "undo",
-          label: "Undo",
-          icon: Undo2,
-          active: false,
-          onClick: onUndo,
-          disabled: !canUndo
-        },
-        {
-          key: "redo",
-          label: "Redo",
-          icon: Redo2,
-          active: false,
-          onClick: onRedo,
-          disabled: !canRedo
         }
       ]
     },
@@ -112,7 +81,6 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
                     variant={item.active ? "default" : "outline"}
                     size="sm"
                     onClick={item.onClick}
-                    disabled={item.disabled}
                     className="h-8 px-3"
                     title={item.label}
                   >

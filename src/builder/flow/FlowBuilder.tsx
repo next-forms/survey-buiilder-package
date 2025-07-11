@@ -7,13 +7,12 @@ import { NodeConfigPanel } from "./NodeConfigPanel";
 import { FlowToolbar } from "./FlowToolbar";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
-import { flowToSurvey, surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
+import { surveyToFlow, hierarchicalLayoutNodes, repositionBlocksInPage } from "./utils/flowTransforms";
 import { FlowNode, FlowEdge, FlowMode } from "./types";
-import { FlowVersionState } from "./useFlowVersionManager";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 export const FlowBuilder: React.FC = () => {
-  const { state, updateNode, createNode, removeNode, importSurvey } = useSurveyBuilder();
+  const { state, updateNode, createNode, removeNode } = useSurveyBuilder();
   const debug = useBuilderDebug();
   const [flowMode, setFlowMode] = useState<FlowMode>("select");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -23,9 +22,6 @@ export const FlowBuilder: React.FC = () => {
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   
-  // Undo/Redo state
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
   
   // Ref for FlowCanvas undo/redo functions
   const flowCanvasRef = useRef<FlowCanvasRef>(null);
@@ -948,27 +944,8 @@ export const FlowBuilder: React.FC = () => {
     handleNodeCreate(defaultPosition, nodeType);
   }, [handleNodeCreate]);
 
-  // Handle history state changes (canUndo/canRedo updates)
-  const handleHistoryStateChange = useCallback((canUndoValue: boolean, canRedoValue: boolean) => {
-    console.log('History state changed:', { canUndo: canUndoValue, canRedo: canRedoValue });
-    setCanUndo(canUndoValue);
-    setCanRedo(canRedoValue);
-  }, []);
 
-  // Handle history changes from undo/redo
-  const handleHistoryChange = useCallback((versionState: FlowVersionState) => {
-    console.log('Version change received in FlowBuilder:', versionState);
-    
-    // Convert flow state back to survey state
-    const newSurvey = flowToSurvey({ nodes: versionState.nodes, edges: versionState.edges });
-    if (newSurvey) {
-      console.log('Restoring survey state and positions:', { newSurvey, positions: versionState.nodePositions });
-      
-      // Update both the survey state and positions
-      importSurvey({ rootNode: newSurvey });
-      setNodePositions(versionState.nodePositions);
-    }
-  }, [importSurvey]);
+  // History change handler removed - no longer needed without undo/redo
 
   // Undo/Redo functions are now handled directly by FlowCanvas via ref
 
@@ -978,12 +955,8 @@ export const FlowBuilder: React.FC = () => {
       <FlowToolbar
         mode={flowMode}
         onModeChange={handleModeChange}
-        onUndo={() => flowCanvasRef.current?.undo()}
-        onRedo={() => flowCanvasRef.current?.redo()}
         onFitView={handleFitView}
         onExport={() => {}}
-        canUndo={canUndo}
-        canRedo={canRedo}
       />
       
       {/* Debug info */}
@@ -1052,9 +1025,6 @@ export const FlowBuilder: React.FC = () => {
             onConnectionCreate={handleConnectionCreate}
             onEdgeUpdate={handleEdgeUpdate}
             enableDebug={state.enableDebug}
-            enableUndoRedo={true}
-            onHistoryChange={handleHistoryChange}
-            onHistoryStateChange={handleHistoryStateChange}
           />
         </div>
 

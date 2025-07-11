@@ -12,6 +12,14 @@ A powerful, customizable React survey renderer and builder library with TypeScri
 - **Real-time Validation**: Field-level validation with custom error messages
 - **Progress Tracking**: Multiple progress indicator styles with animations
 
+### **Visual Flow Builder**
+- **Node-based Interface**: Visual drag-and-drop survey flow creation
+- **Real-time Connections**: Draw connections between nodes to create navigation rules
+- **Multiple Node Types**: Pages, blocks, start/submit nodes with automatic layout
+- **Flow Modes**: Select, connect, and pan modes for different editing operations
+- **Interactive Canvas**: Zoom, pan, and navigate through complex survey flows
+- **Visual Configuration**: Configure blocks and pages directly in the flow interface
+
 ### **Advanced Features**
 - **Calculated Fields**: Dynamic computations based on other form values
 - **BMI Calculator**: Built-in health assessment tools
@@ -116,6 +124,7 @@ export default App;
 
 ### Survey Builder Integration
 
+#### Traditional Builder (List-based)
 ```tsx
 import React, { useState } from 'react';
 import { SurveyBuilder, StandardBlocks, StandardNodes } from 'survey-form-package';
@@ -130,6 +139,28 @@ function BuilderApp() {
         nodeDefinitions={StandardNodes}
         onDataChange={setSurveyData}
         initialData={existingSurvey}
+      />
+    </div>
+  );
+}
+```
+
+#### Flow Builder (Visual Node-based)
+```tsx
+import React, { useState } from 'react';
+import { FlowBuilder, StandardBlocks, StandardNodes } from 'survey-form-package';
+
+function FlowBuilderApp() {
+  const [surveyData, setSurveyData] = useState(null);
+
+  return (
+    <div style={{ height: '800px', width: '100%' }}>
+      <FlowBuilder
+        blockDefinitions={StandardBlocks}
+        nodeDefinitions={StandardNodes}
+        onDataChange={setSurveyData}
+        initialData={existingSurvey}
+        enableDebug={true}
       />
     </div>
   );
@@ -531,6 +562,144 @@ Customize navigation buttons:
     style: "default"          // 'default' | 'outlined' | 'text'
   }}
 />
+```
+
+## 🌊 Flow Builder
+
+The Flow Builder provides a visual, node-based interface for creating survey flows with drag-and-drop functionality.
+
+### Flow Builder Interface
+
+```tsx
+import { FlowBuilder } from 'survey-form-package/builder';
+
+<FlowBuilder
+  blockDefinitions={StandardBlocks}
+  nodeDefinitions={StandardNodes}
+  onDataChange={handleSurveyChange}
+  initialData={surveyData}
+  enableDebug={false}
+/>
+```
+
+### Flow Modes
+
+The Flow Builder supports three different interaction modes:
+
+```tsx
+// Select mode (default) - select and configure nodes
+mode="select"
+
+// Connect mode - create connections between nodes
+mode="connect" 
+
+// Pan mode - navigate around the canvas
+mode="pan"
+```
+
+### Node Types
+
+#### Page Nodes (Set)
+Represent survey pages containing multiple form blocks:
+```tsx
+{
+  type: "set",
+  name: "Contact Information", 
+  uuid: "contact-page",
+  items: [/* blocks */]
+}
+```
+
+#### Block Nodes
+Individual form elements like text inputs, radio buttons, etc.:
+```tsx
+{
+  type: "textfield",
+  fieldName: "email",
+  label: "Email Address",
+  uuid: "email-field"
+}
+```
+
+#### Special Nodes
+- **Start Node**: Entry point for the survey flow
+- **Submit Node**: Survey completion endpoint
+
+### Visual Navigation Rules
+
+Create navigation rules by connecting nodes in the flow:
+
+1. **Switch to Connect Mode**: Click the connect tool in the toolbar
+2. **Draw Connections**: Click and drag from one node to another
+3. **Configure Rules**: The navigation rule editor opens automatically
+4. **Set Conditions**: Define when to follow this connection
+
+```tsx
+// Automatically generated navigation rule
+{
+  condition: "user_type == 'premium'",
+  target: "premium-features-page",
+  isPage: true,
+  isDefault: false
+}
+```
+
+### Flow Canvas Features
+
+#### Interactive Canvas
+- **Zoom**: Mouse wheel or zoom controls
+- **Pan**: Middle mouse button or pan mode
+- **Fit View**: Auto-fit all nodes in viewport
+- **Node Selection**: Click to select, multi-select with Ctrl/Cmd
+
+#### Automatic Layout
+- **Hierarchical Layout**: Nodes automatically arranged by flow structure
+- **Smart Positioning**: New nodes placed intelligently
+- **Relative Movement**: Moving pages moves their child blocks
+
+#### Real-time Updates
+- **Live Sync**: Changes immediately reflected in survey data
+- **Visual Feedback**: Active pages and selected nodes highlighted
+- **Connection Updates**: Drag connection endpoints to change targets
+
+### Flow Builder Props
+
+```tsx
+interface FlowBuilderProps {
+  blockDefinitions: BlockDefinition[];
+  nodeDefinitions?: NodeDefinition[];
+  onDataChange?: (data: SurveyData) => void;
+  initialData?: SurveyData;
+  enableDebug?: boolean;
+  className?: string;
+}
+```
+
+### Flow Node Configuration
+
+Configure nodes through the configuration panel:
+
+```tsx
+// Open configuration panel programmatically
+const handleNodeConfigure = (nodeId: string) => {
+  // Panel opens with node-specific configuration options
+};
+```
+
+#### Configuration Modes
+- **Full Mode**: Complete node configuration with all options
+- **Navigation-Only Mode**: Focus on navigation rules and connections
+
+### Flow Transformation
+
+The Flow Builder automatically transforms between hierarchical survey data and visual flow representation:
+
+```tsx
+// Survey data → Flow representation
+const flowData = surveyToFlow(surveyData.rootNode);
+
+// Flow changes → Survey data updates
+// Happens automatically through the Flow Builder
 ```
 
 ## 📱 Mobile Features
