@@ -71,7 +71,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     if (node.type === "section") {
       const nodeData = node.data as NodeData & { containerSize?: { width: number; height: number } };
       return (
-        <div className="flow-node-section h-full">
+        <div className="flow-node-section rounded-md overflow-hidden h-full">
           <div className="flex items-center gap-2 p-3 bg-primary/10 border-b border-primary/20">
             <div className="w-4 h-4 bg-primary rounded-full"></div>
             <span className="font-semibold text-sm text-primary">Survey Section</span>
@@ -91,12 +91,12 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     if (node.type === "start") {
       const nodeData = node.data as { name: string; type: string };
       return (
-        <div className="flow-node-start h-full">
+        <div className="flow-node-start rounded-md overflow-hidden h-full">
           <div className="flex items-center gap-2 p-2 bg-blue-100 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
             <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
             <span className="font-medium text-xs text-blue-900 dark:text-blue-100">Start</span>
           </div>
-          <div className="p-2">
+          <div className="p-1">
             <div className="text-xs font-medium text-foreground text-center">
               {nodeData.name || "Start Survey"}
             </div>
@@ -108,7 +108,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     if (node.type === "submit") {
       const nodeData = node.data as { name: string; type: string };
       return (
-        <div className="flow-node-submit h-full">
+        <div className="flow-node-submit rounded-md overflow-hidden h-full">
           <div className="flex items-center gap-2 p-2 bg-destructive/10 border-b border-destructive/20">
             <div className="w-3 h-3 bg-destructive rounded-full"></div>
             <span className="font-medium text-xs text-destructive">Submit</span>
@@ -125,7 +125,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     if (node.type === "set") {
       const nodeData = node.data as NodeData & { containerSize?: { width: number; height: number } };
       return (
-        <div className="flow-node-set h-full">
+        <div className="flow-node-set rounded-md overflow-hidden h-full">
           <div className="flex items-center gap-2 p-2 bg-green-100 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
             <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
             <span className="font-medium text-xs text-green-900 dark:text-green-100">{nodeData.name || "Untitled Page"} {isActive && <span className=" text-blue-600 font-medium"> • Active</span>}</span>
@@ -149,7 +149,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       const definition = state.definitions.blocks[blockData.type];
       
       return (
-        <div className="flow-node-block h-full">
+        <div className="flow-node-block rounded-md overflow-hidden h-full">
           <div className="flex items-center gap-1 p-1 bg-purple-100 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-800">
             <div className="w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full"></div>
             <span className="font-medium text-xs text-purple-900 dark:text-purple-100 truncate">
@@ -266,7 +266,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     }
     
     if (node.type === "block") {
-      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
+      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md overflow-hidden shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
     }
 
     if (node.type === "start") {
