@@ -2,7 +2,6 @@ import React from "react";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Checkbox } from "../../components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,60 +13,40 @@ import {
 } from "../../components/ui/select";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import type { BlockData, NavigationRule } from "../../types";
+import { NavigationRuleValueInput } from "./NavigationRuleValueInput";
+import { 
+  OPERATORS, 
+  enhancedRuleToStandard, 
+  standardRuleToEnhanced,
+  type EnhancedNavigationRule
+} from "./navigation-rules-types";
 
 interface Props {
   data: BlockData;
   onUpdate?: (data: BlockData) => void;
 }
 
-interface RuleState {
-  field: string;
-  operator: string;
-  value: string;
-  target: string;
-  isPage?: boolean;
-  isDefault?: boolean;
+interface RuleState extends EnhancedNavigationRule {
+  // EnhancedNavigationRule already has all needed fields
 }
 
 function parseRule(rule: NavigationRule): RuleState {
-  const match = rule.condition.match(
-    /^(\w+)\s*(==|!=|>=|<=|>|<|contains|startsWith|endsWith)\s*(.+)$/
-  );
-  if (match) {
-    const [, field, operator, value] = match;
-    return {
-      field,
-      operator,
-      value: value.replace(/^['"]|['"]$/g, ""),
-      target: String(rule.target),
-      isPage: rule.isPage,
-      isDefault: rule.isDefault,
-    };
-  }
+  const parsed = standardRuleToEnhanced(rule.condition);
   return {
-    field: "",
-    operator: "==",
-    value: "",
+    field: parsed.field || "",
+    operator: parsed.operator || "==",
+    value: parsed.value || "",
     target: String(rule.target),
     isPage: rule.isPage,
-    isDefault: rule.isDefault,
   };
 }
 
 function buildRule(state: RuleState): NavigationRule {
-  if (state.isDefault) {
-    return {
-      condition: "true",
-      target: state.target,
-      isPage: state.isPage,
-      isDefault: true,
-    };
-  }
+  const condition = enhancedRuleToStandard(state);
   return {
-    condition: `${state.field} ${state.operator} ${JSON.stringify(state.value)}`,
+    condition,
     target: state.target,
     isPage: state.isPage,
-    isDefault: state.isDefault,
   };
 }
 
@@ -441,7 +420,12 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   return (
     <div className="space-y-4 mt-4">
       <div className="grid gap-2">
-      <Label className="text-sm">Navigation Rules</Label>
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">Navigation Rules</Label>
+        <span className="text-xs text-muted-foreground">
+          Define conditions to control survey flow
+        </span>
+      </div>
       
       {/* Debug info - show all navigation data */}
       {/* <div className="bg-blue-50 border border-blue-200 rounded-md p-2 space-y-1">
@@ -454,7 +438,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
       </div> */}
 
       {navigationCycles.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 space-y-2">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 space-y-2 my-2">
           <div className="flex items-center gap-2">
             <span className="text-yellow-600 font-medium text-sm">⚠️ Circular Navigation Detected</span>
           </div>
@@ -473,8 +457,8 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
       )}
       <div className="space-y-0">
       {rules.map((rule, idx) => (
-        <div key={idx} className="border rounded-md p-3 space-y-2">
-          <div className="grid grid-cols-4 gap-2">
+        <div key={idx} className="border rounded-md p-3 space-y-3 my-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-sm">Variable</Label>
               <Select
@@ -503,29 +487,68 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
                   <SelectValue placeholder="Operator" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[
-                    "==",
-                    "!=",
-                    ">",
-                    ">=",
-                    "<",
-                    "<=",
-                    "contains",
-                  ].map((op) => (
-                    <SelectItem key={op} value={op}>
-                      {op}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Comparison</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'comparison').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Text</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'string').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Array/List</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'array').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Logical</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'logical').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Value</Label>
-              <Input
-                value={rule.value}
-                onChange={(e) => handleRuleChange(idx, "value", e.target.value)}
+              <NavigationRuleValueInput
+                value={rule.value as any}
+                onChange={(val) => handleRuleChange(idx, "value", val)}
+                operator={OPERATORS.find(op => op.value === rule.operator) || OPERATORS[0]}
+                availableVariables={fieldOptions}
+                fieldType={data.type === 'number' ? 'number' : 'text'}
               />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-sm">Target</Label>
               <Select
@@ -563,23 +586,14 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
               </Select>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={`default-${idx}`}
-              checked={rule.isDefault || false}
-              onCheckedChange={(checked) =>
-                handleRuleChange(idx, "isDefault", !!checked)
-              }
-            />
-            <Label className="text-sm" htmlFor={`default-${idx}`}>Default</Label>
+          <div className="flex justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => removeRule(idx)}
-              className="ml-auto"
             >
-              Remove
+              Remove Rule
             </Button>
           </div>
         </div>

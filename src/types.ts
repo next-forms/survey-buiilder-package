@@ -6,7 +6,6 @@ export interface NavigationRule {
   condition: string;
   target: UUID | string;
   isPage?: boolean;
-  isDefault?: boolean;
 }
 
 export interface ContentBlockItemProps {
@@ -294,8 +293,10 @@ export interface CalculatedFieldProps extends BlockRendererProps {
 
 export type ConditionOperator =
   | '==' | '!=' | '>' | '>=' | '<' | '<='
-  | 'contains' | 'startsWith' | 'endsWith'
-  | 'empty' | 'notEmpty' | 'between' | 'in' | 'notIn';
+  | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'matches'
+  | 'empty' | 'notEmpty' | 'isEmpty' | 'isNotEmpty'
+  | 'between' | 'notBetween'
+  | 'in' | 'notIn' | 'containsAny' | 'containsAll' | 'containsNone';
 
 export interface ConditionRule {
   field: string;
