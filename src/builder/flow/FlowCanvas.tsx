@@ -81,6 +81,9 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     isDragging: false
   });
   
+  // Selected edge state for highlighting
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  
   // Pixel grid visibility
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
@@ -130,6 +133,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         setConnectionState({ isConnecting: false });
       } else {
         onNodeSelect("");
+        setSelectedEdgeId(null); // Clear edge selection
       }
     }
   }, [onNodeSelect, connectionState.isConnecting]);
@@ -217,6 +221,13 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     // Clear drag over state
     setDragOverPageId(null);
   }, [handleNodeCreate, viewport, findPageAtPosition]);
+
+  // Handle edge click for selection
+  const handleEdgeClick = useCallback((edgeId: string) => {
+    setSelectedEdgeId(edgeId);
+    // Clear node selection when selecting an edge
+    onNodeSelect('');
+  }, [onNodeSelect]);
 
   // Handle edge drag start
   const handleEdgeDragStart = useCallback((edgeId: string, initialPosition: { x: number; y: number }) => {
@@ -412,6 +423,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     
     // Normal selection behavior
     onNodeSelect(nodeId);
+    setSelectedEdgeId(null); // Clear edge selection when selecting a node
   }, [mode, connectionState, nodes, handleConnectionCreate, onNodeSelect]);
 
   // Handle mouse move for dragging and panning - optimized for smoothness
@@ -909,12 +921,14 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         viewport={viewport}
         edgeRoute={edgeRoutes.get(edge.id)}
         dragState={edgeDragState}
+        selected={selectedEdgeId === edge.id}
+        onEdgeClick={handleEdgeClick}
         onEdgeDragStart={handleEdgeDragStart}
         onEdgeDragMove={handleEdgeDragMove}
         onEdgeDragEnd={handleEdgeDragEnd}
       />
     ));
-  }, [edges, nodes, viewport, edgeRoutes, edgeDragState, handleEdgeDragStart, handleEdgeDragMove, handleEdgeDragEnd]);
+  }, [edges, nodes, viewport, edgeRoutes, edgeDragState, selectedEdgeId, handleEdgeClick, handleEdgeDragStart, handleEdgeDragMove, handleEdgeDragEnd]);
 
   // Handle context menu to prevent interference with right-click panning
   const handleContextMenu = useCallback((e: React.MouseEvent) => {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { FlowEdge, FlowNode } from "./types";
 import { EdgeDragState } from "./utils/connectionValidation";
 import { EdgeRoute } from "./utils/edgeRouting";
@@ -10,6 +10,8 @@ interface FlowEdgeComponentProps {
   viewport?: { x: number; y: number; zoom: number };
   edgeRoute?: EdgeRoute;
   dragState?: EdgeDragState;
+  selected?: boolean;
+  onEdgeClick?: (edgeId: string) => void;
   onEdgeDragStart?: (edgeId: string, position: { x: number; y: number }) => void;
   onEdgeDragEnd?: (edgeId: string, targetNodeId: string | null) => void;
   onEdgeDragMove?: (edgeId: string, position: { x: number; y: number }) => void;
@@ -22,6 +24,8 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   viewport,
   edgeRoute,
   dragState,
+  selected,
+  onEdgeClick,
   onEdgeDragStart,
   onEdgeDragEnd,
   onEdgeDragMove
@@ -181,6 +185,16 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
     }
   }, [edge.id, onEdgeDragStart, targetX, targetY]);
 
+  // Handle edge click
+  const handleEdgeClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onEdgeClick) {
+      onEdgeClick(edge.id);
+    }
+  }, [edge.id, onEdgeClick]);
+
   // Check if this edge is currently being dragged
   const isBeingDragged = dragState?.isDragging && dragState.edgeId === edge.id;
   
@@ -196,18 +210,50 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
 
   return (
     <g>
+      {/* Invisible wider path for easier clicking */}
+      <path
+        d={path}
+        stroke="transparent"
+        strokeWidth={Math.max(strokeWidth + 10, 15)}
+        fill="none"
+        style={{
+          cursor: "pointer",
+          pointerEvents: "stroke"
+        }}
+        onClick={handleEdgeClick}
+      />
+      
+      {/* Highlight glow effect when selected */}
+      {selected && (
+        <path
+          d={path}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth + 6}
+          fill="none"
+          strokeDasharray={strokeDasharray}
+          className="animate-pulse"
+          style={{
+            opacity: 0.3,
+            filter: "blur(4px)"
+          }}
+        />
+      )}
+      
       {/* Edge path */}
       <path
         d={path}
         stroke={strokeColor}
-        strokeWidth={strokeWidth}
+        strokeWidth={selected ? strokeWidth + 1 : strokeWidth}
         fill="none"
         strokeDasharray={strokeDasharray}
-        className={edge.animated ? "animate-pulse" : ""}
+        className={edge.animated || selected ? "animate-pulse" : ""}
         markerEnd={markerEnd}
         style={{
-          opacity: isBeingDragged ? 0.5 : 1
+          opacity: isBeingDragged ? 0.5 : 1,
+          filter: selected ? "brightness(1.2)" : "none",
+          transition: "all 0.2s ease"
         }}
+        onClick={handleEdgeClick}
       />
 
       {/* Interactive arrowhead area for dragging */}
