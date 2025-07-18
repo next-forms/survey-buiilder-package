@@ -266,7 +266,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     }
     
     if (node.type === "block") {
-      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md overflow-hidden shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
+      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
     }
 
     if (node.type === "start") {

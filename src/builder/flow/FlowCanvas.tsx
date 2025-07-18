@@ -6,7 +6,7 @@ import { debugLog } from "../../utils/debugUtils";
 import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
 
 export interface FlowCanvasRef {
-  // Canvas methods can be added here if needed
+  resetPositions?: () => void;
 }
 
 interface FlowCanvasProps {
@@ -26,6 +26,7 @@ interface FlowCanvasProps {
   onFitView?: React.MutableRefObject<(() => void) | undefined>;
   onConnectionCreate?: (sourceNodeId: string, targetNodeId: string) => void;
   onEdgeUpdate?: (edgeId: string, newTarget: string) => void;
+  onResetPositions?: () => void;
   enableDebug?: boolean;
 }
 
@@ -46,6 +47,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   onFitView,
   onConnectionCreate,
   onEdgeUpdate,
+  onResetPositions,
   enableDebug = false,
 }, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -115,8 +117,8 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
 
   // Expose canvas methods to parent component
   useImperativeHandle(ref, () => ({
-    // Canvas methods can be added here if needed
-  }), []);
+    resetPositions: onResetPositions
+  }), [onResetPositions]);
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -723,13 +725,15 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
 
   // Reset view to center nodes at 100% zoom
   const resetView = useCallback(() => {
-    if (nodes.length === 0 || !canvasRef.current) {
-      // If no nodes, just reset to origin
-      setViewport({ x: 0, y: 0, zoom: 1 });
-      return;
+    // First reset the positions if handler is available
+    if (onResetPositions) {
+      onResetPositions();
     }
     
+    if (nodes.length === 0 || !canvasRef.current) return;
+    
     const rect = canvasRef.current.getBoundingClientRect();
+    const padding = 100;
     
     // Calculate bounds of all nodes
     const bounds = nodes.reduce((acc, node) => {
@@ -749,18 +753,26 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       maxY: -Infinity
     });
     
-    // Center the content at 100% zoom
+    const contentWidth = bounds.maxX - bounds.minX;
+    const contentHeight = bounds.maxY - bounds.minY;
+    
+    // Calculate zoom to fit content
+    const zoomX = (rect.width - padding * 2) / contentWidth;
+    const zoomY = (rect.height - padding * 2) / contentHeight;
+    const newZoom = Math.min(zoomX, zoomY, 1); // Don't zoom in beyond 100%
+    
+    // Center the content
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     const contentCenterX = (bounds.minX + bounds.maxX) / 2;
     const contentCenterY = (bounds.minY + bounds.maxY) / 2;
     
     setViewport({
-      x: centerX - contentCenterX,
-      y: centerY - contentCenterY,
-      zoom: 1
+      x: centerX - contentCenterX * newZoom,
+      y: centerY - contentCenterY * newZoom,
+      zoom: newZoom
     });
-  }, [nodes]);
+  }, [nodes, onResetPositions]);
 
   // Expose fit view to parent
   React.useEffect(() => {

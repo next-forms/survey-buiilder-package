@@ -21,6 +21,7 @@ export const FlowBuilder: React.FC = () => {
   const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [initialNodePositions, setInitialNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   
   
   // Ref for FlowCanvas undo/redo functions
@@ -107,6 +108,7 @@ export const FlowBuilder: React.FC = () => {
         
         debug.log("Setting full layout positions:", newPositions);
         setNodePositions(newPositions); // Complete replacement
+        setInitialNodePositions(newPositions); // Store as initial positions
       }
       // Partial layout for block additions within existing pages
       else if (currentBlockCount !== prevData.blockCount && newNodesWithoutPositions.length > 0) {
@@ -937,6 +939,24 @@ export const FlowBuilder: React.FC = () => {
     }
   }, []);
 
+  // Handle reset positions to initial layout
+  const handleResetPositions = useCallback(() => {
+    debug.log("Resetting node positions to initial layout");
+    
+    // Apply hierarchical layout to get fresh positions
+    const layoutedNodes = hierarchicalLayoutNodes(flowData.nodes, flowData.edges, state.enableDebug);
+    
+    // Extract positions from layouted nodes
+    const newPositions: Record<string, { x: number; y: number }> = {};
+    layoutedNodes.forEach(node => {
+      newPositions[node.id] = node.position;
+    });
+    
+    debug.log("Reset positions:", newPositions);
+    setNodePositions(newPositions);
+    setInitialNodePositions(newPositions);
+  }, [flowData.nodes, flowData.edges, state.enableDebug]);
+
   // Handle node creation from click (place at center of canvas)
   const handleNodeCreateFromClick = useCallback((nodeType: string) => {
     // Place new nodes at a default position (center of visible area)
@@ -1024,6 +1044,7 @@ export const FlowBuilder: React.FC = () => {
             onFitView={fitViewRef}
             onConnectionCreate={handleConnectionCreate}
             onEdgeUpdate={handleEdgeUpdate}
+            onResetPositions={handleResetPositions}
             enableDebug={state.enableDebug}
           />
         </div>

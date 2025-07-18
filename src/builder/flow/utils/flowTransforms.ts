@@ -517,11 +517,13 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], en
   
   // Layout configuration
   const layout = {
-    pageSpacing: { x: 500, y: 400 }, // Large spacing between pages
+    pageSpacing: { x: 450, y: 350 }, // Horizontal and vertical spacing between pages
     blockSpacing: { x: 160, y: 100 }, // Spacing between blocks within a page
-    levelSpacing: 300, // Vertical spacing between hierarchy levels
-    startPosition: { x: 200, y: 100 },
-    blockOffset: { x: 20, y: 60 } // Offset of blocks relative to their parent page
+    blockSize: { width: 140, height: 80 }, // Default block size
+    rowSpacing: 400, // Vertical spacing between decision rows
+    startPosition: { x: 400, y: 100 },
+    blockOffset: { x: 20, y: 60 }, // Offset of blocks relative to their parent page
+    decisionBranchSpacing: 550, // Extra horizontal spacing for decision branches
   };
   
   // Separate different node types
@@ -532,76 +534,142 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], en
   
   debugLog(enableDebug, "Start:", startNodes.length, "Pages:", pageNodes.length, "Blocks:", blockNodes.length, "Submit:", submitNodes.length);
   
-  // Build navigation graph for conditional flows
-  const navigationEdges = edges.filter(edge => edge.type === "conditional");
+  // Build parent-child relationships for blocks
+  const blockToPage = new Map<string, string>();
+  blockNodes.forEach(block => {
+    const match = block.id.match(/^(.+)-block-(\d+)$/);
+    if (match) {
+      blockToPage.set(block.id, match[1]);
+    }
+  });
   
-  // Build page-to-page navigation by analyzing block navigation rules
-  const pageNavigationGraph = new Map<string, string[]>();
+  // Build navigation analysis
+  const outgoingEdges = new Map<string, FlowEdge[]>();
+  const incomingEdges = new Map<string, FlowEdge[]>();
   
-  navigationEdges.forEach(edge => {
-    // Check if this edge connects blocks to pages or pages
-    const sourceNode = layoutNodes.find(n => n.id === edge.source);
-    const targetNode = layoutNodes.find(n => n.id === edge.target);
+  edges.forEach(edge => {
+    if (!outgoingEdges.has(edge.source)) {
+      outgoingEdges.set(edge.source, []);
+    }
+    outgoingEdges.get(edge.source)!.push(edge);
     
-    if (sourceNode && targetNode) {
-      let sourcePage = sourceNode.type === "set" ? sourceNode.id : null;
-      let targetPage = targetNode.type === "set" ? targetNode.id : null;
-      
-      // If source is a block, find its parent page
-      if (sourceNode.type === "block") {
-        const match = sourceNode.id.match(/^(.+)-block-(\d+)$/);
-        if (match) {
-          sourcePage = match[1];
+    if (!incomingEdges.has(edge.target)) {
+      incomingEdges.set(edge.target, []);
+    }
+    incomingEdges.get(edge.target)!.push(edge);
+  });
+  
+  // Identify blocks with navigation rules that create branches
+  const branchingBlocks = new Set<string>();
+  blockNodes.forEach(block => {
+    const outgoing = outgoingEdges.get(block.id) || [];
+    const conditionalEdges = outgoing.filter(e => e.type === "conditional");
+    
+    // A block creates branching if it has conditional edges to different pages
+    if (conditionalEdges.length > 0) {
+      const targetPages = new Set<string>();
+      conditionalEdges.forEach(edge => {
+        const targetNode = layoutNodes.find(n => n.id === edge.target);
+        if (targetNode) {
+          if (targetNode.type === "set") {
+            targetPages.add(targetNode.id);
+          } else if (targetNode.type === "block") {
+            const parentPage = blockToPage.get(targetNode.id);
+            if (parentPage) targetPages.add(parentPage);
+          }
         }
+      });
+      
+      // If conditional edges lead to different pages, it's a branching block
+      if (targetPages.size > 1) {
+        branchingBlocks.add(block.id);
       }
+    }
+  });
+  
+  debugLog(enableDebug, "Branching blocks:", Array.from(branchingBlocks));
+  
+  // Build page-level flow graph
+  const pageFlowGraph = new Map<string, Set<string>>();
+  const pageIncoming = new Map<string, Set<string>>();
+  
+  // Initialize page flow tracking
+  pageNodes.forEach(page => {
+    pageFlowGraph.set(page.id, new Set());
+    pageIncoming.set(page.id, new Set());
+  });
+  
+  // Analyze page-to-page flow through navigation rules
+  edges.forEach(edge => {
+    if (edge.type === "conditional") {
+      const sourceNode = layoutNodes.find(n => n.id === edge.source);
+      const targetNode = layoutNodes.find(n => n.id === edge.target);
       
-      // If target is a block, find its parent page
-      if (targetNode.type === "block") {
-        const match = targetNode.id.match(/^(.+)-block-(\d+)$/);
-        if (match) {
-          targetPage = match[1];
+      if (sourceNode && targetNode) {
+        let sourcePage: string | null = null;
+        let targetPage: string | null = null;
+        
+        // Get source page
+        if (sourceNode.type === "set") {
+          sourcePage = sourceNode.id;
+        } else if (sourceNode.type === "block") {
+          sourcePage = blockToPage.get(sourceNode.id) || null;
         }
-      }
-      
-      // Create page-to-page connection if they are different pages
-      if (sourcePage && targetPage && sourcePage !== targetPage) {
-        if (!pageNavigationGraph.has(sourcePage)) {
-          pageNavigationGraph.set(sourcePage, []);
+        
+        // Get target page
+        if (targetNode.type === "set") {
+          targetPage = targetNode.id;
+        } else if (targetNode.type === "block") {
+          targetPage = blockToPage.get(targetNode.id) || null;
         }
-        if (!pageNavigationGraph.get(sourcePage)!.includes(targetPage)) {
-          pageNavigationGraph.get(sourcePage)!.push(targetPage);
+        
+        // Record page-to-page flow
+        if (sourcePage && targetPage && sourcePage !== targetPage) {
+          pageFlowGraph.get(sourcePage)?.add(targetPage);
+          pageIncoming.get(targetPage)?.add(sourcePage);
         }
       }
     }
   });
   
-  // Find root pages (pages with no incoming navigation from other pages)
-  const rootPages = pageNodes.filter(page => {
-    return !Array.from(pageNavigationGraph.values()).flat().includes(page.id);
+  // Also consider sequential flow between pages
+  const pageToPageEdges = edges.filter(e => e.data?.isPageToPage);
+  pageToPageEdges.forEach(edge => {
+    pageFlowGraph.get(edge.source)?.add(edge.target);
+    pageIncoming.get(edge.target)?.add(edge.source);
   });
   
-  debugLog(enableDebug, "Root pages:", rootPages.map(p => p.id));
-  debugLog(enableDebug, "Page navigation graph:", Array.from(pageNavigationGraph.entries()));
-  
-  // Calculate levels for pages using BFS
+  // Calculate page levels using modified BFS that considers branching
   const pageLevels = new Map<string, number>();
   const levelPages = new Map<number, string[]>();
   const visited = new Set<string>();
-  const queue: Array<{ pageId: string; level: number }> = [];
   
-  // Start from root pages
-  rootPages.forEach(page => {
-    queue.push({ pageId: page.id, level: 0 });
+  // Find root pages (connected from start or no incoming edges from other pages)
+  const rootPages: string[] = [];
+  pageNodes.forEach(page => {
+    const hasStartConnection = edges.some(e => 
+      e.source === "start-node" && e.target === page.id
+    );
+    const hasIncomingFromPages = pageIncoming.get(page.id)?.size || 0;
+    
+    if (hasStartConnection || hasIncomingFromPages === 0) {
+      rootPages.push(page.id);
+    }
   });
   
-  // If no root pages found, start with the first page
+  // If no root pages found, use the first page
   if (rootPages.length === 0 && pageNodes.length > 0) {
-    queue.push({ pageId: pageNodes[0].id, level: 0 });
+    rootPages.push(pageNodes[0].id);
   }
   
-  // BFS to assign levels to pages
+  // BFS to assign levels, considering branching points
+  const queue: Array<{ pageId: string; level: number; fromBranch: boolean }> = [];
+  rootPages.forEach(pageId => {
+    queue.push({ pageId, level: 0, fromBranch: false });
+  });
+  
   while (queue.length > 0) {
-    const { pageId, level } = queue.shift()!;
+    const { pageId, level, fromBranch } = queue.shift()!;
     
     if (visited.has(pageId)) continue;
     visited.add(pageId);
@@ -613,110 +681,149 @@ export function hierarchicalLayoutNodes(nodes: FlowNode[], edges: FlowEdge[], en
     }
     levelPages.get(level)!.push(pageId);
     
-    // Add child pages to queue
-    const children = pageNavigationGraph.get(pageId) || [];
-    children.forEach(childId => {
-      if (!visited.has(childId)) {
-        queue.push({ pageId: childId, level: level + 1 });
+    // Check if this page contains branching blocks
+    const pageHasBranching = blockNodes.some(block => 
+      blockToPage.get(block.id) === pageId && branchingBlocks.has(block.id)
+    );
+    
+    // Add connected pages to queue
+    const connectedPages = pageFlowGraph.get(pageId) || new Set();
+    connectedPages.forEach(targetPageId => {
+      if (!visited.has(targetPageId)) {
+        // If current page has branching, put targets in next level
+        const nextLevel = pageHasBranching || fromBranch ? level + 1 : level + 1;
+        queue.push({ pageId: targetPageId, level: nextLevel, fromBranch: pageHasBranching });
       }
     });
   }
   
-  // Handle unvisited pages (no navigation connections)
-  // Put them at the last level + 1 to appear at the bottom
-  const maxLevel = visited.size > 0 ? Math.max(...Array.from(pageLevels.values())) : -1;
-  const newPageLevel = maxLevel + 1;
-  
+  // Handle unvisited pages
   pageNodes.forEach(page => {
     if (!visited.has(page.id)) {
-      pageLevels.set(page.id, newPageLevel);
-      if (!levelPages.has(newPageLevel)) {
-        levelPages.set(newPageLevel, []);
-      }
-      levelPages.get(newPageLevel)!.push(page.id);
-    }
-  });
-  
-  // Position pages
-  const pagePositions = new Map<string, { x: number; y: number }>();
-  levelPages.forEach((pageIds, level) => {
-    const y = layout.startPosition.y + level * layout.levelSpacing;
-    
-    // Calculate horizontal spacing for pages at this level
-    const totalWidth = (pageIds.length - 1) * layout.pageSpacing.x;
-    const startX = layout.startPosition.x + (pageIds.length > 1 ? -totalWidth / 2 : 0);
-    
-    pageIds.forEach((pageId, index) => {
-      const x = startX + index * layout.pageSpacing.x;
-      pagePositions.set(pageId, { x, y });
-    });
-  });
-  
-  // Position blocks relative to their parent pages
-  const blockPositions = new Map<string, { x: number; y: number }>();
-  blockNodes.forEach(blockNode => {
-    // Extract parent page ID from block ID (format: pageId-block-index)
-    const match = blockNode.id.match(/^(.+)-block-(\d+)$/);
-    if (match) {
-      const [, parentPageId, blockIndexStr] = match;
-      const blockIndex = parseInt(blockIndexStr);
+      const maxLevel = Math.max(...Array.from(pageLevels.values()), -1);
+      const newLevel = maxLevel + 1;
+      pageLevels.set(page.id, newLevel);
       
-      const parentPagePos = pagePositions.get(parentPageId);
-      if (parentPagePos) {
-        // Layout blocks in a grid within the page
-        const blocksInPage = blockNodes.filter(b => b.id.startsWith(`${parentPageId}-block-`));
-        const blocksPerRow = Math.min(2, blocksInPage.length); // Max 2 blocks per row
-        const row = Math.floor(blockIndex / blocksPerRow);
-        const col = blockIndex % blocksPerRow;
-        
-        const blockX = parentPagePos.x + layout.blockOffset.x + col * layout.blockSpacing.x;
-        const blockY = parentPagePos.y + layout.blockOffset.y + row * layout.blockSpacing.y;
-        
-        blockPositions.set(blockNode.id, { x: blockX, y: blockY });
+      if (!levelPages.has(newLevel)) {
+        levelPages.set(newLevel, []);
       }
+      levelPages.get(newLevel)!.push(page.id);
     }
   });
   
   // Position start node
+  const nodePositions = new Map<string, { x: number; y: number }>();
   if (startNodes.length > 0) {
-    const startX = layout.startPosition.x;
-    const startY = layout.startPosition.y - layout.levelSpacing; // Position above the first level
-    
-    startNodes.forEach(startNode => {
-      startNode.position = { x: startX, y: startY };
+    nodePositions.set(startNodes[0].id, {
+      x: layout.startPosition.x,
+      y: layout.startPosition.y - layout.rowSpacing / 2
     });
   }
-
+  
+  // Position pages by level
+  let currentY = layout.startPosition.y;
+  levelPages.forEach((pageIds, level) => {
+    if (pageIds.length === 0) return;
+    
+    // Check if this is a branching level
+    const isBranchingLevel = pageIds.some(pageId => {
+      const incomingPages = Array.from(pageIncoming.get(pageId) || []);
+      return incomingPages.some(sourcePageId => {
+        return blockNodes.some(block => 
+          blockToPage.get(block.id) === sourcePageId && branchingBlocks.has(block.id)
+        );
+      });
+    });
+    
+    // Use wider spacing for branching levels
+    const horizontalSpacing = isBranchingLevel ? layout.decisionBranchSpacing : layout.pageSpacing.x;
+    const totalWidth = Math.max(0, (pageIds.length - 1) * horizontalSpacing);
+    let currentX = layout.startPosition.x - totalWidth / 2;
+    
+    pageIds.forEach(pageId => {
+      nodePositions.set(pageId, { x: currentX, y: currentY });
+      currentX += horizontalSpacing;
+    });
+    
+    currentY += layout.rowSpacing;
+  });
+  
+  // Position blocks within their parent pages
+  blockNodes.forEach(blockNode => {
+    const parentPageId = blockToPage.get(blockNode.id);
+    if (parentPageId) {
+      const parentPagePos = nodePositions.get(parentPageId);
+      if (parentPagePos) {
+        // Extract block index
+        const match = blockNode.id.match(/^(.+)-block-(\d+)$/);
+        if (match) {
+          const blockIndex = parseInt(match[2]);
+          
+          // Layout blocks in a grid within the page
+          const blocksInPage = blockNodes.filter(b => blockToPage.get(b.id) === parentPageId);
+          const blocksPerRow = Math.min(2, blocksInPage.length); // Max 2 blocks per row
+          const row = Math.floor(blockIndex / blocksPerRow);
+          const col = blockIndex % blocksPerRow;
+          
+          const blockX = parentPagePos.x + layout.blockOffset.x + col * layout.blockSpacing.x;
+          const blockY = parentPagePos.y + layout.blockOffset.y + row * layout.blockSpacing.y;
+          
+          nodePositions.set(blockNode.id, { x: blockX, y: blockY });
+        }
+      }
+    }
+  });
+  
   // Position submit node
   if (submitNodes.length > 0) {
-    const maxLevel = Math.max(...Array.from(pageLevels.values()));
-    const submitX = layout.startPosition.x;
-    const submitY = layout.startPosition.y + (maxLevel + 1) * layout.levelSpacing;
-    
-    submitNodes.forEach(submitNode => {
-      submitNode.position = { x: submitX, y: submitY };
+    const maxLevel = Math.max(...Array.from(pageLevels.values()), -1);
+    nodePositions.set(submitNodes[0].id, {
+      x: layout.startPosition.x,
+      y: layout.startPosition.y + (maxLevel + 1) * layout.rowSpacing
     });
   }
   
   // Apply all calculated positions
   layoutNodes.forEach(node => {
-    if (node.type === "set") {
-      const position = pagePositions.get(node.id);
-      if (position) {
-        node.position = position;
-      }
-    } else if (node.type === "block") {
-      const position = blockPositions.get(node.id);
-      if (position) {
-        node.position = position;
-      }
+    const position = nodePositions.get(node.id);
+    if (position) {
+      node.position = position;
     }
   });
   
-  debugLog(enableDebug, "Hierarchical layout results:");
+  // Adjust page sizes based on their contents
+  pageNodes.forEach(pageNode => {
+    const pageBlocks = blockNodes.filter(b => blockToPage.get(b.id) === pageNode.id);
+    const blockCount = pageBlocks.length;
+    
+    if (blockCount > 0) {
+      const blocksPerRow = Math.min(2, blockCount);
+      const blockRows = Math.ceil(blockCount / blocksPerRow);
+      
+      // Calculate required size with padding
+      const requiredWidth = Math.max(
+        350, // Minimum width
+        blocksPerRow * layout.blockSize.width + (blocksPerRow - 1) * 20 + 60
+      );
+      const requiredHeight = Math.max(
+        250, // Minimum height
+        80 + blockRows * layout.blockSize.height + (blockRows - 1) * 20 + 40
+      );
+      
+      // Update page data with container size
+      const pageData = pageNode.data as any;
+      pageData.containerSize = {
+        width: requiredWidth,
+        height: requiredHeight
+      };
+    }
+  });
+  
+  debugLog(enableDebug, "Improved hierarchical layout results:");
   debugLog(enableDebug, "Page levels:", Array.from(pageLevels.entries()));
-  debugLog(enableDebug, "Page positions:", Array.from(pagePositions.entries()));
-  debugLog(enableDebug, "Block positions:", Array.from(blockPositions.entries()));
+  debugLog(enableDebug, "Level pages:", Array.from(levelPages.entries()));
+  debugLog(enableDebug, "Branching blocks:", Array.from(branchingBlocks));
+  debugLog(enableDebug, "Page flow graph:", Array.from(pageFlowGraph.entries()));
   
   return layoutNodes;
 }
