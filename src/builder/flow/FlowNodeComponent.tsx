@@ -321,7 +321,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
 
       {/* Node controls */}
       {selected && node.type !== "submit" && node.type !== "start" && (
-        <div className="absolute -top-3 -right-3 flex gap-1">
+        <div className="absolute -bottom-3 -right-3 flex gap-1">
           <Button
             type="button"
             size="sm"
@@ -351,7 +351,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
 
       {/* Navigation rules indicator */}
       {node.type === "block" && (node.data as BlockData).navigationRules?.length > 0 && (
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-background"></div>
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-background"></div>
       )}
     </div>
   );
