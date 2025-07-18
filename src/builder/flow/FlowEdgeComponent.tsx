@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from "react";
 import { FlowEdge, FlowNode } from "./types";
 import { EdgeDragState } from "./utils/connectionValidation";
+import { EdgeRoute } from "./utils/edgeRouting";
 
 interface FlowEdgeComponentProps {
   edge: FlowEdge;
   nodes: FlowNode[];
   zoom: number;
   viewport?: { x: number; y: number; zoom: number };
+  edgeRoute?: EdgeRoute;
   dragState?: EdgeDragState;
   onEdgeDragStart?: (edgeId: string, position: { x: number; y: number }) => void;
   onEdgeDragEnd?: (edgeId: string, targetNodeId: string | null) => void;
@@ -18,6 +20,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   nodes,
   zoom,
   viewport,
+  edgeRoute,
   dragState,
   onEdgeDragStart,
   onEdgeDragEnd,
@@ -31,116 +34,104 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   }
   
 
-  // Get node sizes from their data and apply zoom scaling
-  const sourceData = sourceNode.data as any;
-  const targetData = targetNode.data as any;
-  const baseSourceSize = sourceData?.containerSize || { width: 120, height: 60 };
-  const baseTargetSize = targetData?.containerSize || { width: 120, height: 60 };
-  
-  // Apply zoom scaling to match how nodes are actually rendered
-  // FlowNodeComponent applies: transform: scale(Math.max(0.7, Math.min(1, zoom)))
-  const nodeZoomScale = Math.max(0.7, Math.min(1, zoom));
-  const sourceSize = {
-    width: baseSourceSize.width * nodeZoomScale,
-    height: baseSourceSize.height * nodeZoomScale
-  };
-  const targetSize = {
-    width: baseTargetSize.width * nodeZoomScale,
-    height: baseTargetSize.height * nodeZoomScale
-  };
-
   // Determine edge style based on type and custom styles first
   const isConditional = edge.type === "conditional";
   const isSequential = edge.data?.isSequential || false;
   const isPageEntry = edge.data?.isPageEntry || false;
   const isPageToPage = edge.data?.isPageToPage || false;
 
-  // Calculate connection points based on actual connection handles
-  // Since the SVG is inside the transformed container, we use world coordinates directly
-  // Connection handles are positioned at specific locations on nodes:
-  // - Blocks: top handle at -1px from top center, bottom handle at -1px from bottom center
-  // - Pages: top handle at -2px from top center, bottom handle at -2px from bottom center
-  // - Start/Submit: similar positioning
-  
-  // Calculate center positions with higher precision
-  let sourceX = sourceNode.position.x + sourceSize.width / 2; // Center of source node
-  let sourceY: number;
-  let targetX = targetNode.position.x + targetSize.width / 2; // Center of target node
-  let targetY: number;
-  
-  // Get connection handle offsets based on node type
-  const getConnectionHandleOffset = (nodeType: string) => {
-    switch (nodeType) {
-      case 'set': return 2; // Pages have 2px offset
-      case 'block': return 1; // Blocks have 1px offset
-      case 'start':
-      case 'submit': return 1; // Start/Submit have 1px offset
-      default: return 0;
-    }
-  };
-  
-  const sourceHandleOffset = getConnectionHandleOffset(sourceNode.type);
-  const targetHandleOffset = getConnectionHandleOffset(targetNode.type);
-  
-  if (isPageToPage) {
-    // Page-to-page: connect from bottom handle to top handle
-    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
-    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
-  }
-  else if (isPageEntry) {
-    // Page entry: connect from top handle of page to top handle of first block
-    sourceY = sourceNode.position.y - sourceHandleOffset; // Top connection handle of page
-    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle of block
-  } 
-  else if (isSequential) {
-    // Sequential block-to-block: connect from bottom handle to top handle
-    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
-    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
-  }
-  else {
-    // Default: connect from bottom handle to top handle
-    sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset; // Bottom connection handle
-    targetY = targetNode.position.y - targetHandleOffset; // Top connection handle
-  }
-
-  // Create smooth curve path with better control points
-  const deltaY = Math.abs(targetY - sourceY);
-  const controlPointOffset = Math.max(30, deltaY * 0.3); // Minimum 30px curve
-  
+  let sourceX: number, sourceY: number, targetX: number, targetY: number;
   let path: string;
-  if (isPageToPage) {
-    // For page-to-page connections, create a larger curve for better visibility
-    const pageControlPointOffset = Math.max(50, deltaY * 0.4); // Larger curve for page connections
-    if (targetY > sourceY) {
-      // Normal case: target page is below source page
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY + pageControlPointOffset} ${targetX} ${targetY - pageControlPointOffset} ${targetX} ${targetY}`;
-    } else {
-      // Edge case: target page is above source page
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY - pageControlPointOffset} ${targetX} ${targetY + pageControlPointOffset} ${targetX} ${targetY}`;
-    }
-  } else if (isPageEntry) {
-    // For page entry connections, create a downward curve from page top to block top
-    if (targetY > sourceY) {
-      // Normal case: target block is below page top
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY + controlPointOffset} ${targetX} ${targetY - controlPointOffset} ${targetX} ${targetY}`;
-    } else {
-      // Edge case: target block is above page top (shouldn't happen in normal layouts)
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY - controlPointOffset} ${targetX} ${targetY + controlPointOffset} ${targetX} ${targetY}`;
-    }
+
+  // Use pre-calculated edge route if available
+  if (edgeRoute) {
+    sourceX = edgeRoute.source.x;
+    sourceY = edgeRoute.source.y;
+    targetX = edgeRoute.target.x;
+    targetY = edgeRoute.target.y;
+    path = edgeRoute.path;
   } else {
-    // For all other connections, use the original logic
-    if (targetY > sourceY) {
-      // Target is below source - normal downward curve
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY + controlPointOffset} ${targetX} ${targetY - controlPointOffset} ${targetX} ${targetY}`;
+    // Fallback to original calculation logic
+    const sourceData = sourceNode.data as any;
+    const targetData = targetNode.data as any;
+    const baseSourceSize = sourceData?.containerSize || { width: 120, height: 60 };
+    const baseTargetSize = targetData?.containerSize || { width: 120, height: 60 };
+    
+    // Apply zoom scaling to match how nodes are actually rendered
+    const nodeZoomScale = Math.max(0.7, Math.min(1, zoom));
+    const sourceSize = {
+      width: baseSourceSize.width * nodeZoomScale,
+      height: baseSourceSize.height * nodeZoomScale
+    };
+    const targetSize = {
+      width: baseTargetSize.width * nodeZoomScale,
+      height: baseTargetSize.height * nodeZoomScale
+    };
+
+    // Calculate center positions
+    sourceX = sourceNode.position.x + sourceSize.width / 2;
+    targetX = targetNode.position.x + targetSize.width / 2;
+    
+    // Get connection handle offsets based on node type
+    const getConnectionHandleOffset = (nodeType: string) => {
+      switch (nodeType) {
+        case 'set': return 2;
+        case 'block': return 1;
+        case 'start':
+        case 'submit': return 1;
+        default: return 0;
+      }
+    };
+    
+    const sourceHandleOffset = getConnectionHandleOffset(sourceNode.type);
+    const targetHandleOffset = getConnectionHandleOffset(targetNode.type);
+    
+    if (isPageToPage) {
+      sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset;
+      targetY = targetNode.position.y - targetHandleOffset;
+    }
+    else if (isPageEntry) {
+      sourceY = sourceNode.position.y - sourceHandleOffset;
+      targetY = targetNode.position.y - targetHandleOffset;
+    } 
+    else if (isSequential) {
+      sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset;
+      targetY = targetNode.position.y - targetHandleOffset;
+    }
+    else {
+      sourceY = sourceNode.position.y + sourceSize.height + sourceHandleOffset;
+      targetY = targetNode.position.y - targetHandleOffset;
+    }
+
+    // Create smooth curve path
+    const deltaY = Math.abs(targetY - sourceY);
+    const controlPointOffset = Math.max(30, deltaY * 0.3);
+    
+    if (isPageToPage) {
+      const pageControlPointOffset = Math.max(50, deltaY * 0.4);
+      if (targetY > sourceY) {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY + pageControlPointOffset} ${targetX} ${targetY - pageControlPointOffset} ${targetX} ${targetY}`;
+      } else {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY - pageControlPointOffset} ${targetX} ${targetY + pageControlPointOffset} ${targetX} ${targetY}`;
+      }
+    } else if (isPageEntry) {
+      if (targetY > sourceY) {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY + controlPointOffset} ${targetX} ${targetY - controlPointOffset} ${targetX} ${targetY}`;
+      } else {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY - controlPointOffset} ${targetX} ${targetY + controlPointOffset} ${targetX} ${targetY}`;
+      }
     } else {
-      // Target is above source - upward curve
-      path = `M ${sourceX} ${sourceY} 
-              C ${sourceX} ${sourceY - controlPointOffset} ${targetX} ${targetY + controlPointOffset} ${targetX} ${targetY}`;
+      if (targetY > sourceY) {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY + controlPointOffset} ${targetX} ${targetY - controlPointOffset} ${targetX} ${targetY}`;
+      } else {
+        path = `M ${sourceX} ${sourceY} 
+                C ${sourceX} ${sourceY - controlPointOffset} ${targetX} ${targetY + controlPointOffset} ${targetX} ${targetY}`;
+      }
     }
   }
   

@@ -4,6 +4,7 @@ import { FlowNodeComponent } from "./FlowNodeComponent";
 import { FlowEdgeComponent } from "./FlowEdgeComponent";
 import { debugLog } from "../../utils/debugUtils";
 import { EdgeDragState, validateConnectionWithFeedback, getValidTargets } from "./utils/connectionValidation";
+import { calculateEdgeRoutes } from "./utils/edgeRouting";
 
 export interface FlowCanvasRef {
   resetPositions?: () => void;
@@ -893,6 +894,11 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     ));
   }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
 
+  // Calculate edge routes to avoid overlaps
+  const edgeRoutes = useMemo(() => {
+    return calculateEdgeRoutes(edges, nodes, viewport.zoom);
+  }, [edges, nodes, viewport.zoom]);
+
   const renderedEdges = useMemo(() => {
     return edges.map(edge => (
       <FlowEdgeComponent
@@ -901,13 +907,14 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         nodes={nodes}
         zoom={viewport.zoom}
         viewport={viewport}
+        edgeRoute={edgeRoutes.get(edge.id)}
         dragState={edgeDragState}
         onEdgeDragStart={handleEdgeDragStart}
         onEdgeDragMove={handleEdgeDragMove}
         onEdgeDragEnd={handleEdgeDragEnd}
       />
     ));
-  }, [edges, nodes, viewport, edgeDragState, handleEdgeDragStart, handleEdgeDragMove, handleEdgeDragEnd]);
+  }, [edges, nodes, viewport, edgeRoutes, edgeDragState, handleEdgeDragStart, handleEdgeDragMove, handleEdgeDragEnd]);
 
   // Handle context menu to prevent interference with right-click panning
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -1248,6 +1255,195 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           x: {mousePosition.x}, y: {mousePosition.y}
         </div>
       )}
+
+      {/* Connection Lines Legend */}
+      <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-foreground border border-border shadow-lg">
+        <div className="font-medium text-xs mb-2 text-muted-foreground">Connection Types</div>
+        <div className="space-y-1.5">
+          {/* Start Connection */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#22c55e"
+                strokeWidth="2"
+                fill="none"
+                markerEnd="url(#legend-arrow-green)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-green"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#22c55e" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Start</span>
+          </div>
+          
+          {/* Page Entry */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#10b981"
+                strokeWidth="1.5"
+                fill="none"
+                markerEnd="url(#legend-arrow-emerald)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-emerald"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#10b981" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Page Entry</span>
+          </div>
+          
+          {/* Page to Page */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#3b82f6"
+                strokeWidth="3"
+                fill="none"
+                markerEnd="url(#legend-arrow-blue)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-blue"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#3b82f6" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Page Flow</span>
+          </div>
+          
+          {/* Sequential */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#94a3b8"
+                strokeWidth="1.5"
+                fill="none"
+                markerEnd="url(#legend-arrow-gray)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-gray"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#94a3b8" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Sequential</span>
+          </div>
+          
+          {/* Conditional - Default */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                fill="none"
+                markerEnd="url(#legend-arrow-orange)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-orange"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#f59e0b" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Default Rule</span>
+          </div>
+          
+          {/* Conditional - Navigation */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#3b82f6"
+                strokeWidth="2"
+                fill="none"
+                markerEnd="url(#legend-arrow-blue-nav)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-blue-nav"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#3b82f6" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Navigation Rule</span>
+          </div>
+          
+          {/* Sequential with Navigation Rules */}
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8" className="flex-shrink-0">
+              <path
+                d="M 2 4 L 22 4"
+                stroke="#94a3b8"
+                strokeWidth="1.5"
+                strokeDasharray="3,2"
+                fill="none"
+                markerEnd="url(#legend-arrow-gray-dashed)"
+              />
+              <defs>
+                <marker
+                  id="legend-arrow-gray-dashed"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="5"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 6 2, 0 4" fill="#94a3b8" />
+                </marker>
+              </defs>
+            </svg>
+            <span className="text-xs">Fallback Flow</span>
+          </div>
+        </div>
+      </div>
 
       {/* Canvas info and controls */}
       <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-foreground border border-border">
