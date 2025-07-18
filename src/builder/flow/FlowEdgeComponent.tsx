@@ -314,18 +314,39 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
 
       {/* Edge label with improved styling */}
       {edge.data?.label && !isSequential && (
-        <g>
+        <g style={{ cursor: "pointer" }} onClick={handleEdgeClick}>
+          {/* Highlight glow for selected label */}
+          {selected && (
+            <rect
+              x={(sourceX + targetX) / 2 - (edge.data.label.length * 3) - 4}
+              y={(sourceY + targetY) / 2 - 12}
+              width={edge.data.label.length * 6 + 8}
+              height={24}
+              fill={strokeColor}
+              stroke="none"
+              rx="5"
+              className="animate-pulse"
+              style={{
+                opacity: 0.2,
+                filter: "blur(4px)"
+              }}
+            />
+          )}
+          
           {/* Background rectangle for better readability */}
           <rect
             x={(sourceX + targetX) / 2 - (edge.data.label.length * 3)}
             y={(sourceY + targetY) / 2 - 8}
             width={edge.data.label.length * 6}
             height={16}
-            fill="white"
-            stroke="#e5e7eb"
-            strokeWidth="1"
+            fill={selected ? strokeColor : "white"}
+            stroke={selected ? strokeColor : "#e5e7eb"}
+            strokeWidth={selected ? "2" : "1"}
             rx="3"
-            className="opacity-90"
+            className={selected ? "opacity-100" : "opacity-90"}
+            style={{
+              transition: "all 0.2s ease"
+            }}
           />
           <text
             x={(sourceX + targetX) / 2}
@@ -334,24 +355,45 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
             className="text-xs font-medium"
             style={{
               fontSize: Math.max(9, 10),
-              fill: isConditional ? '#374151' : '#6b7280'
+              fill: selected ? 'white' : (isConditional ? '#374151' : '#6b7280'),
+              fontWeight: selected ? 600 : 500,
+              transition: "all 0.2s ease"
             }}
           >
             {/* Truncate long labels */}
-            {edge.data.label.length > 20 ? edge.data.label : edge.data.label}
+            {edge.data.label.length > 20 ? edge.data.label.substring(0, 20) + '...' : edge.data.label}
           </text>
         </g>
       )}
 
       {/* Simple dot indicator for sequential connections - scale with zoom */}
       {isSequential && edge.data?.label && (
-        <circle
-          cx={(sourceX + targetX) / 2}
-          cy={(sourceY + targetY) / 2}
-          r="3"
-          fill="#94a3b8"
-          className="opacity-60"
-        />
+        <g style={{ cursor: "pointer" }} onClick={handleEdgeClick}>
+          {/* Highlight glow for selected dot */}
+          {selected && (
+            <circle
+              cx={(sourceX + targetX) / 2}
+              cy={(sourceY + targetY) / 2}
+              r="8"
+              fill={strokeColor}
+              className="animate-pulse"
+              style={{
+                opacity: 0.3,
+                filter: "blur(4px)"
+              }}
+            />
+          )}
+          <circle
+            cx={(sourceX + targetX) / 2}
+            cy={(sourceY + targetY) / 2}
+            r={selected ? "4" : "3"}
+            fill={selected ? strokeColor : "#94a3b8"}
+            className={selected ? "opacity-100" : "opacity-60"}
+            style={{
+              transition: "all 0.2s ease"
+            }}
+          />
+        </g>
       )}
 
     </g>
