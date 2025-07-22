@@ -1,0 +1,382 @@
+/* Survey Theme Isolation CSS for Survey Form Package
+ * Self-contained theme isolation that works with Tailwind and OKLCH colors
+ */
+
+/* Survey Theme Scoped Variables */
+.survey-theme-light {
+  --survey-bg: oklch(0.99 0.002 286);
+  --survey-surface: oklch(1 0 0);
+  --survey-border: oklch(0.94 0.002 286.32);
+  --survey-text: oklch(0.141 0.005 285.823);
+  --survey-text-muted: oklch(0.552 0.016 285.938);
+  --survey-input: oklch(0.96 0.002 286.32);
+  --survey-ring: oklch(0.705 0.015 286.067);
+  --survey-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --survey-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.survey-theme-dark {
+  --survey-bg: oklch(0.141 0.005 285.823);
+  --survey-surface: oklch(0.21 0.006 285.885);
+  --survey-border: oklch(1 0 0 / 12%);
+  --survey-text: oklch(0.985 0 0);
+  --survey-text-muted: oklch(0.705 0.015 286.067);
+  --survey-input: oklch(1 0 0 / 18%);
+  --survey-ring: oklch(0.552 0.016 285.938);
+  --survey-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --survey-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.survey-theme-system {
+  --survey-bg: oklch(0.99 0.002 286);
+  --survey-surface: oklch(1 0 0);
+  --survey-border: oklch(0.94 0.002 286.32);
+  --survey-text: oklch(0.141 0.005 285.823);
+  --survey-text-muted: oklch(0.552 0.016 285.938);
+  --survey-input: oklch(0.96 0.002 286.32);
+  --survey-ring: oklch(0.705 0.015 286.067);
+  --survey-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --survey-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .survey-theme-system {
+    --survey-bg: oklch(0.141 0.005 285.823);
+    --survey-surface: oklch(0.21 0.006 285.885);
+    --survey-border: oklch(1 0 0 / 12%);
+    --survey-text: oklch(0.985 0 0);
+    --survey-text-muted: oklch(0.705 0.015 286.067);
+    --survey-input: oklch(1 0 0 / 18%);
+    --survey-ring: oklch(0.552 0.016 285.938);
+    --survey-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --survey-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Survey Container Base Styles */
+.survey-theme-container {
+  background-color: var(--survey-bg);
+  color: var(--survey-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Tailwind Class Overrides within Survey Scope */
+.survey-isolated-content .bg-background,
+.survey-isolated-content .bg-white {
+  background-color: var(--survey-bg) !important;
+}
+
+.survey-isolated-content .bg-card,
+.survey-isolated-content .bg-popover {
+  background-color: var(--survey-surface) !important;
+}
+
+.survey-isolated-content .bg-muted,
+.survey-isolated-content .bg-secondary,
+.survey-isolated-content .bg-accent {
+  background-color: var(--survey-input) !important;
+}
+
+.survey-isolated-content .text-foreground,
+.survey-isolated-content .text-card-foreground,
+.survey-isolated-content .text-popover-foreground {
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content .text-muted-foreground,
+.survey-isolated-content .text-secondary-foreground,
+.survey-isolated-content .text-accent-foreground {
+  color: var(--survey-text-muted) !important;
+}
+
+.survey-isolated-content .border,
+.survey-isolated-content .border-border,
+.survey-isolated-content .border-input {
+  border-color: var(--survey-border) !important;
+}
+
+/* Form Elements */
+.survey-isolated-content input,
+.survey-isolated-content textarea,
+.survey-isolated-content select {
+  background-color: var(--survey-surface) !important;
+  color: var(--survey-text) !important;
+  border-color: var(--survey-border) !important;
+}
+
+.survey-isolated-content input:focus,
+.survey-isolated-content textarea:focus,
+.survey-isolated-content select:focus {
+  border-color: var(--survey-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent) !important;
+  outline: none !important;
+}
+
+.survey-isolated-content input::placeholder,
+.survey-isolated-content textarea::placeholder {
+  color: var(--survey-text-muted) !important;
+}
+
+/* Button Styling with Theme Colors */
+.survey-isolated-content .bg-primary,
+.survey-isolated-content button[class*="primary"],
+.survey-isolated-content .btn-primary {
+  background-color: var(--survey-primary) !important;
+  border-color: var(--survey-primary) !important;
+  color: white !important;
+}
+
+.survey-isolated-content .bg-secondary,
+.survey-isolated-content button[class*="secondary"],
+.survey-isolated-content .btn-secondary {
+  background-color: var(--survey-secondary) !important;
+  border-color: var(--survey-secondary) !important;
+}
+
+.survey-isolated-content button[variant="outline"],
+.survey-isolated-content .btn-outline {
+  background-color: transparent !important;
+  border-color: var(--survey-border) !important;
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content button[variant="outline"]:hover,
+.survey-isolated-content .btn-outline:hover {
+  background-color: var(--survey-input) !important;
+}
+
+.survey-isolated-content button[variant="ghost"],
+.survey-isolated-content .btn-ghost {
+  background-color: transparent !important;
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content button[variant="ghost"]:hover,
+.survey-isolated-content .btn-ghost:hover {
+  background-color: var(--survey-input) !important;
+}
+
+/* Card and Surface Elements */
+.survey-isolated-content .card,
+.survey-isolated-content [data-card],
+.survey-isolated-content .gumroad-card {
+  background-color: var(--survey-surface) !important;
+  border-color: var(--survey-border) !important;
+  color: var(--survey-text) !important;
+  box-shadow: var(--survey-shadow) !important;
+}
+
+.survey-isolated-content .card:hover,
+.survey-isolated-content [data-card]:hover,
+.survey-isolated-content .gumroad-card:hover {
+  box-shadow: var(--survey-shadow-lg) !important;
+}
+
+/* Typography Elements */
+.survey-isolated-content h1,
+.survey-isolated-content h2,
+.survey-isolated-content h3,
+.survey-isolated-content h4,
+.survey-isolated-content h5,
+.survey-isolated-content h6 {
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content p,
+.survey-isolated-content span,
+.survey-isolated-content div,
+.survey-isolated-content label {
+  color: var(--survey-text) !important;
+}
+
+/* Form Controls */
+.survey-isolated-content input[type="checkbox"],
+.survey-isolated-content input[type="radio"] {
+  accent-color: var(--survey-primary) !important;
+}
+
+/* Progress Indicators */
+.survey-isolated-content .bg-primary,
+.survey-isolated-content [class*="progress-bar"] {
+  background-color: var(--survey-primary) !important;
+}
+
+.survey-isolated-content [class*="progress-track"] {
+  background-color: var(--survey-border) !important;
+}
+
+/* Selectable Boxes */
+.survey-isolated-content .selectable-box {
+  background-color: var(--survey-surface) !important;
+  border-color: var(--survey-border) !important;
+  color: var(--survey-text) !important;
+  transition: all 0.2s ease;
+}
+
+.survey-isolated-content .selectable-box:hover {
+  border-color: var(--survey-primary) !important;
+  box-shadow: var(--survey-shadow) !important;
+  transform: translateY(-1px);
+}
+
+.survey-isolated-content .selectable-box.selected {
+  border-color: var(--survey-primary) !important;
+  background-color: var(--survey-primary) !important;
+  color: white !important;
+}
+
+.survey-isolated-content .selectable-box.selected * {
+  color: white !important;
+}
+
+/* State Colors */
+.survey-isolated-content .text-destructive,
+.survey-isolated-content .error {
+  color: var(--survey-error) !important;
+}
+
+.survey-isolated-content .border-destructive {
+  border-color: var(--survey-error) !important;
+}
+
+.survey-isolated-content .text-green-600,
+.survey-isolated-content .success {
+  color: var(--survey-success) !important;
+}
+
+.survey-isolated-content .border-green-600 {
+  border-color: var(--survey-success) !important;
+}
+
+/* Dropdown and Popover Menus */
+.survey-isolated-content .bg-popover,
+.survey-isolated-content [role="menu"],
+.survey-isolated-content [role="listbox"] {
+  background-color: var(--survey-surface) !important;
+  border-color: var(--survey-border) !important;
+  box-shadow: var(--survey-shadow-lg) !important;
+}
+
+.survey-isolated-content [role="menuitem"],
+.survey-isolated-content [role="option"] {
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content [role="menuitem"]:hover,
+.survey-isolated-content [role="option"]:hover {
+  background-color: var(--survey-input) !important;
+}
+
+/* Tab Controls */
+.survey-isolated-content [role="tablist"] {
+  border-color: var(--survey-border) !important;
+}
+
+.survey-isolated-content [role="tab"] {
+  color: var(--survey-text-muted) !important;
+  border-color: transparent !important;
+}
+
+.survey-isolated-content [role="tab"][aria-selected="true"] {
+  color: var(--survey-text) !important;
+  border-color: var(--survey-primary) !important;
+}
+
+/* Focus States */
+.survey-isolated-content *:focus-visible {
+  outline: 2px solid var(--survey-ring) !important;
+  outline-offset: 2px;
+}
+
+.survey-isolated-content input:focus-visible,
+.survey-isolated-content textarea:focus-visible,
+.survey-isolated-content select:focus-visible {
+  outline: none !important;
+  border-color: var(--survey-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent) !important;
+}
+
+/* Scrollbar Styling */
+.survey-theme-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.survey-theme-container::-webkit-scrollbar-track {
+  background: var(--survey-surface);
+  border-radius: 4px;
+}
+
+.survey-theme-container::-webkit-scrollbar-thumb {
+  background: var(--survey-border);
+  border-radius: 4px;
+}
+
+.survey-theme-container::-webkit-scrollbar-thumb:hover {
+  background: var(--survey-text-muted);
+}
+
+/* Shadow Utilities for Survey Scope */
+.survey-isolated-content .shadow-sm {
+  box-shadow: var(--survey-shadow) !important;
+}
+
+.survey-isolated-content .shadow,
+.survey-isolated-content .shadow-md {
+  box-shadow: var(--survey-shadow) !important;
+}
+
+.survey-isolated-content .shadow-lg,
+.survey-isolated-content .shadow-xl {
+  box-shadow: var(--survey-shadow-lg) !important;
+}
+
+/* Empty State Styling */
+.survey-empty-state {
+  background-color: var(--survey-surface);
+  border-color: var(--survey-border);
+  color: var(--survey-text-muted);
+  transition: all 0.3s ease;
+}
+
+/* Preserve Gumroad Design Language */
+.survey-isolated-content .rounded-organic {
+  border-radius: 1.5rem;
+}
+
+.survey-isolated-content .rounded-blob {
+  border-radius: 2rem 1rem 2rem 1rem;
+}
+
+.survey-isolated-content .animate-float {
+  animation: survey-float 6s ease-in-out infinite;
+}
+
+@keyframes survey-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Soft gradient backgrounds for survey scope */
+.survey-isolated-content .bg-soft-gradient {
+  background: linear-gradient(135deg, 
+    var(--survey-bg) 0%, 
+    var(--survey-surface) 100%) !important;
+}
+
+/* Ensure proper contrast for all text elements */
+.survey-isolated-content * {
+  color: inherit;
+}
+
+/* Override any conflicting Tailwind utilities */
+.survey-isolated-content .text-current {
+  color: var(--survey-text) !important;
+}
+
+.survey-isolated-content .bg-current {
+  background-color: var(--survey-surface) !important;
+}
+
+.survey-isolated-content .border-current {
+  border-color: var(--survey-border) !important;
+}

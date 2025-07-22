@@ -22,6 +22,7 @@ import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { ThemeDefinition, SurveyTheme, SurveyBuilderState, NodeData, LocalizationMap } from "../../../types";
 import { SurveyForm } from "../../../renderer/SurveyForm";
 import { themes } from "../../../themes";
+import ThemePreview from "./ThemePreview";
 
 // Theme creation steps
 type ThemeStep = 'selection' | 'basics' | 'advanced' | 'review';
@@ -749,61 +750,61 @@ const ResizeHandle: React.FC = () => {
   );
 };
 
-// Preview Component with Resizable functionality
-const ThemePreview: React.FC<{ theme: ThemeDefinition; state: SurveyBuilderState }> = ({ theme, state }) => {
-  const [previewWidth, setPreviewWidth] = useState(400);
-  const [previewScale, setPreviewScale] = useState(1);
+// // Preview Component with Resizable functionality
+// const ThemePreview: React.FC<{ theme: ThemeDefinition; state: SurveyBuilderState }> = ({ theme, state }) => {
+//   const [previewWidth, setPreviewWidth] = useState(400);
+//   const [previewScale, setPreviewScale] = useState(1);
 
-  // Predefined viewport sizes
-  const viewportPresets = [
-    { name: "Mobile", width: 375, icon: "📱" },
-    { name: "Tablet", width: 768, icon: "📱" },
-    { name: "Desktop", width: 1024, icon: "💻" },
-    { name: "Large", width: 1440, icon: "🖥️" },
-  ];
+//   // Predefined viewport sizes
+//   const viewportPresets = [
+//     { name: "Mobile", width: 375, icon: "📱" },
+//     { name: "Tablet", width: 768, icon: "📱" },
+//     { name: "Desktop", width: 1024, icon: "💻" },
+//     { name: "Large", width: 1440, icon: "🖥️" },
+//   ];
 
-  const handlePresetSelect = (width: number) => {
-    setPreviewWidth(width);
-  };
+//   const handlePresetSelect = (width: number) => {
+//     setPreviewWidth(width);
+//   };
 
-  const handleScaleChange = (newScale: number[]) => {
-    setPreviewScale(newScale[0]);
-  };
+//   const handleScaleChange = (newScale: number[]) => {
+//     setPreviewScale(newScale[0]);
+//   };
 
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Live Preview</CardTitle>
-          </div>
-        </div>        
-      </CardHeader>
+//   return (
+//     <Card className="h-full">
+//       <CardHeader>
+//         <div className="flex items-center justify-between">
+//           <div>
+//             <CardTitle className="text-lg">Live Preview</CardTitle>
+//           </div>
+//         </div>        
+//       </CardHeader>
 
-      <CardContent className="p-0 relative">
-      {state.rootNode ? (
-              <SurveyForm
-                survey={state}
-                layout="fullpage"
-                enableDebug={false}
-                progressBar={{
-                  type: 'percentage',
-                  showPercentage: true,
-                  showStepInfo: true,
-                  position: 'top',
-                }}
-              />
-            ) : (
-              <div className="p-8 text-center text-gray-500">
-                <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Add some blocks to see survey in action</p>
-              </div>
-            )}
+//       <CardContent className="p-0 relative">
+//       {state.rootNode ? (
+//               <SurveyForm
+//                 survey={state}
+//                 layout="fullpage"
+//                 enableDebug={false}
+//                 progressBar={{
+//                   type: 'percentage',
+//                   showPercentage: true,
+//                   showStepInfo: true,
+//                   position: 'top',
+//                 }}
+//               />
+//             ) : (
+//               <div className="p-8 text-center text-gray-500">
+//                 <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+//                 <p>Add some blocks to see survey in action</p>
+//               </div>
+//             )}
 
-      </CardContent>
-    </Card>
-  );
-};
+//       </CardContent>
+//     </Card>
+//   );
+// };
 
 // Define the props
 interface ThemeBuilderProps {
