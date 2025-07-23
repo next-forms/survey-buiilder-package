@@ -272,13 +272,17 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
 
   // Handle edge drag move
   const handleEdgeDragMove = useCallback((edgeId: string, position: { x: number; y: number }) => {
-    if (edgeDragState.isDragging && edgeDragState.edgeId === edgeId) {
-      setEdgeDragState(prev => ({
-        ...prev,
-        currentPosition: position
-      }));
-    }
-  }, [edgeDragState]);
+    setEdgeDragState(prev => {
+      if (prev.isDragging && prev.edgeId === edgeId) {
+        debugLog(enableDebug, `Updating edge drag position for ${edgeId}:`, position);
+        return {
+          ...prev,
+          currentPosition: position
+        };
+      }
+      return prev;
+    });
+  }, [enableDebug]);
 
   // Handle edge drag end
   const handleEdgeDragEnd = useCallback((edgeId: string, targetNodeId: string | null) => {
@@ -530,7 +534,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
-  }, [dragState, isPanning, lastPanPoint, viewport, constrainPosition, nodes]);
+  }, [dragState, isPanning, lastPanPoint, viewport, constrainPosition, nodes, edgeDragState.isDragging, edgeDragState.edgeId, handleEdgeDragMove, enableDebug, handleNodePositionUpdate]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((e?: React.MouseEvent) => {
@@ -834,74 +838,6 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     }
   }, [fitView, onFitView]);
 
-  // Global mouse event handling for edge dragging
-  React.useEffect(() => {
-    if (!edgeDragState.isDragging) return;
-
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (!canvasRef.current || !edgeDragState.isDragging) return;
-      
-      const rect = canvasRef.current.getBoundingClientRect();
-      const screenX = e.clientX - rect.left;
-      const screenY = e.clientY - rect.top;
-      const worldX = (screenX - viewport.x) / viewport.zoom;
-      const worldY = (screenY - viewport.y) / viewport.zoom;
-      
-      debugLog(enableDebug, "Global mouse move during edge drag:", { screenX, screenY, worldX, worldY });
-      
-      if (edgeDragState.edgeId) {
-        handleEdgeDragMove(edgeDragState.edgeId, { x: worldX, y: worldY });
-      }
-    };
-
-    const handleGlobalMouseUp = (e: MouseEvent) => {
-      if (!canvasRef.current || !edgeDragState.isDragging || !edgeDragState.edgeId) return;
-      
-      const rect = canvasRef.current.getBoundingClientRect();
-      const screenX = e.clientX - rect.left;
-      const screenY = e.clientY - rect.top;
-      const worldX = (screenX - viewport.x) / viewport.zoom;
-      const worldY = (screenY - viewport.y) / viewport.zoom;
-      
-      debugLog(enableDebug, "Global mouse up during edge drag:", { screenX, screenY, worldX, worldY });
-      
-      // Find target node - prioritize blocks over pages
-      let targetNodeId: string | null = null;
-      const hitNodes = nodes.filter(node => {
-        const nodeData = node.data as any;
-        const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
-        
-        // Give blocks a more forgiving hit area
-        const padding = node.type === "block" ? 20 : 0;
-        
-        return worldX >= (node.position.x - padding) && 
-               worldX <= (node.position.x + containerSize.width + padding) &&
-               worldY >= (node.position.y - padding) && 
-               worldY <= (node.position.y + containerSize.height + padding);
-      });
-      
-      const targetNode = hitNodes.find(node => 
-        node.type === "block" && edgeDragState.validTargets?.includes(node.id)
-      ) || hitNodes.find(node => 
-        edgeDragState.validTargets?.includes(node.id)
-      );
-      
-      if (targetNode && edgeDragState.validTargets?.includes(targetNode.id)) {
-        targetNodeId = targetNode.id;
-        debugLog(enableDebug, "Global valid target found:", targetNodeId);
-      }
-      
-      handleEdgeDragEnd(edgeDragState.edgeId, targetNodeId);
-    };
-
-    document.addEventListener('mousemove', handleGlobalMouseMove);
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [edgeDragState.isDragging, edgeDragState.edgeId, edgeDragState.validTargets, viewport, nodes, handleEdgeDragMove, handleEdgeDragEnd]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1130,20 +1066,36 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
                 const nodeData = targetNode.data as any;
                 const containerSize = nodeData?.containerSize || { width: 120, height: 60 };
                 
+                // Check if mouse is over this target
+                const isHovered = edgeDragState.currentPosition && 
+                  edgeDragState.currentPosition.x >= targetNode.position.x - 20 &&
+                  edgeDragState.currentPosition.x <= targetNode.position.x + containerSize.width + 20 &&
+                  edgeDragState.currentPosition.y >= targetNode.position.y - 20 &&
+                  edgeDragState.currentPosition.y <= targetNode.position.y + containerSize.height + 20;
+                
                 return (
                   <div
                     key={targetId}
-                    className="absolute border-4 border-green-500 border-solid bg-green-500/30 pointer-events-none rounded"
+                    className={`absolute border-4 pointer-events-none rounded transition-all duration-200 ${
+                      isHovered 
+                        ? 'border-green-600 bg-green-500/40 scale-105' 
+                        : 'border-green-500 bg-green-500/20'
+                    }`}
                     style={{
                       left: targetNode.position.x - 8,
                       top: targetNode.position.y - 8,
                       width: containerSize.width + 16,
                       height: containerSize.height + 16,
-                      zIndex: 15
+                      zIndex: 15,
+                      boxShadow: isHovered ? '0 0 20px rgba(34, 197, 94, 0.5)' : 'none'
                     }}
                   >
-                    <div className="absolute -top-8 left-2 text-sm font-bold text-green-800 bg-green-100 px-3 py-1 rounded shadow-lg border border-green-500">
-                      🎯 {targetNode.type} 
+                    <div className={`absolute -top-8 left-2 text-sm font-bold px-3 py-1 rounded shadow-lg border transition-all duration-200 ${
+                      isHovered 
+                        ? 'bg-green-600 text-white border-green-700 scale-110' 
+                        : 'bg-green-100 text-green-800 border-green-500'
+                    }`}>
+                      {isHovered ? '🎯 Drop here!' : `📍 ${targetNode.type}`}
                     </div>
                     <div className="absolute top-2 left-2 text-xs text-green-700 bg-white/90 px-1 rounded">
                       {targetId.includes('block-') ? `Block ${targetId.split('block-')[1]}` : targetId}
@@ -1200,6 +1152,41 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           >
             
             {renderedEdges}
+            
+            {/* Visual feedback line when dragging an edge */}
+            {edgeDragState.isDragging && edgeDragState.originalTarget && edgeDragState.currentPosition && (
+              <>
+                {/* Line from original target to current position */}
+                <path
+                  d={`M ${edgeDragState.currentPosition.x} ${edgeDragState.currentPosition.y} 
+                      L ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.x || 0} 
+                        ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.y || 0}`}
+                  stroke="#94a3b8"
+                  strokeWidth="1"
+                  strokeDasharray="2,4"
+                  fill="none"
+                  opacity="0.5"
+                  className="animate-pulse"
+                />
+                {/* Debug: Show current mouse position */}
+                <circle
+                  cx={edgeDragState.currentPosition.x}
+                  cy={edgeDragState.currentPosition.y}
+                  r="5"
+                  fill="red"
+                  opacity="0.8"
+                />
+                <text
+                  x={edgeDragState.currentPosition.x + 10}
+                  y={edgeDragState.currentPosition.y - 10}
+                  fill="red"
+                  fontSize="12"
+                  fontFamily="monospace"
+                >
+                  {Math.round(edgeDragState.currentPosition.x)},{Math.round(edgeDragState.currentPosition.y)}
+                </text>
+              </>
+            )}
             
             {/* Arrow marker definitions */}
             <defs>
@@ -1297,7 +1284,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       
       {/* Pixel Grid Toggle */}
-      <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+      {/* <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
         <button
           onClick={() => setShowPixelGrid(!showPixelGrid)}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -1309,7 +1296,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         >
           📐 Grid
         </button>
-      </div>
+      </div> */}
       
       {/* Mouse Position Display */}
       {showPixelGrid && mousePosition && (

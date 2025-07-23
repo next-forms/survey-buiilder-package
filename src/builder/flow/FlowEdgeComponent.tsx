@@ -214,18 +214,53 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   // Check if this edge is currently being dragged
   const isBeingDragged = dragState?.isDragging && dragState.edgeId === edge.id;
   
+  // Debug log drag state
+  if (dragState?.isDragging) {
+    console.log(`Edge ${edge.id} drag state:`, { isBeingDragged, dragStateEdgeId: dragState.edgeId, edgeId: edge.id });
+  }
+  
   // Calculate drag line path if this edge is being dragged
   let dragLinePath = "";
+  let draggedTargetX = targetX;
+  let draggedTargetY = targetY;
+  
   if (isBeingDragged && dragState.currentPosition) {
-    const dragX = dragState.currentPosition.x;
-    const dragY = dragState.currentPosition.y;
+    draggedTargetX = dragState.currentPosition.x;
+    draggedTargetY = dragState.currentPosition.y;
     
-    // Create a line from source to current drag position
-    dragLinePath = `M ${sourceX} ${sourceY} L ${dragX} ${dragY}`;
+    // Debug log to verify position updates
+    console.log(`Edge ${edge.id} drag position:`, { draggedTargetX, draggedTargetY, originalTarget: { targetX, targetY } });
+    
+    // Create a smooth curve from source to current drag position
+    const deltaY = Math.abs(draggedTargetY - sourceY);
+    const controlPointOffset = Math.max(30, deltaY * 0.3);
+    
+    if (draggedTargetY > sourceY) {
+      dragLinePath = `M ${sourceX} ${sourceY} 
+                      C ${sourceX} ${sourceY + controlPointOffset} ${draggedTargetX} ${draggedTargetY - controlPointOffset} ${draggedTargetX} ${draggedTargetY}`;
+    } else {
+      dragLinePath = `M ${sourceX} ${sourceY} 
+                      C ${sourceX} ${sourceY - controlPointOffset} ${draggedTargetX} ${draggedTargetY + controlPointOffset} ${draggedTargetX} ${draggedTargetY}`;
+    }
   }
 
   return (
     <g>
+      {/* Ghost of original edge when dragging */}
+      {isBeingDragged && (
+        <path
+          d={path}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray="4,4"
+          opacity={0.3}
+          style={{
+            pointerEvents: "none"
+          }}
+        />
+      )}
+      
       {/* Invisible wider path for easier clicking */}
       <path
         d={path}
@@ -255,9 +290,9 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         />
       )}
       
-      {/* Edge path */}
+      {/* Edge path - show dragged path when dragging, otherwise original */}
       <path
-        d={path}
+        d={isBeingDragged && dragLinePath ? dragLinePath : path}
         stroke={strokeColor}
         strokeWidth={selected ? strokeWidth + 1 : strokeWidth}
         fill="none"
@@ -265,9 +300,9 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         className={edge.animated || selected ? "animate-pulse" : ""}
         markerEnd={markerEnd}
         style={{
-          opacity: isBeingDragged ? 0.5 : 1,
+          opacity: isBeingDragged ? 0.8 : 1,
           filter: selected ? "brightness(1.2)" : "none",
-          transition: "all 0.2s ease"
+          transition: isBeingDragged ? "none" : "all 0.2s ease"
         }}
         onClick={handleEdgeClick}
       />
@@ -278,21 +313,25 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
           <>
             {/* Draggable edges - interactive drag handle */}
             <circle
-              cx={targetX}
-              cy={targetY}
-              r={15}
-              fill="transparent"
-              stroke="transparent"
+              cx={isBeingDragged ? draggedTargetX : targetX}
+              cy={isBeingDragged ? draggedTargetY : targetY}
+              r={20}
+              fill="rgba(59, 130, 246, 0.1)"
+              stroke="rgba(59, 130, 246, 0.3)"
+              strokeWidth="2"
               onMouseDown={handleArrowheadDragStart}
+              className="hover:fill-blue-500/30 hover:stroke-blue-500"
               style={{
-                cursor: isBeingDragged ? "grabbing" : "grab"
+                cursor: isBeingDragged ? "grabbing" : "grab",
+                pointerEvents: "all",
+                transition: "all 0.2s ease"
               }}
             />
             
             {/* Visible grab indicator for draggable edges */}
             <circle
-              cx={targetX}
-              cy={targetY}
+              cx={isBeingDragged ? draggedTargetX : targetX}
+              cy={isBeingDragged ? draggedTargetY : targetY}
               r={8}
               fill="transparent"
               stroke={isBeingDragged ? strokeColor : "transparent"}
@@ -300,7 +339,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
               className="hover:stroke-primary hover:fill-primary/20"
               style={{
                 pointerEvents: "none",
-                transition: "all 0.2s ease"
+                transition: isBeingDragged ? "none" : "all 0.2s ease"
               }}
             />
             
@@ -358,30 +397,63 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         
         {/* Connection point indicator - shown for all edges */}
         <circle
-          cx={targetX}
-          cy={targetY}
+          cx={isBeingDragged ? draggedTargetX : targetX}
+          cy={isBeingDragged ? draggedTargetY : targetY}
           r={isDraggable ? 4 : 3}
           fill={strokeColor}
           className={isDraggable ? "opacity-80 hover:opacity-100" : "opacity-60"}
           style={{
             pointerEvents: "none",
-            transition: "opacity 0.2s ease"
+            transition: isBeingDragged ? "none" : "opacity 0.2s ease"
           }}
         />
+        
+        {/* Drop zone indicator when dragging */}
+        {isBeingDragged && (
+          <>
+            {/* Pulsing circle at cursor position */}
+            <circle
+              cx={draggedTargetX}
+              cy={draggedTargetY}
+              r={20}
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth={2}
+              className="animate-pulse"
+              style={{
+                pointerEvents: "none",
+                opacity: 0.6
+              }}
+            />
+            <circle
+              cx={draggedTargetX}
+              cy={draggedTargetY}
+              r={6}
+              fill={strokeColor}
+              className="animate-pulse"
+              style={{
+                pointerEvents: "none",
+                opacity: 0.8
+              }}
+            />
+            {/* Hint text */}
+            <text
+              x={draggedTargetX + 25}
+              y={draggedTargetY + 5}
+              className="text-xs font-medium"
+              style={{
+                pointerEvents: "none",
+                fontSize: "12px",
+                fill: strokeColor,
+                opacity: 0.9
+              }}
+            >
+              Drop on target
+            </text>
+          </>
+        )}
       </g>
 
-      {/* Drag line when dragging */}
-      {isBeingDragged && dragLinePath && (
-        <path
-          d={dragLinePath}
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray="5,5"
-          className="animate-pulse"
-          markerEnd={markerEnd}
-        />
-      )}
 
       {/* Edge label with improved styling */}
       {edge.data?.label && !isSequential && (
