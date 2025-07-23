@@ -3,7 +3,7 @@ import { FlowNode } from "./types";
 import { NodeData, BlockData } from "../../types";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { Button } from "../../components/ui/button";
-import { X, Settings } from "lucide-react";
+import { X, Settings, GitBranch } from "lucide-react";
 import { useBuilderDebug } from "../../utils/debugUtils";
 
 interface FlowNodeComponentProps {
@@ -14,6 +14,7 @@ interface FlowNodeComponentProps {
   onDragStart: (e: React.MouseEvent, nodeId: string) => void;
   onDelete: (nodeId: string) => void;
   onConfigure?: (nodeId: string) => void;
+  onStartNavConnection?: (nodeId: string) => void;
   zoom: number;
   isDragOver?: boolean;
   isConnecting?: boolean;
@@ -28,6 +29,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
   onDragStart,
   onDelete,
   onConfigure,
+  onStartNavConnection,
   zoom,
   isDragOver = false,
   isConnecting = false,
@@ -65,6 +67,13 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     e.stopPropagation();
     e.preventDefault();
     onDelete(node.id);
+  };
+
+  const handleStartNavConnection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    debug.log("Starting navigation rule connection from node:", node.id);
+    onStartNavConnection?.(node.id);
   };
 
   const renderNodeContent = () => {
@@ -266,7 +275,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
     }
     
     if (node.type === "block") {
-      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses}`;
+      return `${baseClasses} bg-card border border-purple-200 dark:border-purple-800 rounded-md shadow-sm ${selectedClasses} ${dragOverClasses} ${connectionClasses} group`;
     }
 
     if (node.type === "start") {
@@ -290,7 +299,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
       {/* Connection handles - blocks have output handles, pages have both */}
       {node.type === "block" && (
         <>
-          <div 
+          {/* <div 
             className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-500 dark:bg-purple-400 rounded-full border border-background shadow-sm hover:scale-125 transition-transform cursor-crosshair z-10" 
             title="Input connection"
             onClick={handleClick}
@@ -298,14 +307,25 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
           ></div>
           <div 
             className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-500 dark:bg-purple-400 rounded-full border border-background shadow-sm hover:scale-125 transition-transform cursor-crosshair z-10" 
-            title="Output connection - drag to create navigation rule"
+            title="Output connection"
             onClick={handleClick}
             onMouseDown={(e) => e.stopPropagation()}
-          ></div>
+          ></div> */}
+          
+          {/* Navigation Rule Handle - appears on the right side */}
+          <button
+            className="absolute -right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-blue-500 dark:bg-blue-600 text-white rounded-full border-2 border-background shadow-lg hover:bg-blue-600 dark:hover:bg-blue-700 hover:scale-110 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100 flex items-center justify-center z-20"
+            style={{ opacity: selected || isConnecting ? 1 : undefined }}
+            title="Create Navigation Rule - Click here then click target"
+            onClick={handleStartNavConnection}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <GitBranch className="w-4 h-4" />
+          </button>
         </>
       )}
       
-      {node.type === "set" && (
+      {/* {node.type === "set" && (
         <>
           <div 
             className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full border border-background shadow-sm hover:scale-125 transition-transform cursor-crosshair z-10" 
@@ -342,7 +362,7 @@ export const FlowNodeComponent: React.FC<FlowNodeComponentProps> = ({
             onMouseDown={(e) => e.stopPropagation()}
           ></div>
         </>
-      )}
+      )} */}
 
       {/* Node content */}
       <div className="w-full h-full overflow-hidden">

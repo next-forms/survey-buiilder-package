@@ -43,6 +43,13 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   const isSequential = edge.data?.isSequential || false;
   const isPageEntry = edge.data?.isPageEntry || false;
   const isPageToPage = edge.data?.isPageToPage || false;
+  const isStartEntry = edge.data?.isStartEntry || false;
+  
+  // Only certain edge types should be draggable
+  // Start entry: change first page
+  // Page entry: change first block in page
+  // Page to page: reorder pages
+  const isDraggable = isStartEntry || isPageEntry || isPageToPage;
 
   let sourceX: number, sourceY: number, targetX: number, targetY: number;
   let path: string;
@@ -176,6 +183,15 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // Log for debugging
+    console.log('Edge drag start:', {
+      edgeId: edge.id,
+      edgeType: edge.type,
+      edgeData: edge.data,
+      source: edge.source,
+      target: edge.target
+    });
+    
     if (onEdgeDragStart) {
       // Get the initial mouse position in world coordinates
       onEdgeDragStart(edge.id, {
@@ -183,7 +199,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         y: targetY
       });
     }
-  }, [edge.id, onEdgeDragStart, targetX, targetY]);
+  }, [edge.id, edge.type, edge.data, edge.source, edge.target, onEdgeDragStart, targetX, targetY]);
 
   // Handle edge click
   const handleEdgeClick = useCallback((e: React.MouseEvent) => {
@@ -256,42 +272,97 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         onClick={handleEdgeClick}
       />
 
-      {/* Interactive arrowhead area for dragging */}
+      {/* Arrowhead area - different behavior for draggable vs non-draggable edges */}
       <g style={{ pointerEvents: "all" }}>
-        {/* Invisible larger circle for easier grabbing */}
-        <circle
-          cx={targetX}
-          cy={targetY}
-          r={12}
-          fill="transparent"
-          stroke="transparent"
-          onMouseDown={handleArrowheadDragStart}
-          style={{
-            cursor: isBeingDragged ? "grabbing" : "grab"
-          }}
-        />
+        {isDraggable ? (
+          <>
+            {/* Draggable edges - interactive drag handle */}
+            <circle
+              cx={targetX}
+              cy={targetY}
+              r={15}
+              fill="transparent"
+              stroke="transparent"
+              onMouseDown={handleArrowheadDragStart}
+              style={{
+                cursor: isBeingDragged ? "grabbing" : "grab"
+              }}
+            />
+            
+            {/* Visible grab indicator for draggable edges */}
+            <circle
+              cx={targetX}
+              cy={targetY}
+              r={8}
+              fill="transparent"
+              stroke={isBeingDragged ? strokeColor : "transparent"}
+              strokeWidth={2}
+              className="hover:stroke-primary hover:fill-primary/20"
+              style={{
+                pointerEvents: "none",
+                transition: "all 0.2s ease"
+              }}
+            />
+            
+            {/* Visual hint for draggable edges */}
+            {!isBeingDragged && (
+              <>
+                <circle
+                  cx={targetX}
+                  cy={targetY}
+                  r={12}
+                  fill="none"
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  strokeDasharray="3,3"
+                  className="opacity-50 hover:opacity-80 animate-pulse"
+                  style={{
+                    pointerEvents: "none",
+                    transition: "opacity 0.2s ease"
+                  }}
+                />
+                {/* Add text hint for draggable edges */}
+                <text
+                  x={targetX + 20}
+                  y={targetY - 10}
+                  className="text-xs fill-current opacity-0 hover:opacity-60"
+                  style={{
+                    pointerEvents: "none",
+                    fontSize: "10px",
+                    fill: strokeColor
+                  }}
+                >
+                  {isStartEntry ? "Drag to change first page" : 
+                   isPageEntry ? "Drag to reorder blocks" : 
+                   isPageToPage ? "Drag to reorder pages" : 
+                   "Drag to reorder"}
+                </text>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Non-draggable edges - just show the arrowhead indicator */}
+            <circle
+              cx={targetX}
+              cy={targetY}
+              r={3}
+              fill={strokeColor}
+              className="opacity-60"
+              style={{
+                pointerEvents: "none"
+              }}
+            />
+          </>
+        )}
         
-        {/* Visible grab indicator on hover */}
+        {/* Connection point indicator - shown for all edges */}
         <circle
           cx={targetX}
           cy={targetY}
-          r={6}
-          fill="transparent"
-          stroke="transparent"
-          className="hover:stroke-primary hover:stroke-2 hover:fill-primary/20"
-          style={{
-            pointerEvents: "none",
-            transition: "all 0.2s ease"
-          }}
-        />
-        
-        {/* Small dot indicator for the connection point */}
-        <circle
-          cx={targetX}
-          cy={targetY}
-          r={2}
+          r={isDraggable ? 4 : 3}
           fill={strokeColor}
-          className="opacity-60 hover:opacity-100"
+          className={isDraggable ? "opacity-80 hover:opacity-100" : "opacity-60"}
           style={{
             pointerEvents: "none",
             transition: "opacity 0.2s ease"

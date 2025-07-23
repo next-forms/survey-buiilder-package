@@ -246,19 +246,24 @@ export function getValidTargets(
   edgeType: string,
   allNodes: FlowNode[],
   allEdges: FlowEdge[],
-  currentEdgeId?: string
+  currentEdgeId?: string,
+  edgeData?: any
 ): string[] {
   const validTargets: string[] = [];
+
+  // Get the original edge if currentEdgeId is provided to preserve its data
+  const originalEdge = currentEdgeId ? allEdges.find(e => e.id === currentEdgeId) : null;
 
   allNodes.forEach(targetNode => {
     if (targetNode.id === sourceNode.id) return; // Skip self
 
-    // Create a temporary edge for validation
+    // Create a temporary edge for validation with preserved data
     const tempEdge: FlowEdge = {
       id: currentEdgeId || "temp",
       source: sourceNode.id,
       target: targetNode.id,
-      type: edgeType as any
+      type: edgeType as any,
+      data: edgeData || originalEdge?.data
     };
 
     const validation = validateConnection(sourceNode, targetNode, tempEdge, allNodes, allEdges);
@@ -352,7 +357,8 @@ export function validateConnectionWithFeedback(
   edgeType: string,
   allNodes: FlowNode[],
   allEdges: FlowEdge[],
-  currentEdgeId?: string
+  currentEdgeId?: string,
+  edgeData?: any
 ): { isValid: boolean; message: string } {
   const sourceNode = allNodes.find(n => n.id === sourceNodeId);
   const targetNode = allNodes.find(n => n.id === targetNodeId);
@@ -366,12 +372,16 @@ export function validateConnectionWithFeedback(
     return { isValid: false, message: "This connection would create a cycle" };
   }
 
-  // Create temporary edge for validation
+  // Get the original edge if currentEdgeId is provided to preserve its data
+  const originalEdge = currentEdgeId ? allEdges.find(e => e.id === currentEdgeId) : null;
+
+  // Create temporary edge for validation with preserved data
   const tempEdge: FlowEdge = {
     id: currentEdgeId || "temp",
     source: sourceNodeId,
     target: targetNodeId,
-    type: edgeType as any
+    type: edgeType as any,
+    data: edgeData || originalEdge?.data
   };
 
   const validation = validateConnection(sourceNode, targetNode, tempEdge, allNodes, allEdges);

@@ -232,21 +232,34 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   // Handle edge drag start
   const handleEdgeDragStart = useCallback((edgeId: string, initialPosition: { x: number; y: number }) => {
     const edge = edges.find(e => e.id === edgeId);
-    if (!edge) return;
+    if (!edge) {
+      console.error('Edge not found:', edgeId);
+      return;
+    }
     
     const sourceNode = nodes.find(n => n.id === edge.source);
-    if (!sourceNode) return;
+    if (!sourceNode) {
+      console.error('Source node not found:', edge.source);
+      return;
+    }
     
-    // Get valid targets for this edge
-    const validTargets = getValidTargets(sourceNode, edge.type || "default", nodes, edges, edgeId);
+    console.log('Edge drag start - Edge details:', {
+      edgeId,
+      edgeType: edge.type,
+      edgeData: edge.data,
+      source: edge.source,
+      target: edge.target
+    });
+    
+    // Get valid targets for this edge with edge data preserved
+    const validTargets = getValidTargets(sourceNode, edge.type || "default", nodes, edges, edgeId, edge.data);
+    
+    console.log('Valid targets for edge drag:', validTargets);
     
     debugLog(enableDebug, `Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
     debugLog(enableDebug, `Initial position:`, initialPosition);
     debugLog(enableDebug, `Valid targets:`, validTargets);
     debugLog(enableDebug, `Viewport:`, viewport);
-    
-    debugLog(enableDebug, `Starting edge drag for edge ${edgeId} from ${edge.source} to ${edge.target}`);
-    debugLog(enableDebug, `Valid targets:`, validTargets);
     
     setEdgeDragState({
       isDragging: true,
@@ -278,14 +291,15 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     }
     
     if (targetNodeId && targetNodeId !== edge.target) {
-      // Validate the connection
+      // Validate the connection with edge data preserved
       const validation = validateConnectionWithFeedback(
         edge.source,
         targetNodeId,
         edge.type || "default",
         nodes,
         edges,
-        edgeId
+        edgeId,
+        edge.data
       );
       
       if (validation.isValid) {
@@ -390,33 +404,35 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
   const handleNodeSelectWithConnection = useCallback((nodeId: string) => {
     debugLog(enableDebug, "Node selected:", nodeId, "Connection state:", connectionState);
     
-    // Handle connection mode
+    // Check if we're in a connection state (either from connect mode or navigation handle)
+    if (connectionState.isConnecting && connectionState.sourceNodeId) {
+      // Complete the connection
+      if (nodeId !== connectionState.sourceNodeId) {
+        const sourceNode = nodes.find(n => n.id === connectionState.sourceNodeId);
+        const targetNode = nodes.find(n => n.id === nodeId);
+        
+        // Apply user constraints: Only allow connections from blocks (not sets/sections) to any valid target
+        if (sourceNode?.type === "block" && (targetNode?.type === "block" || targetNode?.type === "set" || targetNode?.type === "submit")) {
+          handleConnectionCreate(connectionState.sourceNodeId, nodeId);
+        }
+      }
+      // Reset connection state
+      setConnectionState({ isConnecting: false });
+      return;
+    }
+    
+    // Handle connection mode - start a new connection
     if (mode === "connect") {
-      if (connectionState.isConnecting && connectionState.sourceNodeId) {
-        // Complete the connection
-        if (nodeId !== connectionState.sourceNodeId) {
-          const sourceNode = nodes.find(n => n.id === connectionState.sourceNodeId);
-          const targetNode = nodes.find(n => n.id === nodeId);
-          
-          // Apply user constraints: Only allow connections from blocks (not sets/sections) to any valid target
-          if (sourceNode?.type === "block" && (targetNode?.type === "block" || targetNode?.type === "set" || targetNode?.type === "submit")) {
-            handleConnectionCreate(connectionState.sourceNodeId, nodeId);
-          }
-        }
-        // Reset connection state
-        setConnectionState({ isConnecting: false });
+      // Start a new connection from this node (only if it's a block, not set/section)
+      const node = nodes.find(n => n.id === nodeId);
+      if (node?.type === "block") {
+        debugLog(enableDebug, "Starting connection from block:", nodeId);
+        setConnectionState({
+          isConnecting: true,
+          sourceNodeId: nodeId
+        });
       } else {
-        // Start a new connection from this node (only if it's a block, not set/section)
-        const node = nodes.find(n => n.id === nodeId);
-        if (node?.type === "block") {
-          debugLog(enableDebug, "Starting connection from block:", nodeId);
-          setConnectionState({
-            isConnecting: true,
-            sourceNodeId: nodeId
-          });
-        } else {
-          debugLog(enableDebug, "Cannot start connection from non-block node:", { nodeId, nodeType: node?.type });
-        }
+        debugLog(enableDebug, "Cannot start connection from non-block node:", { nodeId, nodeType: node?.type });
       }
       return;
     }
@@ -425,6 +441,30 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
     onNodeSelect(nodeId);
     setSelectedEdgeId(null); // Clear edge selection when selecting a node
   }, [mode, connectionState, nodes, handleConnectionCreate, onNodeSelect]);
+
+  // Handle navigation rule creation from dedicated handle
+  const handleStartNavConnection = useCallback((nodeId: string) => {
+    debugLog(enableDebug, "Starting navigation connection from handle:", nodeId);
+    
+    // Check if we're already connecting
+    if (connectionState.isConnecting && connectionState.sourceNodeId === nodeId) {
+      // Cancel the connection
+      setConnectionState({ isConnecting: false });
+      return;
+    }
+    
+    // Start a new navigation rule connection
+    const node = nodes.find(n => n.id === nodeId);
+    if (node?.type === "block") {
+      setConnectionState({
+        isConnecting: true,
+        sourceNodeId: nodeId
+      });
+      
+      // Visual feedback - select the node
+      onNodeSelect(nodeId);
+    }
+  }, [nodes, connectionState, onNodeSelect]);
 
   // Handle mouse move for dragging and panning - optimized for smoothness
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -874,12 +914,19 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         resetView();
+      } else if (e.key === 'Escape') {
+        // Cancel any active connection
+        if (connectionState.isConnecting) {
+          e.preventDefault();
+          setConnectionState({ isConnecting: false });
+          debugLog(enableDebug, "Connection cancelled with Escape");
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fitView, resetView]);
+  }, [fitView, resetView, connectionState.isConnecting]);
 
   // Expose fit view to parent
   React.useEffect(() => {
@@ -898,13 +945,14 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         onDragStart={handleNodeDragStart}
         onDelete={handleNodeDelete}
         onConfigure={onNodeConfigure}
+        onStartNavConnection={handleStartNavConnection}
         zoom={viewport.zoom}
         isDragOver={dragOverPageId === node.id}
         isConnecting={connectionState.isConnecting}
         connectionSourceId={connectionState.sourceNodeId}
       />
     ));
-  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDelete, onNodeConfigure, viewport.zoom, dragOverPageId, connectionState]);
+  }, [nodes, selectedNodeId, handleNodeSelectWithConnection, handleNodeDragStart, handleNodeDelete, onNodeConfigure, handleStartNavConnection, viewport.zoom, dragOverPageId, connectionState, activePageId]);
 
   // Calculate edge routes to avoid overlaps
   const edgeRoutes = useMemo(() => {
@@ -1106,8 +1154,8 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
             </>
           )}
 
-          {/* Connection mode: highlight valid targets when starting a connection */}
-          {mode === "connect" && connectionState.isConnecting && connectionState.sourceNodeId && (
+          {/* Connection visualization: highlight valid targets when starting a connection */}
+          {connectionState.isConnecting && connectionState.sourceNodeId && (
             <>
               {nodes.filter(node => {
                 // Only show valid targets: blocks, sets, submit (but not the source)
@@ -1249,7 +1297,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
       
       
       {/* Pixel Grid Toggle */}
-      {/* <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+      <div className="absolute top-4 right-24 bg-background/90 backdrop-blur-sm rounded-lg border border-border shadow-lg">
         <button
           onClick={() => setShowPixelGrid(!showPixelGrid)}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -1261,7 +1309,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
         >
           📐 Grid
         </button>
-      </div> */}
+      </div>
       
       {/* Mouse Position Display */}
       {showPixelGrid && mousePosition && (

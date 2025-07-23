@@ -637,11 +637,13 @@ export const FlowBuilder: React.FC = () => {
     }
     // Handle page-to-page connections (direct page reordering)
     else if (edge.type === "default" && edge.data?.isPageToPage) {
-      // For page-to-page edges, we need to reorder the pages
+      // For page-to-page edges, we're changing what comes AFTER the source page
+      // The source page stays in its current position
+      const sourcePageId = edge.source;
       const currentTargetPageId = edge.target;
       const newTargetPageId = newTargetId;
       
-      debug.log(`Reordering pages via page-to-page connection: moving page ${newTargetPageId} to position 0 (was ${currentTargetPageId})`);
+      debug.log(`Reordering pages via page-to-page connection: source=${sourcePageId} stays in place, changing its next page from ${currentTargetPageId} to ${newTargetPageId}`);
       
       // Find and reorder pages in the survey structure
       const findAndReorderPages = (node: NodeData): NodeData | null => {
@@ -653,14 +655,29 @@ export const FlowBuilder: React.FC = () => {
           if (pages.length > 0) {
             debug.log(`Original page order:`, pages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
             
-            // Find the target page to move
-            const targetPageIndex = pages.findIndex(page => (page as NodeData).uuid === newTargetPageId);
+            // Find indices
+            const sourcePageIndex = pages.findIndex(page => (page as NodeData).uuid === sourcePageId);
+            const currentTargetIndex = pages.findIndex(page => (page as NodeData).uuid === currentTargetPageId);
+            const newTargetIndex = pages.findIndex(page => (page as NodeData).uuid === newTargetPageId);
             
-            if (targetPageIndex >= 0) {
-              // Remove the target page and insert at beginning
+            if (sourcePageIndex >= 0 && currentTargetIndex >= 0 && newTargetIndex >= 0) {
+              // The source page should stay at its current position
+              // We need to reorder what comes after it
+              
               const updatedPages = [...pages];
-              const [targetPage] = updatedPages.splice(targetPageIndex, 1);
-              updatedPages.unshift(targetPage);
+              
+              // If the new target should come right after the source
+              // Remove the new target from its current position
+              const [newTargetPage] = updatedPages.splice(newTargetIndex, 1);
+              
+              // Insert it right after the source page
+              let insertPosition = sourcePageIndex + 1;
+              if (newTargetIndex <= sourcePageIndex) {
+                // If we removed a page before the source, the source index shifted
+                insertPosition = sourcePageIndex;
+              }
+              
+              updatedPages.splice(insertPosition, 0, newTargetPage);
               
               debug.log(`New page order:`, updatedPages.map((page, i) => `${i}: ${(page as NodeData).name || (page as NodeData).uuid}`));
               
