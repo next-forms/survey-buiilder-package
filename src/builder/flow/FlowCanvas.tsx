@@ -1060,6 +1060,9 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           {edgeDragState.isDragging && edgeDragState.validTargets && (
             <>
               {edgeDragState.validTargets.map(targetId => {
+                // Skip the current target node - don't show drop zone for already connected node
+                if (targetId === edgeDragState.originalTarget) return null;
+                
                 const targetNode = nodes.find(n => n.id === targetId);
                 if (!targetNode) return null;
                 
@@ -1176,7 +1179,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
                   fill="red"
                   opacity="0.8"
                 />
-                <text
+                {/* <text
                   x={edgeDragState.currentPosition.x + 10}
                   y={edgeDragState.currentPosition.y - 10}
                   fill="red"
@@ -1184,7 +1187,7 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
                   fontFamily="monospace"
                 >
                   {Math.round(edgeDragState.currentPosition.x)},{Math.round(edgeDragState.currentPosition.y)}
-                </text>
+                </text> */}
               </>
             )}
             
