@@ -856,6 +856,88 @@ export const FlowBuilder: React.FC = () => {
         }
       }
     }
+    // Handle sequential connections within same page (block reordering)
+    else if (edge.type === "default" && edge.data?.isSequential) {
+      // Check if this is a sequential edge within the same page
+      const sourceMatch = edge.source.match(/^(.+)-block-(\d+)$/);
+      const targetMatch = edge.target.match(/^(.+)-block-(\d+)$/);
+      const newTargetMatch = newTargetId.match(/^(.+)-block-(\d+)$/);
+      
+      if (sourceMatch && targetMatch && newTargetMatch) {
+        const sourcePageId = sourceMatch[1];
+        const targetPageId = targetMatch[1];
+        const newTargetPageId = newTargetMatch[1];
+        
+        // Only allow reordering within the same page
+        if (sourcePageId === targetPageId && sourcePageId === newTargetPageId) {
+          const sourceBlockIndex = parseInt(sourceMatch[2]);
+          const newTargetBlockIndex = parseInt(newTargetMatch[2]);
+          
+          debug.log(`Reordering blocks within page ${sourcePageId}: moving block after index ${sourceBlockIndex} to after index ${newTargetBlockIndex}`);
+          
+          // Find the page and reorder blocks
+          const findAndReorderBlocks = (node: NodeData): NodeData | null => {
+            if (node.uuid === sourcePageId && node.items) {
+              const updatedItems = [...node.items];
+              
+              debug.log(`Original order:`, updatedItems.map((item, i) => `${i}: ${(item as any).fieldName || (item as any).label || item.type}`));
+              
+              // The source block should be moved to be right after the new target block
+              const [movedBlock] = updatedItems.splice(sourceBlockIndex, 1);
+              
+              // Calculate the insertion index
+              let insertIndex = newTargetBlockIndex;
+              if (sourceBlockIndex < newTargetBlockIndex) {
+                // If moving forward, adjust for the removal
+                insertIndex = newTargetBlockIndex;
+              } else {
+                // If moving backward, insert after the target
+                insertIndex = newTargetBlockIndex + 1;
+              }
+              
+              // Insert the block at the new position
+              updatedItems.splice(insertIndex, 0, movedBlock);
+              
+              debug.log(`New order:`, updatedItems.map((item, i) => `${i}: ${(item as any).fieldName || (item as any).label || item.type}`));
+              
+              return {
+                ...node,
+                items: updatedItems
+              };
+            }
+            
+            // Search in nested items
+            if (node.items) {
+              for (let i = 0; i < node.items.length; i++) {
+                const item = node.items[i];
+                if (item.type === 'set' && typeof item !== 'string') {
+                  const updated = findAndReorderBlocks(item as NodeData);
+                  if (updated) {
+                    const updatedItems = [...node.items];
+                    updatedItems[i] = updated;
+                    return {
+                      ...node,
+                      items: updatedItems
+                    };
+                  }
+                }
+              }
+            }
+            
+            return null;
+          };
+          
+          if (state.rootNode) {
+            const updatedRootNode = findAndReorderBlocks(state.rootNode);
+            if (updatedRootNode) {
+              updateNode(state.rootNode.uuid!, updatedRootNode);
+            }
+          }
+        } else {
+          debug.log("Cannot reorder blocks across different pages");
+        }
+      }
+    }
     // For other edge types (sequential, etc.)
     else {
       debug.log("Edge update not implemented for edge type:", edge.type);

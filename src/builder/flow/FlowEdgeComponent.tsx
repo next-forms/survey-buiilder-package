@@ -49,7 +49,22 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   // Start entry: change first page
   // Page entry: change first block in page
   // Page to page: reorder pages
-  const isDraggable = isStartEntry || isPageEntry || isPageToPage;
+  // Sequential (within same page): reorder blocks within page
+  const isDraggable = isStartEntry || isPageEntry || isPageToPage || (isSequential && isBlockWithinSamePage(edge, nodes));
+  
+  // Helper function to check if sequential edge connects blocks within same page
+  function isBlockWithinSamePage(edge: FlowEdge, nodes: FlowNode[]): boolean {
+    if (!edge.data?.isSequential) return false;
+    
+    // Extract page IDs from block IDs (format: pageId-block-index)
+    const sourceMatch = edge.source.match(/^(.+)-block-\d+$/);
+    const targetMatch = edge.target.match(/^(.+)-block-\d+$/);
+    
+    if (!sourceMatch || !targetMatch) return false;
+    
+    // Check if both blocks belong to the same page
+    return sourceMatch[1] === targetMatch[1];
+  }
 
   let sourceX: number, sourceY: number, targetX: number, targetY: number;
   let path: string;
@@ -374,6 +389,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
                   {isStartEntry ? "Drag to change first page" : 
                    isPageEntry ? "Drag to reorder blocks" : 
                    isPageToPage ? "Drag to reorder pages" : 
+                   (isSequential && isBlockWithinSamePage(edge, nodes)) ? "Drag to reorder blocks" :
                    "Drag to reorder"}
                 </text>
               </>

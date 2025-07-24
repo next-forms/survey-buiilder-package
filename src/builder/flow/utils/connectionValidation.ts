@@ -115,22 +115,22 @@ function validateSequentialConnection(
     return { isValid: false, reason: "Sequential flow can only connect to blocks or submit" };
   }
 
-  // Check for logical sequence within same page
+  // Check for logical sequence
   if (targetNode.type === "block") {
     const sourcePageId = extractPageIdFromBlockId(sourceNode.id);
     const targetPageId = extractPageIdFromBlockId(targetNode.id);
     
+    // For dragging sequential edges, allow any block-to-block connection within same page
+    // This enables reordering blocks by dragging the edge arrow
     if (sourcePageId === targetPageId) {
-      // Within same page - check if it's a logical sequence
-      const sourceBlockIndex = extractBlockIndexFromBlockId(sourceNode.id);
-      const targetBlockIndex = extractBlockIndexFromBlockId(targetNode.id);
-      
-      if (targetBlockIndex <= sourceBlockIndex) {
-        return { 
-          isValid: false, 
-          reason: "Sequential flow should move forward within the same page" 
-        };
-      }
+      // Within same page - allow any connection for reordering
+      return { isValid: true };
+    } else {
+      // Cross-page sequential flow is not allowed
+      return { 
+        isValid: false, 
+        reason: "Sequential flow cannot cross page boundaries" 
+      };
     }
   }
 
