@@ -1,28 +1,8 @@
 import { SurveyForm } from './renderer/SurveyForm';
 import { SurveyFormProvider, useSurveyForm } from './context/SurveyFormContext';
-import { BlockRenderer } from './renderer/renderers/BlockRenderer';
-import { TextInputRenderer } from './renderer/renderers/TextInputRenderer';
-import { TextareaRenderer } from './renderer/renderers/TextareaRenderer';
-import { RadioRenderer } from './renderer/renderers/RadioRenderer';
-import { CheckboxRenderer } from './renderer/renderers/CheckboxRenderer';
-import { SelectRenderer } from './renderer/renderers/SelectRenderer';
-import { MarkdownRenderer } from './renderer/renderers/MarkdownRenderer';
-import { HtmlRenderer } from './renderer/renderers/HtmlRenderer';
-import { RangeRenderer } from './renderer/renderers/RangeRenderer';
-import { DatePickerRenderer } from './renderer/renderers/DatePickerRenderer';
-import { FileUploadRenderer } from './renderer/renderers/FileUploadRenderer';
-import { MatrixRenderer } from './renderer/renderers/MatrixRenderer';
-import { SelectableBoxRenderer } from './renderer/renderers/SelectableBoxRenderer';
-import { ScriptRenderer } from './renderer/renderers/ScriptRenderer';
-import { SetRenderer } from './renderer/renderers/SetRenderer';
-import { AuthRenderer } from './renderer/renderers/AuthRenderer';
 import { DebugInfo } from './components/ui/DebugInfo';
 
 // New conditional components
-import { ConditionalBlockRenderer } from './renderer/renderers/ConditionalBlockRenderer';
-import { CalculatedFieldRenderer } from './renderer/renderers/CalculatedFieldRenderer';
-import { BMICalculatorRenderer } from './renderer/renderers/BMICalculatorRenderer';
-import { CheckoutRenderer } from './renderer/renderers/CheckoutRenderer';
 import { ValidationSummary } from './components/ui/ValidationSummary';
 
 // Utility functions
@@ -73,32 +53,9 @@ export {
   SurveyFormProvider,
   useSurveyForm,
 
-  // Block renderers
-  BlockRenderer,
-  TextInputRenderer,
-  TextareaRenderer,
-  RadioRenderer,
-  CheckboxRenderer,
-  SelectRenderer,
-  MarkdownRenderer,
-  HtmlRenderer,
-  RangeRenderer,
-  DatePickerRenderer,
-  FileUploadRenderer,
-  MatrixRenderer,
-  SelectableBoxRenderer,
-  ScriptRenderer,
-  SetRenderer,
-  AuthRenderer,
-
   // UI components
   DebugInfo,
 
-  // New conditional components
-  ConditionalBlockRenderer,
-  CalculatedFieldRenderer,
-  BMICalculatorRenderer,
-  CheckoutRenderer,
   ValidationSummary,
 
   // Utility functions
@@ -153,9 +110,6 @@ export {
   ScriptBlock,
   SelectableBoxQuestionBlock
 } from './blocks';
-
-// Export UnifiedBlockRenderer
-export { UnifiedBlockRenderer } from './renderer/renderers/UnifiedBlockRenderer';
 
 export * from "./builder/survey/SurveyBuilder";
 
