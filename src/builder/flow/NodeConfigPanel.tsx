@@ -8,6 +8,7 @@ import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { NodeData, BlockData } from "../../types";
 import { Settings } from "lucide-react";
 import { NavigationRulesEditor } from "../common/NavigationRulesEditor";
+import { ValidationRulesEditor } from "../common/ValidationRulesEditor";
 import { CommonBlockRules } from "../common/CommonBlockRules";
 
 interface NodeConfigPanelProps {
@@ -167,6 +168,14 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
 
         {/* Navigation Rules */}
         <NavigationRulesEditor
+          data={blockData}
+          onUpdate={handleBlockUpdate}
+        />
+
+        <Separator />
+
+        {/* Validation Rules */}
+        <ValidationRulesEditor
           data={blockData}
           onUpdate={handleBlockUpdate}
         />

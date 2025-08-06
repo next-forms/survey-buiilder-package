@@ -10,6 +10,7 @@ import type {
   BranchingLogic
 } from "../types";
 import { getSurveyPages, getSurveyPageIds, evaluateLogic } from "../utils/surveyUtils";
+import { validationRuleToFunction } from "../builder/common/validation-rules-types";
 import {
   evaluateCondition,
   isBlockVisible,
@@ -36,6 +37,7 @@ interface EnhancedSurveyFormContextProps extends SurveyFormContextProps {
   getActualProgress: () => number;
   getTotalVisibleSteps: () => number;
   getCurrentStepPosition: () => number;
+  isCurrentPageValid: boolean;
 }
 
 // Create context with default values
@@ -74,6 +76,7 @@ export const SurveyFormContext = createContext<EnhancedSurveyFormContextProps>({
   getActualProgress: () => 0,
   getTotalVisibleSteps: () => 0,
   getCurrentStepPosition: () => 0,
+  isCurrentPageValid: false,
 });
 
 // Props for the provider
@@ -480,6 +483,32 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
           return `Validation error: ${(error as Error).message}`;
         }
       }
+
+      // Check custom validation rules
+      if (block.validationRules && Array.isArray(block.validationRules)) {
+        for (const rule of block.validationRules) {
+          try {
+            // Skip if there's a condition and it doesn't evaluate to true
+            if (rule.condition) {
+              const conditionResult = evaluateConditionWithContext(rule.condition, { ...values, ...computedValues });
+              if (!conditionResult) {
+                continue;
+              }
+            }
+
+            // Apply the validation rule
+            const validationFunction = validationRuleToFunction(rule);
+            const validationError = validationFunction(value, { ...values, ...computedValues });
+            
+            if (validationError && rule.severity !== 'warning') {
+              return validationError;
+            }
+          } catch (error) {
+            console.error(`Error in custom validation rule for field ${fieldName}:`, error);
+            return `Validation error: ${(error as Error).message}`;
+          }
+        }
+      }
     }
 
     // Then check custom validators
@@ -495,7 +524,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     }
 
     return null;
-  }, [customValidators, values, computedValues, pages]);
+  }, [customValidators, values, computedValues, pages, evaluateConditionWithContext]);
 
   // Calculate if the current page is valid
   const currentPageBlocks = pages[currentPage] || [];
@@ -504,7 +533,16 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     .filter(block => block.fieldName)
     .map(block => block.fieldName as string);
 
-  const isValid = currentPageFields.every(field => !errors[field] && !conditionalErrors[field]);
+  // Check if current block is valid (for stepper layout)
+  const currentBlock = currentPageBlocks[currentBlockIndex];
+  const isCurrentBlockValid = !currentBlock?.fieldName || 
+    (!errors[currentBlock.fieldName] && !conditionalErrors[currentBlock.fieldName]);
+
+  // Check if entire current page is valid (for page-by-page layout)
+  const isCurrentPageValid = currentPageFields.every(field => !errors[field] && !conditionalErrors[field]);
+  
+  // Use block-level validation for steppers, page-level for others
+  const isValid = isCurrentBlockValid;
 
   // Enhanced setValue
   const setValue = (field: string, value: any) => {
@@ -586,6 +624,27 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     const mergedValues = fValue ? { ...values, ...fValue } : values;
     if (fValue) {
       setValues(prev => ({ ...prev, ...fValue }));
+    }
+
+    // Validate current field before proceeding
+    if (currentBlock?.fieldName) {
+      const fieldName = currentBlock.fieldName;
+      const currentValue = mergedValues[fieldName];
+      
+      // Run validation for the current field
+      const validationError = validateField(fieldName, currentValue);
+      if (validationError) {
+        // Set the error and prevent navigation
+        setConditionalErrors(prev => ({ ...prev, [fieldName]: validationError }));
+        return; // Don't proceed if validation fails
+      } else {
+        // Clear any existing error for this field
+        setConditionalErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
     }
 
     const target = getNextStepFromNavigationRules(
@@ -741,6 +800,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
         getActualProgress,
         getTotalVisibleSteps,
         getCurrentStepPosition,
+        isCurrentPageValid,
         logo
       }}
     >

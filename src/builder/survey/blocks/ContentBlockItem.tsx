@@ -7,6 +7,7 @@ import { BlockData } from "../../../types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
 import {CommonBlockRules} from "../../common/CommonBlockRules";
 import { NavigationRulesEditor } from "../../common/NavigationRulesEditor";
+import { ValidationRulesEditor } from "../../common/ValidationRulesEditor";
 
 interface ContentBlockItemProps {
   data: BlockData;
@@ -81,6 +82,7 @@ export const ContentBlockItem: React.FC<ContentBlockItemProps> = ({
                   },
                 })}
                 <NavigationRulesEditor data={data} onUpdate={onUpdate} />
+                <ValidationRulesEditor data={data} onUpdate={onUpdate} />
               </div>
             </DialogContent>
           </Dialog>

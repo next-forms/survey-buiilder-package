@@ -20,6 +20,7 @@ import {
   standardRuleToEnhanced,
   type EnhancedNavigationRule
 } from "./navigation-rules-types";
+import { Plus } from "lucide-react";
 
 interface Props {
   data: BlockData;
@@ -416,6 +417,200 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   if (!shouldShowEditor) {
     return null;
   }
+
+  const renderRuleEditor = (rule: RuleState, index: number) => {
+    return (
+        <div key={index} className="border rounded-md p-3 space-y-3 my-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Variable</Label>
+              <Select
+                value={rule.field}
+                onValueChange={(val) => handleRuleChange(index, "field", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fieldOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Operator</Label>
+              <Select
+                value={rule.operator}
+                onValueChange={(val) => handleRuleChange(index, "operator", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Comparison</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'comparison').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Text</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'string').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Array/List</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'array').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Logical</SelectLabel>
+                    {OPERATORS.filter(op => op.category === 'logical').map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                        {op.description && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({op.description})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Value</Label>
+              <NavigationRuleValueInput
+                value={rule.value as any}
+                onChange={(val) => handleRuleChange(index, "value", val)}
+                operator={OPERATORS.find(op => op.value === rule.operator) || OPERATORS[0]}
+                availableVariables={fieldOptions}
+                fieldType={data.type === 'number' ? 'number' : 'text'}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Target</Label>
+              <Select
+                value={
+                  rule.target === "submit"
+                    ? "submit"
+                    : rule.isPage
+                      ? `page:${rule.target}`
+                      : `block:${rule.target}`
+                }
+                onValueChange={(val) => handleTargetChange(index, val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Pages</SelectLabel>
+                    {pageOptions.map((p) => (
+                      <SelectItem key={`page-${p.uuid}`} value={`page:${p.uuid}`}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Blocks</SelectLabel>
+                    {blockOptions.map((b) => (
+                      <SelectItem key={`block-${b.uuid}`} value={`block:${b.uuid}`}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectItem value="submit">Submit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeRule(index)}
+            >
+              Remove Rule
+            </Button>
+          </div>
+        </div>
+
+    );
+  };
+
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-medium">Navigation Rules</h3>
+          <p className="text-xs text-muted-foreground">
+          Define conditions to control survey flow
+          </p>
+        </div>
+        <Button type="button" onClick={addRule} size="sm" variant="outline">
+          <Plus className="h-3 w-3 mr-1" />
+          Add Rule
+        </Button>
+      </div>
+
+      {navigationCycles.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 space-y-2 my-2">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-600 font-medium text-sm">⚠️ Circular Navigation Detected</span>
+          </div>
+          <div className="text-sm text-yellow-700">
+            The following navigation cycles were detected:
+          </div>
+          <ul className="text-sm text-yellow-700 space-y-1">
+            {navigationCycles.map((cycle, idx) => (
+              <li key={idx} className="font-mono">• {cycle}</li>
+            ))}
+          </ul>
+          <div className="text-xs text-yellow-600">
+            Circular navigation may cause users to get stuck in loops. Consider adding conditions or alternative exit paths.
+          </div>
+        </div>
+      )}
+
+      {rules.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p className="text-sm">No Navigation rules defined</p>
+          <p className="text-xs">Click "Add Rule" to create custom navigation flows</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {rules.map((rule, index) => renderRuleEditor(rule, index))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-4 mt-4">

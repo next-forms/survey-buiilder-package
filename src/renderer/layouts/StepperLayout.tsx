@@ -69,6 +69,7 @@ export const StepperLayout: React.FC<StepperLayoutProps> = ({
     values,
     setValue,
     errors,
+    conditionalErrors,
     goToNextBlock,
     goToPreviousBlock,
     isFirstPage,
@@ -180,7 +181,9 @@ export const StepperLayout: React.FC<StepperLayoutProps> = ({
                       goToNextBlock();
                     }
                   }}
-                  error={pages[currentPage][currentBlockIndex].fieldName ? errors[pages[currentPage][currentBlockIndex].fieldName as string] : undefined}
+                  error={pages[currentPage][currentBlockIndex].fieldName ? 
+                    errors[pages[currentPage][currentBlockIndex].fieldName as string] || 
+                    conditionalErrors[pages[currentPage][currentBlockIndex].fieldName as string] : undefined}
                   theme={theme}
                 />
               )}

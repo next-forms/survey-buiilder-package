@@ -8,6 +8,17 @@ export interface NavigationRule {
   isPage?: boolean;
 }
 
+export interface ValidationRule {
+  id?: string;
+  field?: string;
+  operator: string;
+  value?: string | string[] | { type: 'variable' | 'literal'; value: string }[];
+  message: string;
+  severity?: 'error' | 'warning';
+  dependencies?: string[];
+  condition?: string;
+}
+
 export interface ContentBlockItemProps {
   data: BlockData;
   onUpdate?: (data: BlockData) => void;
@@ -376,6 +387,7 @@ export interface BlockData {
   className?: string;
   showResults?: boolean;
   navigationRules?: NavigationRule[];
+  validationRules?: ValidationRule[];
   visibleIf?: any;
   isEndBlock?: boolean;
   /** If true, automatically continue to the next step when an option is selected */
