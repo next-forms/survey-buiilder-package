@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ThemeDefinition, themes } from '../../themes';
+import { themes } from '../../themes';
 import { Label } from '../../components/ui/label';
 import { Calendar } from '../../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 import { format, formatDate } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
-import { BlockData } from '../../types';
+import { BlockData, ThemeDefinition } from '../../types';
 
 interface DatePickerRendererProps {
   block: BlockData;

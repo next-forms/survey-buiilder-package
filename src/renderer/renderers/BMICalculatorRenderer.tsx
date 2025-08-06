@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSurveyForm } from '../../context/SurveyFormContext';
-import { ThemeDefinition, themes } from '../../themes';
+import { themes } from '../../themes';
 import { calculateBMI } from '../../utils/conditionalUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Separator } from '../../components/ui/separator';
 import { Activity, Ruler, Weight, TrendingUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { ThemeDefinition } from '../../types';
 
 interface BMICalculatorRendererProps {
   block: {

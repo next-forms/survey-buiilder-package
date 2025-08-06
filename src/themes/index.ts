@@ -1,74 +1,7 @@
-import type { SurveyTheme } from "../types";
+import type { SurveyTheme, ThemeDefinition } from "../types";
 
-export interface ThemeDefinition {
-  name: SurveyTheme;
-  containerLayout: string;
-  header: string;
-  title: string;
-  description: string;
-  background: string;
-  card: string;
-  field: {
-    label: string;
-    input: string;
-    description: string;
-    error: string;
-    radio: string;
-    checkbox: string;
-    select: string;
-    textarea: string;
-    file: string;
-    matrix: string;
-    range: string;
-    text: string;
-    activeText: string;
-    placeholder: string;
-    boxBorder?: string;
-
-    // Comprehensive SelectableBox styling properties
-    selectableBox?: string;                    // Base container styling for the box
-    selectableBoxDefault?: string;             // Default/unselected state styling
-    selectableBoxSelected?: string;            // Selected state styling
-    selectableBoxHover?: string;               // Hover state styling
-    selectableBoxFocus?: string;               // Focus state styling
-    selectableBoxDisabled?: string;            // Disabled state styling
-    selectableBoxContainer?: string;           // Inner container styling
-    selectableBoxText?: string;                // Text styling inside the box
-    selectableBoxTextSelected?: string;        // Text styling when selected
-    selectableBoxIndicator?: string;           // Selection indicator (checkmark) styling
-    selectableBoxIndicatorIcon?: string;       // Icon styling within the indicator
-  };
-  container: {
-    card: string;
-    border: string;
-    activeBorder: string;
-    activeBg: string;
-    header: string;
-  };
-  progress: {
-    bar: string;
-    dots: string;
-    numbers: string;
-    percentage: string;
-    label: string;
-  };
-  button: {
-    primary: string;
-    secondary: string;
-    text: string;
-    navigation: string;
-  };
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    text: string;
-    border: string;
-    error: string;
-    success: string;
-  };
-}
+// Re-export ThemeDefinition type so it can be imported from themes
+export type { ThemeDefinition } from "../types";
 
 // Default theme - clean and simple
 export const defaultTheme: ThemeDefinition = {

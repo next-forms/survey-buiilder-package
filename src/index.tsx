@@ -126,6 +126,37 @@ export {
 // Export public types
 export * from './types';
 
+// Export unified block system
+export {
+  blockRegistry,
+  getBlockDefinition,
+  getAllBlockDefinitions,
+  registerBlock,
+  unregisterBlock,
+  // Export all unified blocks
+  TextInputBlock,
+  TextareaBlock,
+  AuthBlock,
+  RadioBlock,
+  CheckboxBlock,
+  SelectBlock,
+  BMICalculatorBlock,
+  CalculatedFieldBlock,
+  CheckoutBlock,
+  ConditionalBlock,
+  DatePickerBlock,
+  FileUploadBlock,
+  HtmlBlock,
+  MarkdownBlock,
+  MatrixBlock,
+  RangeBlock,
+  ScriptBlock,
+  SelectableBoxQuestionBlock
+} from './blocks';
+
+// Export UnifiedBlockRenderer
+export { UnifiedBlockRenderer } from './renderer/renderers/UnifiedBlockRenderer';
+
 export * from "./builder/survey/SurveyBuilder";
 
 // Export context and hooks
@@ -135,8 +166,9 @@ export {
   ActionTypes
 } from './context/SurveyBuilderContext';
 
-// Export standard blocks
-export * from './builder/blocks';
+// Export standard blocks - using unified blocks where available
+// For now, we'll export from the unifiedIndex which combines both unified and legacy blocks
+export * from './blocks/';
 
 // Export node definitions
 export * from './builder/nodes';

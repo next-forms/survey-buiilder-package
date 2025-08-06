@@ -16,7 +16,9 @@ interface BlockDefinition {
     renderItem?: (props: ContentBlockItemProps) => JSX.Element;
     renderFormFields?: (props: ContentBlockItemProps) => JSX.Element;
     renderPreview?: () => JSX.Element;
+    renderBlock?: (props: BlockRendererProps) => JSX.Element | null;
     validate?: (data: BlockData) => string | null;
+    validateValue?: (value: any, data: BlockData) => string | null;
 }
 interface NodeDefinition {
     type: string;
@@ -757,6 +759,23 @@ declare function supportsBranchingLogic(blockType: string): boolean;
 
 declare function applyDynamicColors(theme: any): void;
 
+declare const TextInputBlock: BlockDefinition;
+
+declare const TextareaBlock: BlockDefinition;
+
+declare const blockRegistry: Record<string, BlockDefinition>;
+
+declare function getBlockDefinition(type: string): BlockDefinition | undefined;
+declare function getAllBlockDefinitions(): BlockDefinition[];
+declare function registerBlock(block: BlockDefinition): void;
+declare function unregisterBlock(type: string): void;
+
+/**
+ * Unified Block Renderer that uses the new unified block definitions
+ * Falls back to legacy renderers for blocks that haven't been migrated yet
+ */
+declare const UnifiedBlockRenderer: React$1.ForwardRefExoticComponent<BlockRendererProps & React$1.RefAttributes<HTMLElement>>;
+
 interface SurveyBuilderProps {
     initialData?: {
         rootNode?: NodeData;
@@ -820,10 +839,6 @@ interface SurveyBuilderProviderProps {
     enableDebug?: boolean;
 }
 declare const SurveyBuilderProvider: React$1.FC<SurveyBuilderProviderProps>;
-
-declare const TextInputBlock: BlockDefinition;
-
-declare const TextareaBlock: BlockDefinition;
 
 declare const RadioBlock: BlockDefinition;
 
@@ -974,4 +989,4 @@ interface UseFlowHistoryReturn {
 }
 declare const useFlowHistory: (initialState: FlowHistoryState) => UseFlowHistoryReturn;
 
-export { ActionTypes, AuthBlock, AuthRenderer, BMICalculatorBlock, BMICalculatorRenderer, type BlockData, type BlockDefinition, BlockRenderer, type BlockRendererProps, type BranchingLogic, CalculatedFieldBlock, type CalculatedFieldProps, CalculatedFieldRenderer, type CalculationRule, CheckboxBlock, CheckboxRenderer, CheckoutBlock, CheckoutRenderer, type ComputedFieldsConfig, type ConditionOperator, type ConditionRule, ConditionalBlock, type ConditionalBlockProps, ConditionalBlockRenderer, type ContentBlockItemProps, type CurrentValues, type CustomValidator, DatePickerBlock, DatePickerRenderer, DebugInfo, type EvaluationResult, FileUploadBlock, FileUploadRenderer, type FlowHistory, type FlowHistoryEntry, type FlowHistoryState, HtmlBlock, HtmlRenderer, type LocalizationMap, MarkdownBlock, MarkdownRenderer, MatrixBlock, MatrixRenderer, type MobileNavigationConfig, type NavigationButtonsOptions, type NavigationRule, type NodeData, type NodeDefinition, type PageRendererProps, type ProgressBarOptions, RadioBlock, RadioRenderer, RangeBlock, RangeRenderer, ScriptBlock, ScriptRenderer, SectionNodeDefinition, SelectBlock, SelectRenderer, SelectableBoxQuestionBlock, SelectableBoxRenderer, SetRenderer, StandardBlocks, StandardNodes, SurveyBuilder, type SurveyBuilderAction, SurveyBuilderProvider, type SurveyBuilderState, SurveyForm, type SurveyFormContextProps, SurveyFormProvider, type SurveyFormRendererProps, type SurveyLayout, type SurveyTheme, type SwipeDirection, TextInputBlock, TextInputRenderer, TextareaBlock, TextareaRenderer, type ThemeDefinition$1 as ThemeDefinition, type UUID, type UseFlowHistoryReturn, ValidationSummary, applyDynamicColors, blockTypeMap, calculateBMI, cloneNode, colorfulTheme, corporateTheme, darkTheme, SurveyForm as default, defaultTheme, ensureNodeUuids, evaluateCondition, evaluateLogic, evaluateSimpleCondition, executeCalculation, findNodeById, formatFieldName, getAllNodes, getAllParentNodes, getLeafNodePaths, getLocalized, getParentNode, getSurveyPageIds, getSurveyPages, getThemeClass, himsTheme, isBlockVisible, isContentBlock, isInputBlock, linkNodes, minimalTheme, modernTheme, supportsBranchingLogic, supportsConditionalRendering, themes, useFlowHistory, useSurveyBuilder, useSurveyForm, validateBlock };
+export { ActionTypes, AuthBlock, AuthRenderer, BMICalculatorBlock, BMICalculatorRenderer, type BlockData, type BlockDefinition, BlockRenderer, type BlockRendererProps, type BranchingLogic, CalculatedFieldBlock, type CalculatedFieldProps, CalculatedFieldRenderer, type CalculationRule, CheckboxBlock, CheckboxRenderer, CheckoutBlock, CheckoutRenderer, type ComputedFieldsConfig, type ConditionOperator, type ConditionRule, ConditionalBlock, type ConditionalBlockProps, ConditionalBlockRenderer, type ContentBlockItemProps, type CurrentValues, type CustomValidator, DatePickerBlock, DatePickerRenderer, DebugInfo, type EvaluationResult, FileUploadBlock, FileUploadRenderer, type FlowHistory, type FlowHistoryEntry, type FlowHistoryState, HtmlBlock, HtmlRenderer, type LocalizationMap, MarkdownBlock, MarkdownRenderer, MatrixBlock, MatrixRenderer, type MobileNavigationConfig, type NavigationButtonsOptions, type NavigationRule, type NodeData, type NodeDefinition, type PageRendererProps, type ProgressBarOptions, RadioBlock, RadioRenderer, RangeBlock, RangeRenderer, ScriptBlock, ScriptRenderer, SectionNodeDefinition, SelectBlock, SelectRenderer, SelectableBoxQuestionBlock, SelectableBoxRenderer, SetRenderer, StandardBlocks, StandardNodes, SurveyBuilder, type SurveyBuilderAction, SurveyBuilderProvider, type SurveyBuilderState, SurveyForm, type SurveyFormContextProps, SurveyFormProvider, type SurveyFormRendererProps, type SurveyLayout, type SurveyTheme, type SwipeDirection, TextInputBlock, TextInputRenderer, TextareaBlock, TextareaRenderer, type ThemeDefinition$1 as ThemeDefinition, type UUID, UnifiedBlockRenderer, type UseFlowHistoryReturn, ValidationSummary, applyDynamicColors, blockRegistry, blockTypeMap, calculateBMI, cloneNode, colorfulTheme, corporateTheme, darkTheme, SurveyForm as default, defaultTheme, ensureNodeUuids, evaluateCondition, evaluateLogic, evaluateSimpleCondition, executeCalculation, findNodeById, formatFieldName, getAllBlockDefinitions, getAllNodes, getAllParentNodes, getBlockDefinition, getLeafNodePaths, getLocalized, getParentNode, getSurveyPageIds, getSurveyPages, getThemeClass, himsTheme, isBlockVisible, isContentBlock, isInputBlock, linkNodes, minimalTheme, modernTheme, registerBlock, supportsBranchingLogic, supportsConditionalRendering, themes, unregisterBlock, useFlowHistory, useSurveyBuilder, useSurveyForm, validateBlock };

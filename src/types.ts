@@ -21,10 +21,15 @@ export interface BlockDefinition {
   icon?: ReactNode;
   defaultData: BlockData;
   generateDefaultData?: () => BlockData;
+  // Builder components
   renderItem?: (props: ContentBlockItemProps) => JSX.Element;
   renderFormFields?: (props: ContentBlockItemProps) => JSX.Element;
   renderPreview?: () => JSX.Element;
+  // Renderer component - new unified approach
+  renderBlock?: (props: BlockRendererProps) => JSX.Element | null;
+  // Validation
   validate?: (data: BlockData) => string | null;
+  validateValue?: (value: any, data: BlockData) => string | null;
 }
 
 export interface NodeDefinition {

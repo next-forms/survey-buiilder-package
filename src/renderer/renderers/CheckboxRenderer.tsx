@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
-import { BlockData } from '../../types';
-import { ThemeDefinition, themes } from '../../themes';
+import { BlockData, ThemeDefinition } from '../../types';
+import { themes } from '../../themes';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';
