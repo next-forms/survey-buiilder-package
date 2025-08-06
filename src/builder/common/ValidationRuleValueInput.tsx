@@ -72,6 +72,49 @@ export function ValidationRuleValueInput({ input, onChange, placeholder, disable
     });
   };
 
+  // Handle date arrays (for date between operations)
+  if (input.type === 'array' && 'isDateArray' in input && input.isDateArray) {
+    const arrayValue = Array.isArray(input.value) ? input.value : [];
+    
+    return (
+      <div className="space-y-2">
+        {arrayValue.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={item || ''}
+              onChange={(e) => handleArrayValueChange(index, e.target.value)}
+              placeholder={`Date ${index + 1}`}
+              disabled={disabled}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeArrayItem(index)}
+              disabled={disabled}
+              className="px-2"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addArrayItem}
+          disabled={disabled}
+          className="w-full"
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add Date
+        </Button>
+      </div>
+    );
+  }
+
   if (input.type === 'array') {
     const arrayValue = Array.isArray(input.value) ? input.value : [];
     
@@ -206,7 +249,7 @@ export function ValidationRuleValueInput({ input, onChange, placeholder, disable
 
   return (
     <Input
-      type={input.type === 'number' ? 'number' : 'text'}
+      type={input.type === 'number' ? 'number' : input.type === 'date' ? 'date' : 'text'}
       value={input.value || ''}
       onChange={(e) => handleSingleValueChange(e.target.value)}
       placeholder={placeholder}

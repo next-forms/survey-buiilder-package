@@ -15,21 +15,23 @@ interface Props {
 export function ValidationRulesEditorDialog({ open, onOpenChange, data, onUpdate }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Validation Rules</DialogTitle>
           <DialogDescription>
             Configure custom validation rules for <strong>{data.fieldName || 'this field'}</strong>
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[70vh]">
-          <div className="p-4">
-            <ValidationRulesEditor data={data} onUpdate={onUpdate} />
-          </div>
-        </ScrollArea>
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full max-h-[calc(90vh-140px)]">
+            <div className="p-4 pr-6">
+              <ValidationRulesEditor data={data} onUpdate={onUpdate} />
+            </div>
+          </ScrollArea>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

@@ -34,7 +34,7 @@ interface RuleState extends ValidationRule {
 
 function createEmptyRule(): RuleState {
   return {
-    id: Math.random().toString(36).substr(2, 9),
+    id: Math.random().toString(36).substring(2, 11),
     operator: 'isNotEmpty',
     message: 'This field is required',
     severity: 'error'
@@ -117,6 +117,29 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
     const operatorDef = getOperatorDefinition(operator);
     if (!operatorDef) return { type: 'text', value: '' };
 
+    // Handle date operators specifically
+    if (operatorDef.category === 'date') {
+      switch (operatorDef.valueType) {
+        case 'array':
+          return { type: 'array', value: [], isDateArray: true };
+        case 'single':
+          // For numeric date operations (day/month/year/age), use number input
+          if (['dayOfWeekEquals', 'monthEquals', 'yearEquals', 'ageGreaterThan', 'ageLessThan'].includes(operator)) {
+            return { type: 'number', value: '' };
+          }
+          // For age between, use number array
+          if (operator === 'ageBetween') {
+            return { type: 'array', value: [] };
+          }
+          // For regular date operations, use date input
+          return { type: 'date', value: '' };
+        case 'none':
+          return { type: 'text', value: '' };
+        default:
+          return { type: 'date', value: '' };
+      }
+    }
+
     switch (operatorDef.valueType) {
       case 'array':
         return { type: 'array', value: [] };
@@ -171,11 +194,16 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
               <SelectTrigger>
                 <SelectValue placeholder="Current field" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__current__">Current field</SelectItem>
+              <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
+                <SelectItem value="__current__" className="pl-2 font-medium">
+                  <span className="text-sm">Current field</span>
+                </SelectItem>
+                {availableFields.length > 0 && (
+                  <div className="border-t border-muted my-1" />
+                )}
                 {availableFields.map((field) => (
-                  <SelectItem key={field} value={field}>
-                    {field}
+                  <SelectItem key={field} value={field} className="pl-2">
+                    <span className="text-sm">{field}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -192,20 +220,24 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
                 {Object.entries(VALIDATION_OPERATORS.reduce((acc, op) => {
                   if (!acc[op.category]) acc[op.category] = [];
                   acc[op.category].push(op);
                   return acc;
                 }, {} as Record<string, typeof VALIDATION_OPERATORS>)).map(([category, ops]) => (
                   <SelectGroup key={category}>
-                    <SelectLabel className="capitalize">{category}</SelectLabel>
+                    <SelectLabel className="capitalize text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                      {category}
+                    </SelectLabel>
                     {ops.map((op) => (
-                      <SelectItem key={op.value} value={op.value}>
-                        <div className="flex flex-col">
-                          <span>{op.label}</span>
+                      <SelectItem key={op.value} value={op.value} className="pl-4">
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm">{op.label}</span>
                           {op.description && (
-                            <span className="text-xs text-muted-foreground">{op.description}</span>
+                            <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                              {op.description}
+                            </span>
                           )}
                         </div>
                       </SelectItem>
@@ -253,9 +285,13 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="error">Error (blocks submission)</SelectItem>
-              <SelectItem value="warning">Warning (shows message only)</SelectItem>
+            <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
+              <SelectItem value="error" className="pl-2">
+                <span className="text-sm">Error (blocks submission)</span>
+              </SelectItem>
+              <SelectItem value="warning" className="pl-2">
+                <span className="text-sm">Warning (shows message only)</span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

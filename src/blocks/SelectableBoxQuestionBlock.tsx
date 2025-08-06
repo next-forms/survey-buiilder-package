@@ -175,6 +175,22 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
 
       {/* Optional visual configuration settings */}
       <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-2">
+          <Label htmlFor="showSelectionIndicator" className="text-sm">Selection Style</Label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="showSelectionIndicator"
+              checked={data.showSelectionIndicator !== false}
+              onChange={(e) => handleChange("showSelectionIndicator", e.target.checked)}
+              className="rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="showSelectionIndicator" className="text-sm">
+              Show selection indicator icon
+            </label>
+          </div>
+        </div>
+
         <Label className="text-sm">Visual Settings</Label>
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
@@ -203,21 +219,6 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2 pt-2">
-          <Label htmlFor="showSelectionIndicator" className="text-sm">Selection Style</Label>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="showSelectionIndicator"
-              checked={data.showSelectionIndicator !== false}
-              onChange={(e) => handleChange("showSelectionIndicator", e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <label htmlFor="showSelectionIndicator" className="text-sm">
-              Show selection indicator icon
-            </label>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -497,34 +497,6 @@ Choose from 6 different layout options:
 }
 ```
 
-### Visibility Conditions
-
-```tsx
-{
-  type: "textfield",
-  fieldName: "company_name",
-  label: "Company Name",
-  visibleIf: "employment_status == 'employed'",
-  required: true
-}
-```
-
-### Complex Conditions
-
-```tsx
-// Multiple conditions
-visibleIf: "age >= 18 && country == 'US'"
-
-// Range conditions
-visibleIf: "income >= 50000 && income <= 100000"
-
-// Array contains
-visibleIf: "interests.includes('technology')"
-
-// Custom functions
-visibleIf: "calculateAge(birthdate) >= 21"
-```
-
 ## 📊 Progress Bars
 
 Configure progress indicators:
@@ -731,168 +703,265 @@ All layouts are mobile-responsive with touch-friendly controls:
 
 Create your own block types:
 
-### 1. Define Block Structure
+### 1. Complete Example: Credit Card Block
 
-```tsx
-import { BlockDefinition } from 'survey-form-package';
+```typescript
+import React, { useEffect } from "react";
+import { CreditCard } from "lucide-react";
+import { 
+  BlockDefinition, 
+  ContentBlockItemProps, 
+  BlockRendererProps, 
+  registerBlock 
+} from "survey-form-package/src";
 
-export const StarRatingBlock: BlockDefinition = {
-  type: 'star-rating',
-  name: 'Star Rating',
-  description: 'Visual star rating component',
-  icon: <StarIcon className="w-4 h-4" />,
+const CreditCardBlock: BlockDefinition = {
+  type: 'credit-card',
+  name: 'Credit Card Input',
+  description: 'Collect credit card information',
+  icon: <CreditCard className="w-4 h-4" />,
+  
   defaultData: {
-    type: 'star-rating',
-    fieldName: 'rating',
-    label: 'Rate your experience',
-    maxStars: 5,
-    allowHalfStars: false,
-    showLabels: true
+    type: 'credit-card',
+    fieldName: 'cardNumber',
+    label: 'Card Number',
+    placeholder: 'XXXX XXXX XXXX XXXX',
+    required: false,
   },
   
-  // Render in the actual survey form
-  renderItem: ({ data, value, onChange }) => (
-    <StarRatingComponent
-      value={value}
-      maxStars={data.maxStars}
-      onChange={onChange}
-      allowHalfStars={data.allowHalfStars}
-      showLabels={data.showLabels}
-    />
+  // Builder: How block appears in survey preview
+  renderItem: ({ data }) => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">{data.label}</label>
+      <input
+        type="text"
+        name={data.fieldName}
+        placeholder={data.placeholder}
+        className="w-full p-2 border rounded-md"
+        disabled
+      />
+    </div>
   ),
   
-  // Configuration form in the builder
+  // Builder: Configuration form
   renderFormFields: ({ data, onUpdate }) => (
     <div className="space-y-4">
       <div>
-        <label>Maximum Stars</label>
-        <input 
-          type="number" 
-          value={data.maxStars} 
-          onChange={(e) => onUpdate({
-            ...data, 
-            maxStars: parseInt(e.target.value)
-          })}
+        <label className="block text-sm font-medium mb-1">Label</label>
+        <input
+          type="text"
+          value={data.label || ''}
+          onChange={(e) => onUpdate?.({ ...data, label: e.target.value })}
+          className="w-full p-2 border rounded-md"
         />
       </div>
       <div>
-        <label>
-          <input 
-            type="checkbox" 
-            checked={data.allowHalfStars}
-            onChange={(e) => onUpdate({
-              ...data, 
-              allowHalfStars: e.target.checked
-            })}
+        <label className="block text-sm font-medium mb-1">Field Name</label>
+        <input
+          type="text"
+          value={data.fieldName || ''}
+          onChange={(e) => onUpdate?.({ ...data, fieldName: e.target.value })}
+          className="w-full p-2 border rounded-md"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Placeholder</label>
+        <input
+          type="text"
+          value={data.placeholder || ''}
+          onChange={(e) => onUpdate?.({ ...data, placeholder: e.target.value })}
+          className="w-full p-2 border rounded-md"
+        />
+      </div>
+      <div>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={data.required || false}
+            onChange={(e) => onUpdate?.({ ...data, required: e.target.checked })}
+            className="mr-2"
           />
-          Allow half stars
+          Required
         </label>
       </div>
     </div>
   ),
   
-  // Preview in block library
+  // Builder: Library preview
   renderPreview: () => (
     <div className="p-2 flex items-center justify-center">
-      <div className="flex space-x-1">
-        {[1,2,3,4,5].map(star => (
-          <StarIcon key={star} className="w-4 h-4 text-yellow-400" />
-        ))}
-      </div>
+      <input
+        type="text"
+        placeholder="XXXX XXXX XXXX XXXX"
+        className="w-4/5 p-1 border rounded"
+        disabled
+      />
     </div>
   ),
   
-  // Validation logic
-  validate: (data) => {
-    if (!data.fieldName) return "Field name is required";
-    if (data.maxStars < 1 || data.maxStars > 10) return "Max stars must be between 1 and 10";
-    return null;
-  }
-};
-```
-
-### 2. Create the Renderer Component
-
-```tsx
-import React from 'react';
-import { BlockRendererProps } from 'survey-form-package';
-
-const StarIcon = ({ filled }: { filled: boolean }) => (
-  <svg className={`w-6 h-6 ${filled ? 'text-yellow-400' : 'text-gray-300'}`}>
-    {/* SVG path for star */}
-  </svg>
-);
-
-export const StarRatingRenderer: React.FC<BlockRendererProps> = ({
-  block,
-  value = 0,
-  onChange,
-  error,
-  theme
-}) => {
-  const handleStarClick = (rating: number) => {
-    onChange?.(rating);
-  };
-
-  return (
+  // Renderer: Actual survey form
+  renderBlock: ({ block, value, onChange, error, disabled }) => (
     <div className="space-y-2">
-      <label className={theme?.field.label}>
-        {block.label}
-      </label>
-      
-      <div className="flex space-x-1">
-        {Array.from({ length: block.maxStars }, (_, index) => {
-          const starValue = index + 1;
-          const isFilled = starValue <= value;
-          
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => handleStarClick(starValue)}
-              className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-            >
-              <StarIcon filled={isFilled} />
-            </button>
-          );
-        })}
-      </div>
-      
-      {block.showLabels && (
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>Poor</span>
-          <span>Excellent</span>
-        </div>
+      {block.label && (
+        <label className="block text-sm font-medium text-gray-900">
+          {block.label}
+          {block.required && <span className="text-red-500 ml-1">*</span>}
+        </label>
       )}
+      
+      <input
+        type="text"
+        value={value || ''}
+        onChange={(e) => {
+          // Format card number with spaces
+          const formatted = e.target.value
+            .replace(/\s/g, '')
+            .replace(/(\d{4})/g, '$1 ')
+            .trim()
+            .substr(0, 19);
+          onChange?.(formatted);
+        }}
+        placeholder={block.placeholder}
+        disabled={disabled}
+        className={`w-full p-3 border rounded-md ${
+          error ? 'border-red-500' : 'border-gray-300'
+        } ${disabled ? 'bg-gray-100' : ''}`}
+        maxLength={19}
+      />
       
       {error && (
-        <div className={theme?.field.error}>
-          {error}
-        </div>
+        <div className="text-sm text-red-600">{error}</div>
       )}
     </div>
-  );
+  ),
+  
+  // Validation
+  validate: (data) => {
+    if (!data.fieldName) return "Field name is required";
+    if (!data.label) return "Label is required";
+    return null;
+  },
+  
+  validateValue: (value, data) => {
+    if (data.required && !value) return "Card number is required";
+    
+    if (value) {
+      const cleaned = value.replace(/\s/g, '');
+      if (cleaned.length < 13 || cleaned.length > 19) {
+        return "Please enter a valid card number";
+      }
+      if (!/^\d+$/.test(cleaned)) {
+        return "Card number can only contain digits";
+      }
+    }
+    
+    return null;
+  },
 };
+
+// Usage in your application
+export default function MyApp() {
+  useEffect(() => {
+    // Register the custom block
+    registerBlock(CreditCardBlock);
+  }, []);
+
+  return (
+    <SurveyBuilder
+      blockDefinitions={[...StandardBlocks, CreditCardBlock]}
+      // ... other props
+    />
+  );
+}
 ```
 
-### 3. Register Your Custom Block
+## Registration Methods
 
-```tsx
-import { SurveyForm, StandardBlocks } from 'survey-form-package';
-import { StarRatingBlock } from './StarRatingBlock';
+### Method 1: Global Registration (Recommended)
 
-const customBlocks = [...StandardBlocks, StarRatingBlock];
+Register blocks globally so they work in both builder and renderer:
 
-// Use in SurveyBuilder
-<SurveyBuilder blockDefinitions={customBlocks} />
+```typescript
+import { registerBlock, unregisterBlock } from "survey-form-package/src";
 
-// Or register the renderer for the survey form
-<SurveyForm 
-  survey={data}
-  customComponents={{
-    'star-rating': StarRatingRenderer
-  }}
-/>
+// Register when your app starts
+useEffect(() => {
+  registerBlock(MyCustomBlock);
+  
+  // Optional: cleanup on unmount
+  return () => unregisterBlock('my-custom-type');
+}, []);
+```
+
+### Method 2: Direct Block Registry
+
+Import and modify the block registry directly:
+
+```typescript
+import { blockRegistry } from "survey-form-package/src";
+
+// Add your block directly
+blockRegistry['my-custom-type'] = MyCustomBlock;
+```
+
+## Block Definition Properties
+
+### Required Properties
+
+- **`type`**: Unique identifier for the block
+- **`name`**: Display name in the builder
+- **`description`**: Brief description of the block's purpose
+- **`defaultData`**: Default configuration when block is created
+
+### Builder Methods
+
+- **`renderItem`**: How the block appears in the builder's survey preview
+- **`renderFormFields`**: Configuration form for editing block properties
+- **`renderPreview`**: Small preview shown in the block library
+- **`generateDefaultData`**: Function to generate default data (optional)
+
+### Renderer Methods
+
+- **`renderBlock`**: How the block renders in the actual survey (REQUIRED for rendering)
+
+### Validation Methods
+
+- **`validate`**: Validates block configuration in the builder
+- **`validateValue`**: Validates user input in the survey
+
+### Optional Properties
+
+- **`icon`**: React component/element for the block icon
+- **`category`**: Grouping category in the block library
+
+## BlockRendererProps Interface
+
+The `renderBlock` method receives these props:
+
+```typescript
+interface BlockRendererProps {
+  block: BlockData;           // Block configuration
+  value?: any;               // Current input value
+  onChange?: (value: any) => void;  // Value change handler
+  onBlur?: () => void;       // Blur event handler
+  error?: string;            // Validation error message
+  disabled?: boolean;        // Whether the field is disabled
+  theme?: ThemeDefinition;   // Current theme
+  isVisible?: boolean;       // Visibility state
+  customValidation?: (value: any) => string | null;
+}
+```
+
+## ContentBlockItemProps Interface
+
+Builder methods receive these props:
+
+```typescript
+interface ContentBlockItemProps {
+  data: BlockData;           // Block configuration data
+  onUpdate?: (data: BlockData) => void;  // Update handler
+  onRemove?: () => void;     // Remove handler
+}
 ```
 
 ## 🌐 Localization

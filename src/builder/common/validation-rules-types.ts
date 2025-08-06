@@ -2,7 +2,7 @@ export interface ValidationOperatorDefinition {
   value: string;
   label: string;
   description?: string;
-  category: 'comparison' | 'string' | 'array' | 'logical' | 'format';
+  category: 'comparison' | 'string' | 'array' | 'logical' | 'format' | 'date';
   valueType: 'single' | 'array' | 'variable' | 'mixed' | 'none';
   supportsVariables?: boolean;
 }
@@ -50,6 +50,27 @@ export const VALIDATION_OPERATORS: ValidationOperatorDefinition[] = [
   { value: 'lengthLessThan', label: 'Length less than', description: 'Text length less than value', category: 'string', valueType: 'single' },
   { value: 'minLength', label: 'Minimum length', description: 'Text has minimum length', category: 'string', valueType: 'single' },
   { value: 'maxLength', label: 'Maximum length', description: 'Text has maximum length', category: 'string', valueType: 'single' },
+  
+  // Date validation operators
+  { value: 'dateEquals', label: 'Date equals', description: 'Date is exactly equal to value', category: 'date', valueType: 'single' },
+  { value: 'dateNotEquals', label: 'Date not equals', description: 'Date is not equal to value', category: 'date', valueType: 'single' },
+  { value: 'dateGreaterThan', label: 'Date after', description: 'Date is after the specified date', category: 'date', valueType: 'single' },
+  { value: 'dateGreaterThanOrEqual', label: 'Date on or after', description: 'Date is on or after the specified date', category: 'date', valueType: 'single' },
+  { value: 'dateLessThan', label: 'Date before', description: 'Date is before the specified date', category: 'date', valueType: 'single' },
+  { value: 'dateLessThanOrEqual', label: 'Date on or before', description: 'Date is on or before the specified date', category: 'date', valueType: 'single' },
+  { value: 'dateBetween', label: 'Date between', description: 'Date is between two dates (inclusive)', category: 'date', valueType: 'array' },
+  { value: 'dateNotBetween', label: 'Date not between', description: 'Date is not between two dates', category: 'date', valueType: 'array' },
+  { value: 'isToday', label: 'Is today', description: 'Date is today', category: 'date', valueType: 'none' },
+  { value: 'isPastDate', label: 'Is past date', description: 'Date is in the past', category: 'date', valueType: 'none' },
+  { value: 'isFutureDate', label: 'Is future date', description: 'Date is in the future', category: 'date', valueType: 'none' },
+  { value: 'isWeekday', label: 'Is weekday', description: 'Date falls on a weekday (Mon-Fri)', category: 'date', valueType: 'none' },
+  { value: 'isWeekend', label: 'Is weekend', description: 'Date falls on a weekend (Sat-Sun)', category: 'date', valueType: 'none' },
+  { value: 'dayOfWeekEquals', label: 'Day of week equals', description: 'Date falls on specific day (0=Sunday, 1=Monday, etc.)', category: 'date', valueType: 'single' },
+  { value: 'monthEquals', label: 'Month equals', description: 'Date is in specific month (1=January, 2=February, etc.)', category: 'date', valueType: 'single' },
+  { value: 'yearEquals', label: 'Year equals', description: 'Date is in specific year', category: 'date', valueType: 'single' },
+  { value: 'ageGreaterThan', label: 'Age greater than', description: 'Age calculated from date is greater than value', category: 'date', valueType: 'single' },
+  { value: 'ageLessThan', label: 'Age less than', description: 'Age calculated from date is less than value', category: 'date', valueType: 'single' },
+  { value: 'ageBetween', label: 'Age between', description: 'Age calculated from date is between two values', category: 'date', valueType: 'array' },
 ];
 
 export interface ValidationRule {
@@ -63,9 +84,10 @@ export interface ValidationRule {
 }
 
 export interface ValidationRuleInput {
-  type: 'text' | 'number' | 'array' | 'variable' | 'mixed';
+  type: 'text' | 'number' | 'array' | 'variable' | 'mixed' | 'date';
   value: any;
   availableVariables?: string[];
+  isDateArray?: boolean; // Flag to indicate if array should use date inputs
 }
 
 // Helper to convert enhanced validation rule to executable function
@@ -180,6 +202,148 @@ export function validationRuleToFunction(rule: ValidationRule): (value: any, for
         
         case 'endsWith':
           return String(valueToValidate).endsWith(String(ruleValue)) ? null : message;
+        
+        // Date validation operators
+        case 'dateEquals': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1.toDateString() === date2.toDateString() ? null : message;
+        }
+        
+        case 'dateNotEquals': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1.toDateString() !== date2.toDateString() ? null : message;
+        }
+        
+        case 'dateGreaterThan': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1 > date2 ? null : message;
+        }
+        
+        case 'dateGreaterThanOrEqual': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1 >= date2 ? null : message;
+        }
+        
+        case 'dateLessThan': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1 < date2 ? null : message;
+        }
+        
+        case 'dateLessThanOrEqual': {
+          const date1 = new Date(valueToValidate);
+          const date2 = new Date(String(ruleValue));
+          if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return message;
+          return date1 <= date2 ? null : message;
+        }
+        
+        case 'dateBetween': {
+          const date = new Date(valueToValidate);
+          const [min, max] = Array.isArray(ruleValue) ? ruleValue : [ruleValue, ruleValue];
+          const minDate = new Date(String(min));
+          const maxDate = new Date(String(max));
+          if (isNaN(date.getTime()) || isNaN(minDate.getTime()) || isNaN(maxDate.getTime())) return message;
+          return (date >= minDate && date <= maxDate) ? null : message;
+        }
+        
+        case 'dateNotBetween': {
+          const date = new Date(valueToValidate);
+          const [min, max] = Array.isArray(ruleValue) ? ruleValue : [ruleValue, ruleValue];
+          const minDate = new Date(String(min));
+          const maxDate = new Date(String(max));
+          if (isNaN(date.getTime()) || isNaN(minDate.getTime()) || isNaN(maxDate.getTime())) return message;
+          return (date < minDate || date > maxDate) ? null : message;
+        }
+        
+        case 'isToday': {
+          const date = new Date(valueToValidate);
+          const today = new Date();
+          if (isNaN(date.getTime())) return message;
+          return date.toDateString() === today.toDateString() ? null : message;
+        }
+        
+        case 'isPastDate': {
+          const date = new Date(valueToValidate);
+          const today = new Date();
+          if (isNaN(date.getTime())) return message;
+          return date < today ? null : message;
+        }
+        
+        case 'isFutureDate': {
+          const date = new Date(valueToValidate);
+          const today = new Date();
+          if (isNaN(date.getTime())) return message;
+          return date > today ? null : message;
+        }
+        
+        case 'isWeekday': {
+          const date = new Date(valueToValidate);
+          if (isNaN(date.getTime())) return message;
+          const dayOfWeek = date.getDay();
+          return (dayOfWeek >= 1 && dayOfWeek <= 5) ? null : message;
+        }
+        
+        case 'isWeekend': {
+          const date = new Date(valueToValidate);
+          if (isNaN(date.getTime())) return message;
+          const dayOfWeek = date.getDay();
+          return (dayOfWeek === 0 || dayOfWeek === 6) ? null : message;
+        }
+        
+        case 'dayOfWeekEquals': {
+          const date = new Date(valueToValidate);
+          if (isNaN(date.getTime())) return message;
+          const dayOfWeek = date.getDay();
+          return dayOfWeek === Number(ruleValue) ? null : message;
+        }
+        
+        case 'monthEquals': {
+          const date = new Date(valueToValidate);
+          if (isNaN(date.getTime())) return message;
+          const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+          return month === Number(ruleValue) ? null : message;
+        }
+        
+        case 'yearEquals': {
+          const date = new Date(valueToValidate);
+          if (isNaN(date.getTime())) return message;
+          const year = date.getFullYear();
+          return year === Number(ruleValue) ? null : message;
+        }
+        
+        case 'ageGreaterThan': {
+          const birthDate = new Date(valueToValidate);
+          if (isNaN(birthDate.getTime())) return message;
+          const today = new Date();
+          const ageInYears = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          return ageInYears > Number(ruleValue) ? null : message;
+        }
+        
+        case 'ageLessThan': {
+          const birthDate = new Date(valueToValidate);
+          if (isNaN(birthDate.getTime())) return message;
+          const today = new Date();
+          const ageInYears = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          return ageInYears < Number(ruleValue) ? null : message;
+        }
+        
+        case 'ageBetween': {
+          const birthDate = new Date(valueToValidate);
+          if (isNaN(birthDate.getTime())) return message;
+          const today = new Date();
+          const ageInYears = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          const [minAge, maxAge] = Array.isArray(ruleValue) ? ruleValue : [ruleValue, ruleValue];
+          return (ageInYears >= Number(minAge) && ageInYears <= Number(maxAge)) ? null : message;
+        }
         
         default:
           // Handle standard comparison operators

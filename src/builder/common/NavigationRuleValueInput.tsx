@@ -31,8 +31,11 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
   
   // Handle array values for operators that support them
   const isArrayOperator = operator.valueType === 'array' || operator.value === 'between' || operator.value === 'notBetween';
-  const isBetweenOperator = operator.value === 'between' || operator.value === 'notBetween';
-  const isLogicalOperator = operator.value === 'isEmpty' || operator.value === 'isNotEmpty';
+  const isBetweenOperator = operator.value === 'between' || operator.value === 'notBetween' || 
+                           operator.value === 'dateBetween' || operator.value === 'dateNotBetween' ||
+                           operator.value === 'ageBetween';
+  const isLogicalOperator = operator.value === 'isEmpty' || operator.value === 'isNotEmpty' ||
+                           ['isToday', 'isPastDate', 'isFutureDate', 'isWeekday', 'isWeekend'].includes(operator.value);
   
   // Don't show input for logical operators that don't need values
   if (isLogicalOperator) {
@@ -75,30 +78,51 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
   
   const getInputType = () => {
     if (fieldType === 'number') return 'number';
+    
+    // Handle date operators
+    if (operator.category === 'date') {
+      // For numeric date operations (day/month/year/age), use number input
+      if (['dayOfWeekEquals', 'monthEquals', 'yearEquals', 'ageGreaterThan', 'ageLessThan', 'ageBetween'].includes(operator.value)) {
+        return 'number';
+      }
+      // For regular date operations, use date input
+      if (['dateEquals', 'dateNotEquals', 'dateGreaterThan', 'dateGreaterThanOrEqual', 
+           'dateLessThan', 'dateLessThanOrEqual', 'dateBetween', 'dateNotBetween'].includes(operator.value)) {
+        return 'date';
+      }
+    }
+    
     return 'text';
   };
   
   // Render for between operators (need exactly 2 values)
   if (isBetweenOperator) {
+    const isDateBetween = operator.value === 'dateBetween' || operator.value === 'dateNotBetween';
+    const isAgeBetween = operator.value === 'ageBetween';
+    
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="flex-1">
-            <Label className="text-xs">Min</Label>
+            <Label className="text-xs">
+              {isDateBetween ? 'From Date' : isAgeBetween ? 'Min Age' : 'Min'}
+            </Label>
             <Input
               type={getInputType()}
               value={arrayValue[0] || ''}
               onChange={(e) => handleArrayItemChange(0, e.target.value)}
-              placeholder="Minimum value"
+              placeholder={isDateBetween ? 'Start date' : isAgeBetween ? 'Minimum age' : 'Minimum value'}
             />
           </div>
           <div className="flex-1">
-            <Label className="text-xs">Max</Label>
+            <Label className="text-xs">
+              {isDateBetween ? 'To Date' : isAgeBetween ? 'Max Age' : 'Max'}
+            </Label>
             <Input
               type={getInputType()}
               value={arrayValue[1] || ''}
               onChange={(e) => handleArrayItemChange(1, e.target.value)}
-              placeholder="Maximum value"
+              placeholder={isDateBetween ? 'End date' : isAgeBetween ? 'Maximum age' : 'Maximum value'}
             />
           </div>
         </div>
