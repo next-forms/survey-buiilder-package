@@ -376,4 +376,10 @@ export const SelectBlock: BlockDefinition = {
     if (!data.labels || !data.labels.length) return "At least one option is required";
     return null;
   },
+  validateValue: (value, data) => {
+    if (data.required && !value) return "This field is required";
+    if (value && data.values && !data.values.includes(value)) 
+      return "Selected value is not valid";
+    return null;
+  },
 };

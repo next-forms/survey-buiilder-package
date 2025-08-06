@@ -302,4 +302,8 @@ export const CheckboxBlock: BlockDefinition = {
     if (!data.label) return "Label is required";
     return null;
   },
+  validateValue: (value, data) => {
+    if (data.required && (!value || value === false)) return "This field is required";
+    return null;
+  },
 };

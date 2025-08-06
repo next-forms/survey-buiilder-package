@@ -623,4 +623,34 @@ export const FileUploadBlock: BlockDefinition = {
     if (!data.label) return "Label is required";
     return null;
   },
+  validateValue: (value, data) => {
+    if (data.required && (!value || (Array.isArray(value) && value.length === 0))) {
+      return "At least one file is required";
+    }
+    
+    if (value) {
+      const files = Array.isArray(value) ? value : [value];
+      const maxFiles = parseInt(data.maxFiles || "1", 10);
+      const maxFileSize = parseInt(data.maxFileSize || "5", 10) * 1024 * 1024; // Convert MB to bytes
+      
+      if (files.length > maxFiles) {
+        return `Maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''} allowed`;
+      }
+      
+      for (const file of files) {
+        if (file.size && file.size > maxFileSize) {
+          return `File size must be less than ${data.maxFileSize || "5"}MB`;
+        }
+        
+        if (data.acceptedFileTypes && data.acceptedFileTypes.length > 0 && file.name) {
+          const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+          if (!data.acceptedFileTypes.includes(fileExtension)) {
+            return `File type not allowed. Accepted types: ${data.acceptedFileTypes.join(', ')}`;
+          }
+        }
+      }
+    }
+    
+    return null;
+  },
 };

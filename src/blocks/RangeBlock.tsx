@@ -430,4 +430,18 @@ export const RangeBlock: BlockDefinition = {
     if (min >= max) return "Minimum value must be less than maximum value";
     return null;
   },
+  validateValue: (value, data) => {
+    if (data.required && (value === null || value === undefined)) return "This field is required";
+    
+    if (value !== null && value !== undefined) {
+      const numValue = Number(value);
+      const min = Number(data.min || 0);
+      const max = Number(data.max || 100);
+      
+      if (numValue < min) return `Value must be at least ${min}`;
+      if (numValue > max) return `Value must be at most ${max}`;
+    }
+    
+    return null;
+  },
 };

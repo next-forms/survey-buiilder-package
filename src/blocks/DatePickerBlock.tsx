@@ -532,4 +532,25 @@ export const DatePickerBlock: BlockDefinition = {
     if (!data.label) return "Label is required";
     return null;
   },
+  validateValue: (value, data) => {
+    if (data.required && !value) return "This field is required";
+    
+    // Validate date is within range if minDate or maxDate is set
+    if (value) {
+      const dateValue = new Date(value);
+      if (isNaN(dateValue.getTime())) return "Please enter a valid date";
+      
+      if (data.minDate) {
+        const minDate = new Date(data.minDate);
+        if (dateValue < minDate) return `Date must be after ${minDate.toLocaleDateString()}`;
+      }
+      
+      if (data.maxDate) {
+        const maxDate = new Date(data.maxDate);
+        if (dateValue > maxDate) return `Date must be before ${maxDate.toLocaleDateString()}`;
+      }
+    }
+    
+    return null;
+  },
 };

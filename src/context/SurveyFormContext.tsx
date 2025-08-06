@@ -19,6 +19,7 @@ import {
   getNextStepFromNavigationRules
 } from "../utils/conditionalUtils";
 import { ThemeDefinition } from "../themes";
+import { getBlockDefinition } from "../blocks";
 
 // Navigation history entry
 interface NavigationHistoryEntry {
@@ -462,17 +463,39 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   }, [currentPage, pages, totalPages, values, computedValues]);
 
   const validateField = useCallback((fieldName: string, value: any): string | null => {
-    const validator = customValidators[fieldName];
-    if (!validator) return null;
-
-    try {
-      const error = validator.validate(value, { ...values, ...computedValues });
-      return error;
-    } catch (error) {
-      console.error(`Error validating field ${fieldName}:`, error);
-      return `Validation error: ${(error as Error).message}`;
+    // First check for block-level validation using validateValue method
+    const allBlocks = pages.flat();
+    const block = allBlocks.find(block => block.fieldName === fieldName);
+    
+    if (block) {
+      const blockDefinition = getBlockDefinition(block.type);
+      if (blockDefinition?.validateValue) {
+        try {
+          const blockValidationError = blockDefinition.validateValue(value, block);
+          if (blockValidationError) {
+            return blockValidationError;
+          }
+        } catch (error) {
+          console.error(`Error in block validation for field ${fieldName}:`, error);
+          return `Validation error: ${(error as Error).message}`;
+        }
+      }
     }
-  }, [customValidators, values, computedValues]);
+
+    // Then check custom validators
+    const validator = customValidators[fieldName];
+    if (validator) {
+      try {
+        const error = validator.validate(value, { ...values, ...computedValues });
+        return error;
+      } catch (error) {
+        console.error(`Error validating field ${fieldName}:`, error);
+        return `Validation error: ${(error as Error).message}`;
+      }
+    }
+
+    return null;
+  }, [customValidators, values, computedValues, pages]);
 
   // Calculate if the current page is valid
   const currentPageBlocks = pages[currentPage] || [];

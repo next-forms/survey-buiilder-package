@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../components/ui/separator";
 import { GitBranch, Eye, EyeOff, Code, Info, ChevronRight } from "lucide-react";
 import { useSurveyForm } from "../context/SurveyFormContext";
-import { BlockRenderer } from "../renderer/renderers/BlockRenderer";
+// import { BlockRenderer } from "../renderer/renderers/BlockRenderer"; // Removed to avoid circular import
 
 // Form component for editing the block configuration
 const ConditionalBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -450,18 +450,22 @@ const ConditionalBlockRenderer: React.FC<ConditionalBlockProps> = ({
     return null;
   }
 
-  // If condition is met, render the block
+  // If condition is met, render the child block directly
+  // Note: This is a simplified renderer. For full functionality, 
+  // the survey form should handle conditional rendering at a higher level
   return (
-    <BlockRenderer
-      block={block}
-      value={value}
-      onChange={onChange}
-      onBlur={onBlur}
-      error={error}
-      disabled={disabled}
-      customComponents={customComponents}
-      theme={theme}
-    />
+    <div className="conditional-block">
+      {block.childBlock && (
+        <ConditionalBlockItem
+          data={block}
+          onUpdate={(updatedData) => {
+            if (onChange && block.fieldName) {
+              onChange(updatedData[block.fieldName]);
+            }
+          }}
+        />
+      )}
+    </div>
   );
 };
 
