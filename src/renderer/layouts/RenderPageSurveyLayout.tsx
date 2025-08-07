@@ -1,4 +1,4 @@
-// Enhanced FullPageSurveyLayout with intake form design styling
+// Enhanced RenderPageSurveyLayout with intake form design styling
 import React, { useEffect, useRef } from "react";
 import { useSurveyForm } from "../../context/SurveyFormContext";
 import { BlockRenderer } from "../renderers/BlockRenderer";
@@ -9,7 +9,7 @@ import { ChevronLeft, ArrowRight, History } from "lucide-react";
 import { cn } from '../../lib/utils';
 import { getSurveyPages } from "../../utils/surveyUtils";
 
-interface FullPageSurveyLayoutProps {
+interface RenderPageSurveyLayoutProps {
   progressBar?:
   | boolean
   | {
@@ -44,7 +44,7 @@ interface FullPageSurveyLayoutProps {
   logo?: any;
 }
 
-export const FullPageSurveyLayout: React.FC<FullPageSurveyLayoutProps> = ({
+export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   progressBar = true,
   navigationButtons = {
     showPrevious: true,

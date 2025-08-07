@@ -167,7 +167,6 @@ export interface SurveyFormRendererProps {
   defaultValues?: Record<string, any>;
   language?: string;
   theme?: SurveyTheme;
-  layout?: SurveyLayout;
   progressBar?: ProgressBarOptions | boolean;
   navigationButtons?: NavigationButtonsOptions;
   autoScroll?: boolean;
@@ -184,13 +183,6 @@ export interface SurveyFormRendererProps {
 }
 
 
-export type SurveyLayout =
-  | "page-by-page"
-  | "continuous"
-  | "accordion"
-  | "tabs"
-  | "stepper"
-  | "fullpage";
 
 export interface ProgressBarOptions {
   type?: "bar" | "dots" | "numbers" | "percentage";

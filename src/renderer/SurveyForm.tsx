@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { SurveyFormRendererProps } from '../types';
 import { SurveyFormProvider } from '../context/SurveyFormContext';
-import { PageByPageLayout } from './layouts/PageByPageLayout';
-import { FullPageSurveyLayout } from './layouts/FullPageSurveyLayout';
-import { ContinuousLayout } from './layouts/ContinuousLayout';
-import { AccordionLayout } from './layouts/AccordionLayout';
-import { TabsLayout } from './layouts/TabsLayout';
-import { StepperLayout } from './layouts/StepperLayout';
+import { RenderPageSurveyLayout } from './layouts/RenderPageSurveyLayout';
 import { themes } from '../themes';
 import { getThemeClass } from '../utils/surveyUtils';
 import { applyDynamicColors } from '../utils/colorUtils';
@@ -19,7 +14,6 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   defaultValues = {},
   language = 'en',
   theme = null,
-  layout = 'stepper',
   progressBar = true,
   navigationButtons = {
     showPrevious: true,
@@ -60,34 +54,15 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     className
   );
 
-  // Choose the correct layout based on the layout prop
-  const renderLayout = (enableDebug: boolean) => {
-    const layoutProps = {
-      enableDebug,
-      progressBar,
-      navigationButtons,
-      autoScroll,
-      autoFocus,
-      showSummary,
-      submitText,
-      logo
-    };
-
-    switch (layout) {
-      case 'continuous':
-        return <ContinuousLayout {...layoutProps} />;
-      case 'accordion':
-        return <AccordionLayout {...layoutProps} />;
-      case 'tabs':
-        return <TabsLayout {...layoutProps} />;
-      case 'stepper':
-        return <StepperLayout {...layoutProps} />;
-      case 'fullpage':
-        return <FullPageSurveyLayout {...layoutProps} />;
-      case 'page-by-page':
-      default:
-        return <PageByPageLayout {...layoutProps} />;
-    }
+  const layoutProps = {
+    enableDebug,
+    progressBar,
+    navigationButtons,
+    autoScroll,
+    autoFocus,
+    showSummary,
+    submitText,
+    logo
   };
 
   return (
@@ -103,7 +78,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
         theme={themeConfig}
         logo={logo}
       >
-        {renderLayout(enableDebug)}
+        <RenderPageSurveyLayout {...layoutProps} />
       </SurveyFormProvider>
     </div>
   );

@@ -11,7 +11,6 @@ export const PreviewSurvey: React.FC = () => {
       {state.rootNode ?
       <SurveyForm
         survey={state}
-        layout="fullpage"
         enableDebug={false}
         progressBar={{
           type: 'percentage',

@@ -154,7 +154,6 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
                 <div className="survey-isolated-content">
                   <SurveyForm
                     survey={{...state, theme}}
-                    layout="fullpage"
                     enableDebug={false}
                     theme={theme.name}
                     progressBar={{
