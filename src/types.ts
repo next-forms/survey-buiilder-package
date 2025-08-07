@@ -167,6 +167,7 @@ export interface SurveyFormRendererProps {
   defaultValues?: Record<string, any>;
   language?: string;
   theme?: SurveyTheme;
+  themeMode?: 'light' | 'dark' | 'system';
   progressBar?: ProgressBarOptions | boolean;
   navigationButtons?: NavigationButtonsOptions;
   autoScroll?: boolean;

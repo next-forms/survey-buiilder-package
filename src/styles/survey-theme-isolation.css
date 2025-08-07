@@ -189,6 +189,18 @@
   color: var(--survey-text) !important;
 }
 
+/* Override any specific text color classes that might interfere */
+.survey-isolated-content .text-foreground,
+.survey-isolated-content .text-primary,
+.survey-isolated-content .text-secondary,
+.survey-isolated-content .text-black,
+.survey-isolated-content .text-white,
+.survey-isolated-content .text-gray-900,
+.survey-isolated-content .text-gray-800,
+.survey-isolated-content .text-gray-700 {
+  color: var(--survey-text) !important;
+}
+
 /* Form Controls */
 .survey-isolated-content input[type="checkbox"],
 .survey-isolated-content input[type="radio"] {
@@ -364,8 +376,8 @@
 }
 
 /* Ensure proper contrast for all text elements */
-.survey-isolated-content * {
-  color: inherit;
+.survey-isolated-content {
+  color: var(--survey-text);
 }
 
 /* Override any conflicting Tailwind utilities */

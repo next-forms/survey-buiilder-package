@@ -1766,7 +1766,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             >
               <CheckCircle2 className="w-6 h-6 text-green-600" />
             </motion.div>
-            <CardTitle className="text-xl">{getStepTitle()}</CardTitle>
+            <CardTitle className="text-xl text-card">{getStepTitle()}</CardTitle>
             <CardDescription>{getStepDescription()}</CardDescription>
             {skipIfLoggedIn && isManualNavigation && (
               <div className="mt-2 p-2 bg-blue-50 rounded-md">

@@ -5,9 +5,6 @@ import { Package, Sun, Moon, Monitor, Smartphone, Tablet, Laptop, Monitor as Mon
 import { SurveyForm } from "../../../renderer/SurveyForm";
 import { ThemeDefinition, SurveyBuilderState } from "../../../types";
 
-// Import the theme isolation CSS
-import '../../../styles/survey-theme-isolation.css';
-
 // Theme mode type
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -28,7 +25,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
     { name: "Large", width: 1440, icon: MonitorIcon },
   ];
 
-  // Handle system theme changes
+  // Handle system theme changes - for theme mode switcher in preview
   useEffect(() => {
     if (surveyThemeMode === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -37,44 +34,10 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
         setSurveyThemeMode('system');
       };
       
-      mediaQuery.addListener(handleChange);
-      return () => mediaQuery.removeListener(handleChange);
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [surveyThemeMode]);
-
-  // Determine if we should use dark theme
-  const isDarkMode = surveyThemeMode === 'dark' || 
-    (surveyThemeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  // Create theme-specific CSS variables that override default values
-  const surveyThemeStyle = {
-    // Use CSS custom properties to override within the survey scope
-    '--survey-primary': theme.colors.primary,
-    '--survey-secondary': theme.colors.secondary,
-    '--survey-accent': theme.colors.accent,
-    '--survey-success': theme.colors.success || (isDarkMode ? 'oklch(0.696 0.17 162.48)' : 'oklch(0.6 0.118 184.704)'),
-    '--survey-error': theme.colors.error || (isDarkMode ? 'oklch(0.704 0.191 22.216)' : 'oklch(0.577 0.245 27.325)'),
-    '--survey-background': theme.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
-    '--survey-text': theme.colors.text || (isDarkMode ? 'oklch(0.985 0 0)' : 'oklch(0.141 0.005 285.823)'),
-    '--survey-border': theme.colors.border || (isDarkMode ? 'oklch(1 0 0 / 12%)' : 'oklch(0.94 0.002 286.32)'),
-    '--survey-surface': isDarkMode ? 'oklch(0.21 0.006 285.885)' : 'oklch(1 0 0)',
-    '--survey-text-muted': isDarkMode ? 'oklch(0.705 0.015 286.067)' : 'oklch(0.552 0.016 285.938)',
-    '--survey-input': isDarkMode ? 'oklch(1 0 0 / 18%)' : 'oklch(0.96 0.002 286.32)',
-    '--survey-ring': isDarkMode ? 'oklch(0.552 0.016 285.938)' : 'oklch(0.705 0.015 286.067)',
-    '--survey-bg': theme.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
-    '--survey-shadow': isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    '--survey-shadow-lg': isDarkMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  } as React.CSSProperties;
-
-  // Determine theme class based on mode
-  const getThemeClass = () => {
-    switch (surveyThemeMode) {
-      case 'light': return 'survey-theme-light';
-      case 'dark': return 'survey-theme-dark';
-      case 'system': return 'survey-theme-system';
-      default: return 'survey-theme-light';
-    }
-  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -141,36 +104,28 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
       </CardHeader>
 
       <CardContent className="flex-1 p-0 relative overflow-hidden">
-        {/* Survey Theme Container - This creates the isolated theme scope */}
-        <div 
-          className={`survey-theme-container ${getThemeClass()} h-full w-full overflow-auto relative`}
-          style={surveyThemeStyle}
-        >
-          {/* Responsive preview wrapper */}
-          <div className="h-full flex items-start justify-center p-4">
-            <div 
-              className="survey-preview-content transition-all duration-300 mx-auto">
-              {state.rootNode ? (
-                <div className="survey-isolated-content">
-                  <SurveyForm
-                    survey={{...state, theme}}
-                    enableDebug={false}
-                    theme={theme.name}
-                    progressBar={{
-                      type: 'percentage',
-                      showPercentage: true,
-                      showStepInfo: true,
-                      position: 'top',
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="survey-empty-state p-8 text-center rounded-xl border-2 border-dashed transition-colors">
-                  <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Add some blocks to see survey in action</p>
-                </div>
-              )}
-            </div>
+        {/* Responsive preview wrapper */}
+        <div className="h-full flex items-start justify-center p-4">
+          <div className="survey-preview-content transition-all duration-300 mx-auto">
+            {state.rootNode ? (
+              <SurveyForm
+                survey={{...state, theme}}
+                enableDebug={false}
+                theme={theme.name}
+                themeMode={surveyThemeMode}
+                progressBar={{
+                  type: 'percentage',
+                  showPercentage: true,
+                  showStepInfo: true,
+                  position: 'top',
+                }}
+              />
+            ) : (
+              <div className="p-8 text-center rounded-xl border-2 border-dashed transition-colors">
+                <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Add some blocks to see survey in action</p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
