@@ -54,6 +54,16 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
     '--survey-accent': theme.colors.accent,
     '--survey-success': theme.colors.success || (isDarkMode ? 'oklch(0.696 0.17 162.48)' : 'oklch(0.6 0.118 184.704)'),
     '--survey-error': theme.colors.error || (isDarkMode ? 'oklch(0.704 0.191 22.216)' : 'oklch(0.577 0.245 27.325)'),
+    '--survey-background': theme.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
+    '--survey-text': theme.colors.text || (isDarkMode ? 'oklch(0.985 0 0)' : 'oklch(0.141 0.005 285.823)'),
+    '--survey-border': theme.colors.border || (isDarkMode ? 'oklch(1 0 0 / 12%)' : 'oklch(0.94 0.002 286.32)'),
+    '--survey-surface': isDarkMode ? 'oklch(0.21 0.006 285.885)' : 'oklch(1 0 0)',
+    '--survey-text-muted': isDarkMode ? 'oklch(0.705 0.015 286.067)' : 'oklch(0.552 0.016 285.938)',
+    '--survey-input': isDarkMode ? 'oklch(1 0 0 / 18%)' : 'oklch(0.96 0.002 286.32)',
+    '--survey-ring': isDarkMode ? 'oklch(0.552 0.016 285.938)' : 'oklch(0.705 0.015 286.067)',
+    '--survey-bg': theme.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
+    '--survey-shadow': isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    '--survey-shadow-lg': isDarkMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   } as React.CSSProperties;
 
   // Determine theme class based on mode
@@ -143,9 +153,10 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
               {state.rootNode ? (
                 <div className="survey-isolated-content">
                   <SurveyForm
-                    survey={state}
+                    survey={{...state, theme}}
                     layout="fullpage"
                     enableDebug={false}
+                    theme={theme.name}
                     progressBar={{
                       type: 'percentage',
                       showPercentage: true,

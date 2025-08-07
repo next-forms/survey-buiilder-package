@@ -6,7 +6,7 @@ export type { ThemeDefinition } from "../types";
 // Default theme - clean and simple
 export const defaultTheme: ThemeDefinition = {
   name: "default",
-  containerLayout: "max-w-3xl mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
   header: "mb-8",
   title: "text-3xl font-bold text-gray-900 mb-2",
   description: "text-lg text-gray-600",
@@ -63,7 +63,7 @@ export const defaultTheme: ThemeDefinition = {
 // Minimal theme - clean and unobtrusive
 export const minimalTheme: ThemeDefinition = {
   name: "minimal",
-  containerLayout: "max-w-3xl mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
   header: "mb-6",
   title: "text-2xl font-medium text-gray-900 mb-2",
   description: "text-base text-gray-600",
@@ -120,7 +120,7 @@ export const minimalTheme: ThemeDefinition = {
 // Colorful theme - vibrant and engaging
 export const colorfulTheme: ThemeDefinition = {
   name: "colorful",
-  containerLayout: "max-w-3xl mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
   header: "mb-8",
   title: "text-3xl font-bold text-purple-900 mb-3",
   description: "text-lg text-purple-700",
@@ -178,7 +178,7 @@ export const colorfulTheme: ThemeDefinition = {
 // Modern theme - sleek and contemporary with large crisp fonts and Hims-style design
 export const modernTheme: ThemeDefinition = {
   name: "modern",
-  containerLayout: "max-w-2xl mx-auto py-4 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-4 px-4 sm:px-6",
   header: "mb-8",
   title: "text-4xl font-light text-[#E67E4D] mb-6 text-start leading-tight",
   description: "text-xl text-gray-900 leading-relaxed font-normal text-start max-w-md mx-auto",
@@ -236,7 +236,7 @@ export const modernTheme: ThemeDefinition = {
 // Corporate theme - professional and serious
 export const corporateTheme: ThemeDefinition = {
   name: "corporate",
-  containerLayout: "max-w-3xl mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
   header: "mb-8",
   title: "text-2xl font-bold text-gray-800 mb-2",
   description: "text-base text-gray-600",
@@ -293,7 +293,7 @@ export const corporateTheme: ThemeDefinition = {
 // Dark theme - updated for shadcn/ui compatibility
 export const darkTheme: ThemeDefinition = {
   name: "dark",
-  containerLayout: "max-w-3xl mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
   header: "mb-6",
   title: "text-2xl font-bold text-white mb-2",
   description: "text-base text-gray-400",
@@ -349,7 +349,7 @@ export const darkTheme: ThemeDefinition = {
 
 export const himsTheme: ThemeDefinition = {
   "name": "hims",
-  "containerLayout": "max-w-2xl mx-auto py-8 px-4 sm:px-6",
+  "containerLayout": "max-w-full mx-auto py-8 px-4 sm:px-6",
   "header": "mb-8",
   "title": "text-3xl font-semibold text-gray-900 mb-4 text-left",
   "description": "text-lg text-gray-600 mb-6 text-left",
