@@ -5,7 +5,8 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { CirclePlus, CircleX, CheckSquare } from "lucide-react";
+import { Checkbox } from "../components/ui/checkbox";
+import { CirclePlus, CircleX, CheckSquare, Check } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { generateFieldName } from "./utils/GenFieldName";
 import { cn } from "../lib/utils";
@@ -106,6 +107,41 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
           onChange={(e) => handleChange("description", e.target.value)}
           placeholder="Additional information about this question"
         />
+      </div>
+
+      {/* Selection mode */}
+      <div className="space-y-2">
+        <Label className="text-sm">Selection Mode</Label>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="radio"
+              id="singleSelect"
+              name="selectionMode"
+              value="single"
+              checked={data.multiSelect !== true}
+              onChange={() => handleChange("multiSelect", false)}
+              className="rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="singleSelect" className="text-sm">
+              Single Select
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="radio"
+              id="multiSelect"
+              name="selectionMode"
+              value="multi"
+              checked={data.multiSelect === true}
+              onChange={() => handleChange("multiSelect", true)}
+              className="rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="multiSelect" className="text-sm">
+              Multi Select
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Options section */}
@@ -214,8 +250,14 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
               id="defaultValue"
               value={data.defaultValue || ""}
               onChange={(e) => handleChange("defaultValue", e.target.value)}
-              placeholder="Leave blank for no default selection"
+              placeholder={data.multiSelect ? "option-1,option-2 (comma-separated)" : "Leave blank for no default selection"}
             />
+            <p className="text-xs text-muted-foreground">
+              {data.multiSelect 
+                ? "For multi-select: Enter comma-separated values (e.g., option-1,option-2)"
+                : "Enter a single option value for default selection"
+              }
+            </p>
           </div>
         </div>
 
@@ -228,11 +270,47 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
 const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
   data,
 }) => {
-  const [selectedValue, setSelectedValue] = React.useState<string>(data.defaultValue || "");
+  // Parse default value for multi-select mode
+  const parseDefaultValue = (defaultVal: string | string[] | undefined, multiSelect: boolean): string | string[] => {
+    if (multiSelect) {
+      if (Array.isArray(defaultVal)) return defaultVal;
+      if (typeof defaultVal === 'string' && defaultVal.trim()) {
+        return defaultVal.split(',').map(v => v.trim()).filter(v => v);
+      }
+      return [];
+    } else {
+      return typeof defaultVal === 'string' ? defaultVal : '';
+    }
+  };
+
+  const [selectedValue, setSelectedValue] = React.useState<string | string[]>(
+    parseDefaultValue(data.defaultValue, data.multiSelect === true)
+  );
   const idPrefix = useId();
   const options: BoxOption[] = data.options || [];
   const boxSpacing = data.boxSpacing || "4";
   const showSelectionIndicator = data.showSelectionIndicator !== false;
+  const isMultiSelect = data.multiSelect === true;
+
+  const handleSingleSelect = (value: string) => {
+    setSelectedValue(value);
+  };
+
+  const handleMultiSelect = (value: string, checked: boolean) => {
+    const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
+    if (checked) {
+      setSelectedValue([...currentValues, value]);
+    } else {
+      setSelectedValue(currentValues.filter(v => v !== value));
+    }
+  };
+
+  const isSelected = (optionValue: string) => {
+    if (isMultiSelect) {
+      return Array.isArray(selectedValue) && selectedValue.includes(optionValue);
+    }
+    return selectedValue === optionValue;
+  };
 
   return (
     <div className="space-y-4">
@@ -244,45 +322,84 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
         <p className="text-sm text-muted-foreground">{data.description}</p>
       )}
 
-      <RadioGroup 
-        value={selectedValue} 
-        onValueChange={setSelectedValue}
-        className={`space-y-${boxSpacing}`}
-      >
-        {options.map((option) => {
-          const isSelected = selectedValue === option.value;
-          return (
-            <div key={option.id} className="relative">
-              <RadioGroupItem
-                value={option.value}
-                id={`${idPrefix}-${data.fieldName}-${option.id}`}
-                className="sr-only"
-              />
-              <Label
-                htmlFor={`${idPrefix}-${data.fieldName}-${option.id}`}
-                className="block w-full cursor-pointer"
-              >
-                <Card 
-                  className={`p-4 transition-colors ${
-                    isSelected 
-                      ? "border-primary bg-primary/5 dark:bg-primary/20" 
-                      : "hover:bg-accent dark:hover:bg-accent/50"
-                  }`}
+      {isMultiSelect ? (
+        <div className={`space-y-${boxSpacing}`}>
+          {options.map((option) => {
+            const selected = isSelected(option.value);
+            return (
+              <div key={option.id} className="relative">
+                <Checkbox
+                  id={`${idPrefix}-${data.fieldName}-${option.id}`}
+                  checked={selected}
+                  onCheckedChange={(checked) => handleMultiSelect(option.value, checked as boolean)}
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor={`${idPrefix}-${data.fieldName}-${option.id}`}
+                  className="block w-full cursor-pointer"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-foreground">{option.label}</span>
-                    {isSelected && showSelectionIndicator && (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <CheckSquare className="h-3 w-3" />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </Label>
-            </div>
-          );
-        })}
-      </RadioGroup>
+                  <Card 
+                    className={`p-4 transition-colors ${
+                      selected 
+                        ? "border-primary bg-primary/5 dark:bg-primary/20" 
+                        : "hover:bg-accent dark:hover:bg-accent/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground">{option.label}</span>
+                      {selected && showSelectionIndicator && (
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <RadioGroup 
+          value={selectedValue as string} 
+          onValueChange={handleSingleSelect}
+          className={`space-y-${boxSpacing}`}
+        >
+          {options.map((option) => {
+            const selected = isSelected(option.value);
+            return (
+              <div key={option.id} className="relative">
+                <RadioGroupItem
+                  value={option.value}
+                  id={`${idPrefix}-${data.fieldName}-${option.id}`}
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor={`${idPrefix}-${data.fieldName}-${option.id}`}
+                  className="block w-full cursor-pointer"
+                >
+                  <Card 
+                    className={`p-4 transition-colors ${
+                      selected 
+                        ? "border-primary bg-primary/5 dark:bg-primary/20" 
+                        : "hover:bg-accent dark:hover:bg-accent/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground">{option.label}</span>
+                      {selected && showSelectionIndicator && (
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <CheckSquare className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </Label>
+              </div>
+            );
+          })}
+        </RadioGroup>
+      )}
     </div>
   );
 };
@@ -301,8 +418,8 @@ const SelectableBoxQuestionPreview: React.FC = () => {
 
 interface SelectableBoxRendererProps {
   block: BlockData;
-  value?: string;
-  onChange?: (value: string) => void;
+  value?: string | string[];
+  onChange?: (value: string | string[]) => void;
   onBlur?: () => void;
   error?: string;
   disabled?: boolean;
@@ -325,17 +442,33 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   const options: BoxOption[] = block.options || [];
   const boxSpacing = block.boxSpacing || "4";
   const showSelectionIndicator = block.showSelectionIndicator !== false;
+  const isMultiSelect = block.multiSelect === true;
   
+  // Parse default value for multi-select mode
+  const parseDefaultValue = (defaultVal: string | string[] | undefined, multiSelect: boolean): string | string[] => {
+    if (multiSelect) {
+      if (Array.isArray(defaultVal)) return defaultVal;
+      if (typeof defaultVal === 'string' && defaultVal.trim()) {
+        return defaultVal.split(',').map(v => v.trim()).filter(v => v);
+      }
+      return [];
+    } else {
+      return typeof defaultVal === 'string' ? defaultVal : '';
+    }
+  };
+
   // Track selected value
-  const [selectedValue, setSelectedValue] = useState<string>(value || '');
+  const [selectedValue, setSelectedValue] = useState<string | string[]>(
+    parseDefaultValue(value || block.defaultValue, isMultiSelect)
+  );
   
   // Update local state when props change
   useEffect(() => {
-    setSelectedValue(value || '');
-  }, [value]);
+    setSelectedValue(parseDefaultValue(value, isMultiSelect));
+  }, [value, isMultiSelect]);
   
-  // Handle option selection
-  const handleSelect = (optionValue: string) => {
+  // Handle single select option selection
+  const handleSingleSelect = (optionValue: string) => {
     setSelectedValue(optionValue);
     
     if (onChange) {
@@ -345,6 +478,36 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
     if (onBlur) {
       onBlur();
     }
+  };
+
+  // Handle multi select option selection
+  const handleMultiSelect = (optionValue: string, checked: boolean) => {
+    const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
+    let newValues: string[];
+    
+    if (checked) {
+      newValues = [...currentValues, optionValue];
+    } else {
+      newValues = currentValues.filter(v => v !== optionValue);
+    }
+    
+    setSelectedValue(newValues);
+    
+    if (onChange) {
+      onChange(newValues);
+    }
+    
+    if (onBlur) {
+      onBlur();
+    }
+  };
+
+  // Check if option is selected
+  const isSelected = (optionValue: string) => {
+    if (isMultiSelect) {
+      return Array.isArray(selectedValue) && selectedValue.includes(optionValue);
+    }
+    return selectedValue === optionValue;
   };
   
   return (
@@ -366,76 +529,142 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
       )}
       
       {/* Selectable Boxes */}
-      <RadioGroup 
-        value={selectedValue} 
-        onValueChange={handleSelect}
-        disabled={disabled}
-        className={`space-y-${boxSpacing} my-8`}
-      >
-        {options.map((option) => {
-          const isSelected = selectedValue === option.value;
-          const id = `${idPrefix}-${block.fieldName}-${option.id}`;
-          
-          return (
-            <div key={option.id} className="relative">
-              <RadioGroupItem 
-                value={option.value} 
-                id={id}
-                className="sr-only"
-                aria-invalid={!!error}
-              />
-              <Label 
-                htmlFor={id} 
-                className={cn(
-                  "block w-full cursor-pointer",
-                  disabled && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <Card 
+      {isMultiSelect ? (
+        <div className={cn(`space-y-${boxSpacing} my-8`, themeConfig.field.selectableBoxContainer || "space-y-3")}>
+          {options.map((option) => {
+            const selected = isSelected(option.value);
+            const id = `${idPrefix}-${block.fieldName}-${option.id}`;
+            
+            return (
+              <div key={option.id} className="relative">
+                <Checkbox 
+                  id={id}
+                  checked={selected}
+                  onCheckedChange={(checked) => handleMultiSelect(option.value, checked as boolean)}
+                  disabled={disabled}
+                  className="sr-only"
+                  aria-invalid={!!error}
+                />
+                <Label 
+                  htmlFor={id} 
                   className={cn(
-                    // Base box styling from theme
-                    themeConfig.field.selectableBox || "p-4 transition-colors hover:bg-accent dark:hover:bg-accent/50",
-                    // Selected state styling
-                    isSelected 
-                      ? themeConfig.field.selectableBoxSelected || themeConfig.field.boxBorder || "border-primary" 
-                      : themeConfig.field.selectableBoxDefault || "border-[#ccc]",
-                    // Hover state styling
-                    !disabled && (themeConfig.field.selectableBoxHover || "hover:border-gray-400"),
-                    // Focus state styling
-                    themeConfig.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-offset-2",
-                    // Disabled state styling
-                    disabled && (themeConfig.field.selectableBoxDisabled || "opacity-50 cursor-not-allowed")
+                    "block w-full cursor-pointer",
+                    disabled && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <div className={cn(
-                    "flex items-center justify-between",
-                    themeConfig.field.selectableBoxContainer || ""
-                  )}>
-                    <span className={cn(
-                      "text-foreground", 
-                      themeConfig.field.selectableBoxText || themeConfig.field.text,
-                      isSelected && (themeConfig.field.selectableBoxTextSelected || themeConfig.field.activeText)
-                    )}>
-                      {option.label}
-                    </span>
-                    {isSelected && showSelectionIndicator && (
-                      <div className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-full",
-                        themeConfig.field.selectableBoxIndicator || "bg-primary text-primary-foreground"
-                      )}>
-                        <CheckSquare className={cn(
-                          "h-3 w-3",
-                          themeConfig.field.selectableBoxIndicatorIcon || ""
-                        )} />
-                      </div>
+                  <div 
+                    className={cn(
+                      // Base box styling from theme
+                      themeConfig.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+                      // Selected state styling - use specific theme classes
+                      selected 
+                        ? themeConfig.field.selectableBoxSelected || "border border-gray-400 bg-gray-50" 
+                        : themeConfig.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
+                      // Hover state styling
+                      !disabled && (themeConfig.field.selectableBoxHover || "hover:border-gray-400"),
+                      // Focus state styling
+                      themeConfig.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2",
+                      // Disabled state styling
+                      disabled && (themeConfig.field.selectableBoxDisabled || "opacity-50 cursor-not-allowed")
                     )}
+                  >
+                    <div className={cn(
+                      "flex items-center justify-between"
+                    )}>
+                      <span className={cn(
+                        themeConfig.field.selectableBoxText || "text-gray-900 text-base font-normal",
+                        selected && (themeConfig.field.selectableBoxTextSelected || "text-gray-900 font-normal")
+                      )}>
+                        {option.label}
+                      </span>
+                      {selected && showSelectionIndicator && (
+                        <div className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-full",
+                          themeConfig.field.selectableBoxIndicator || "bg-gray-600 text-white"
+                        )}>
+                          <Check className={cn(
+                            "h-3 w-3",
+                            themeConfig.field.selectableBoxIndicatorIcon || "text-white"
+                          )} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </Card>
-              </Label>
-            </div>
-          );
-        })}
-      </RadioGroup>
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <RadioGroup 
+          value={selectedValue as string} 
+          onValueChange={handleSingleSelect}
+          disabled={disabled}
+          className={cn(`space-y-${boxSpacing} my-8`, themeConfig.field.selectableBoxContainer || "space-y-3")}
+        >
+          {options.map((option) => {
+            const selected = isSelected(option.value);
+            const id = `${idPrefix}-${block.fieldName}-${option.id}`;
+            
+            return (
+              <div key={option.id} className="relative">
+                <RadioGroupItem 
+                  value={option.value} 
+                  id={id}
+                  className="sr-only"
+                  aria-invalid={!!error}
+                />
+                <Label 
+                  htmlFor={id} 
+                  className={cn(
+                    "block w-full cursor-pointer",
+                    disabled && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <div 
+                    className={cn(
+                      // Base box styling from theme
+                      themeConfig.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+                      // Selected state styling - use specific theme classes
+                      selected 
+                        ? themeConfig.field.selectableBoxSelected || "border border-gray-400 bg-gray-50" 
+                        : themeConfig.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
+                      // Hover state styling
+                      !disabled && (themeConfig.field.selectableBoxHover || "hover:border-gray-400"),
+                      // Focus state styling
+                      themeConfig.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2",
+                      // Disabled state styling
+                      disabled && (themeConfig.field.selectableBoxDisabled || "opacity-50 cursor-not-allowed")
+                    )}
+                  >
+                    <div className={cn(
+                      "flex items-center justify-between"
+                    )}>
+                      <span className={cn(
+                        themeConfig.field.selectableBoxText || "text-gray-900 text-base font-normal",
+                        selected && (themeConfig.field.selectableBoxTextSelected || "text-gray-900 font-normal")
+                      )}>
+                        {option.label}
+                      </span>
+                      {selected && showSelectionIndicator && (
+                        <div className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-full",
+                          themeConfig.field.selectableBoxIndicator || "bg-gray-600 text-white"
+                        )}>
+                          <CheckSquare className={cn(
+                            "h-3 w-3",
+                            themeConfig.field.selectableBoxIndicatorIcon || "text-white"
+                          )} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Label>
+              </div>
+            );
+          })}
+        </RadioGroup>
+      )}
       
       {/* Error message */}
       {error && (
@@ -460,6 +689,7 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
     description: "",
     boxSpacing: "4",
     defaultValue: "",
+    multiSelect: false,
     showSelectionIndicator: false,
     options: [
       {
@@ -481,6 +711,7 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
     description: "",
     boxSpacing: "4",
     defaultValue: "",
+    multiSelect: false,
     showSelectionIndicator: false,
     options: [
       {
