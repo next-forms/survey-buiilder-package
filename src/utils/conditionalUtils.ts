@@ -13,10 +13,10 @@ import type { BlockData } from '../types';
  * Evaluates a simple condition between two values using the specified operator
  */
 export function evaluateSimpleCondition(
-  fieldValue: any,
-  operator: ConditionOperator,
-  comparisonValue: any,
-  valueType: 'string' | 'number' | 'boolean' | 'date' = 'string'
+    fieldValue: any,
+    operator: ConditionOperator,
+    comparisonValue: any,
+    valueType: 'string' | 'number' | 'boolean' | 'date' = 'string'
 ): boolean {
   // Handle null/undefined field values specially
   if (fieldValue === null || fieldValue === undefined) {
@@ -68,14 +68,14 @@ export function evaluateSimpleCondition(
       return String(typedFieldValue).endsWith(String(typedComparisonValue));
     case 'empty':
       return typedFieldValue === '' ||
-             typedFieldValue === null ||
-             typedFieldValue === undefined ||
-             (Array.isArray(typedFieldValue) && typedFieldValue.length === 0);
+          typedFieldValue === null ||
+          typedFieldValue === undefined ||
+          (Array.isArray(typedFieldValue) && typedFieldValue.length === 0);
     case 'notEmpty':
       return typedFieldValue !== '' &&
-             typedFieldValue !== null &&
-             typedFieldValue !== undefined &&
-             (!Array.isArray(typedFieldValue) || typedFieldValue.length > 0);
+          typedFieldValue !== null &&
+          typedFieldValue !== undefined &&
+          (!Array.isArray(typedFieldValue) || typedFieldValue.length > 0);
     case 'between':
       if (Array.isArray(typedComparisonValue) && typedComparisonValue.length === 2) {
         return typedFieldValue >= typedComparisonValue[0] && typedFieldValue <= typedComparisonValue[1];
@@ -115,14 +115,14 @@ export function evaluateSimpleCondition(
       }
     case 'isEmpty':
       return typedFieldValue === '' ||
-             typedFieldValue === null ||
-             typedFieldValue === undefined ||
-             (Array.isArray(typedFieldValue) && typedFieldValue.length === 0);
+          typedFieldValue === null ||
+          typedFieldValue === undefined ||
+          (Array.isArray(typedFieldValue) && typedFieldValue.length === 0);
     case 'isNotEmpty':
       return typedFieldValue !== '' &&
-             typedFieldValue !== null &&
-             typedFieldValue !== undefined &&
-             (!Array.isArray(typedFieldValue) || typedFieldValue.length > 0);
+          typedFieldValue !== null &&
+          typedFieldValue !== undefined &&
+          (!Array.isArray(typedFieldValue) || typedFieldValue.length > 0);
     default:
       console.warn(`Unknown operator: ${operator}`);
       return false;
@@ -133,23 +133,23 @@ export function evaluateSimpleCondition(
  * Evaluates a complex condition rule against field values
  */
 export function evaluateConditionRule(
-  rule: ConditionRule,
-  fieldValues: Record<string, any>
+    rule: ConditionRule,
+    fieldValues: Record<string, any>
 ): boolean {
   const fieldValue = fieldValues[rule.field];
   return evaluateSimpleCondition(
-    fieldValue,
-    rule.operator,
-    rule.value,
-    rule.type
+      fieldValue,
+      rule.operator,
+      rule.value,
+      rule.type
   );
 }
 
 function evaluateNavigationalRule(conditionalRule: NavigationRule, currentValues: CurrentValues): EvaluationResult {
   try {
     const { condition, target, isPage } = conditionalRule;
-    
-    
+
+
     // Try to parse enhanced operators first
     const enhancedResult = evaluateEnhancedCondition(condition, currentValues);
     if (enhancedResult !== null) {
@@ -159,12 +159,24 @@ function evaluateNavigationalRule(conditionalRule: NavigationRule, currentValues
         isPage: enhancedResult ? (isPage ? true : false) : null
       };
     }
-    
+
+    // Validate and sanitize the condition before evaluation
+    const sanitizedCondition = sanitizeCondition(condition);
+    if (!sanitizedCondition) {
+      console.warn('Invalid condition format:', condition);
+      return {
+        matched: false,
+        target: null,
+        isPage: null,
+        error: new Error('Invalid condition format')
+      };
+    }
+
     // Fallback to Function constructor evaluation for complex conditions
     const context = { ...currentValues };
-    const evaluator = new Function(...Object.keys(context), `return ${condition}`);
+    const evaluator = new Function(...Object.keys(context), `return ${sanitizedCondition}`);
     const result = evaluator(...Object.values(context));
-    
+
     if (result) {
       return {
         matched: true,
@@ -172,13 +184,13 @@ function evaluateNavigationalRule(conditionalRule: NavigationRule, currentValues
         isPage: isPage ? true : false
       };
     }
-    
+
     return {
       matched: false,
       target: null,
       isPage: null
     };
-    
+
   } catch (error) {
     console.error('Error evaluating condition:', error);
     return {
@@ -190,178 +202,45 @@ function evaluateNavigationalRule(conditionalRule: NavigationRule, currentValues
   }
 }
 
-// Helper function to evaluate enhanced conditions
-function evaluateEnhancedCondition(condition: string, currentValues: CurrentValues): boolean | null {
+// Add this new helper function to sanitize conditions
+function sanitizeCondition(condition: string): string | null {
   try {
-    // Check for isEmpty/isNotEmpty patterns
-    if (condition.match(/^!(\w+)\s*\|\|\s*\1\s*===\s*""$/)) {
-      const match = condition.match(/^!(\w+)/);
-      if (match) {
-        const fieldName = match[1];
-        const value = currentValues[fieldName];
-        return !value || value === "";
-      }
+    // Remove any potential dangerous characters or invalid syntax
+    let sanitized = condition.trim();
+
+    // Validate basic structure - should contain valid operators
+    const validOperators = ['==', '!=', '>=', '<=', '>', '<', '&&', '||', '!', '(', ')'];
+    const hasValidOperator = validOperators.some(op => sanitized.includes(op));
+
+    if (!hasValidOperator) {
+      return null;
     }
-    
-    if (condition.match(/^(\w+)\s*&&\s*\1\s*!==\s*""$/)) {
-      const match = condition.match(/^(\w+)/);
-      if (match) {
-        const fieldName = match[1];
-        const value = currentValues[fieldName];
-        return value && value !== "";
-      }
+
+    // Check for balanced parentheses
+    let parenCount = 0;
+    for (const char of sanitized) {
+      if (char === '(') parenCount++;
+      if (char === ')') parenCount--;
+      if (parenCount < 0) return null; // Unbalanced parentheses
     }
-    
-    // Check for array operations
-    if (condition.includes('.includes(')) {
-      // Pattern: ["a","b"].includes(field)
-      const includesMatch = condition.match(/^(!?)(\[.*?\])\.includes\((\w+)\)$/);
-      if (includesMatch) {
-        const [, negated, arrayStr, fieldName] = includesMatch;
-        const arrayValue = JSON.parse(arrayStr);
-        const fieldValue = currentValues[fieldName];
-        const result = Array.isArray(arrayValue) && arrayValue.includes(fieldValue);
-        return negated ? !result : result;
-      }
-      
-      // Pattern: field.includes("value")
-      const fieldIncludesMatch = condition.match(/^(\w+)\.includes\((.+)\)$/);
-      if (fieldIncludesMatch) {
-        const [, fieldName, valueStr] = fieldIncludesMatch;
-        const fieldValue = currentValues[fieldName];
-        const value = JSON.parse(valueStr);
-        if (Array.isArray(fieldValue)) {
-          return fieldValue.includes(value);
-        }
-        return String(fieldValue).includes(String(value));
-      }
+    if (parenCount !== 0) return null;
+
+    // Ensure proper spacing around operators for readability
+    sanitized = sanitized
+        .replace(/([=!<>])/g, ' $1 ') // Add spaces around operators
+        .replace(/\s+/g, ' ') // Normalize multiple spaces
+        .trim();
+
+    // Basic syntax validation - try to parse as a simple expression
+    // This is a basic check, you might want to add more sophisticated validation
+    const testContext = { test: 'value' };
+    try {
+      new Function(...Object.keys(testContext), `return ${sanitized}`);
+      return sanitized;
+    } catch {
+      return null;
     }
-    
-    // Check for array some/every operations
-    if (condition.includes('.some(') || condition.includes('.every(')) {
-      // Pattern: field.some(v => ["a","b"].includes(v))
-      const someMatch = condition.match(/^(\w+)\.(some|every)\(v\s*=>\s*(\[.*?\])\.includes\(v\)\)$/);
-      if (someMatch) {
-        const [, fieldName, method, arrayStr] = someMatch;
-        const fieldValue = currentValues[fieldName];
-        const arrayValue = JSON.parse(arrayStr);
-        
-        if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
-          if (method === 'some') {
-            return fieldValue.some(v => arrayValue.includes(v));
-          } else {
-            return arrayValue.every(v => fieldValue.includes(v));
-          }
-        }
-      }
-      
-      // Pattern: !field.some(v => ["a","b"].includes(v))
-      const notSomeMatch = condition.match(/^!(\w+)\.some\(v\s*=>\s*(\[.*?\])\.includes\(v\)\)$/);
-      if (notSomeMatch) {
-        const [, fieldName, arrayStr] = notSomeMatch;
-        const fieldValue = currentValues[fieldName];
-        const arrayValue = JSON.parse(arrayStr);
-        
-        if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
-          return !fieldValue.some(v => arrayValue.includes(v));
-        }
-      }
-    }
-    
-    // Check for between operations
-    if (condition.includes(' >= ') && condition.includes(' && ') && condition.includes(' <= ')) {
-      const betweenMatch = condition.match(/^(\w+)\s*>=\s*(.+?)\s*&&\s*\1\s*<=\s*(.+)$/);
-      if (betweenMatch) {
-        const [, fieldName, minStr, maxStr] = betweenMatch;
-        const fieldValue = currentValues[fieldName];
-        const min = JSON.parse(minStr);
-        const max = JSON.parse(maxStr);
-        return fieldValue >= min && fieldValue <= max;
-      }
-    }
-    
-    // Check for not between operations
-    if (condition.includes(' < ') && condition.includes(' || ') && condition.includes(' > ')) {
-      const notBetweenMatch = condition.match(/^(\w+)\s*<\s*(.+?)\s*\|\|\s*\1\s*>\s*(.+)$/);
-      if (notBetweenMatch) {
-        const [, fieldName, minStr, maxStr] = notBetweenMatch;
-        const fieldValue = currentValues[fieldName];
-        const min = JSON.parse(minStr);
-        const max = JSON.parse(maxStr);
-        return fieldValue < min || fieldValue > max;
-      }
-    }
-    
-    // Check for regex patterns
-    if (condition.includes('new RegExp(')) {
-      const regexMatch = condition.match(/^new RegExp\((.+?)\)\.test\((\w+)\)$/);
-      if (regexMatch) {
-        const [, patternStr, fieldName] = regexMatch;
-        const pattern = JSON.parse(patternStr);
-        const fieldValue = currentValues[fieldName];
-        return new RegExp(pattern).test(String(fieldValue));
-      }
-    }
-    
-    // Check for string methods (contains, startsWith, endsWith)
-    const stringMethodMatch = condition.match(/^(\w+)\.(contains|startsWith|endsWith)\((.+)\)$/);
-    if (stringMethodMatch) {
-      const [, fieldName, method, valueStr] = stringMethodMatch;
-      const fieldValue = String(currentValues[fieldName] || '');
-      const value = JSON.parse(valueStr);
-      
-      switch (method) {
-        case 'contains':
-          return fieldValue.includes(String(value));
-        case 'startsWith':
-          return fieldValue.startsWith(String(value));
-        case 'endsWith':
-          return fieldValue.endsWith(String(value));
-      }
-    }
-    
-    // Check for notContains pattern
-    if (condition.match(/^!(\w+)\.includes\(/)) {
-      const match = condition.match(/^!(\w+)\.includes\((.+)\)$/);
-      if (match) {
-        const [, fieldName, valueStr] = match;
-        const fieldValue = String(currentValues[fieldName] || '');
-        const value = JSON.parse(valueStr);
-        return !fieldValue.includes(String(value));
-      }
-    }
-    
-    // Standard comparison operators
-    const comparisonMatch = condition.match(/^(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/);
-    if (comparisonMatch) {
-      const [, fieldName, operator, valueStr] = comparisonMatch;
-      const fieldValue = currentValues[fieldName];
-      let value;
-      try {
-        value = JSON.parse(valueStr);
-      } catch {
-        value = valueStr;
-      }
-      
-      switch (operator) {
-        case '==':
-          return fieldValue == value;
-        case '!=':
-          return fieldValue != value;
-        case '>':
-          return fieldValue > value;
-        case '>=':
-          return fieldValue >= value;
-        case '<':
-          return fieldValue < value;
-        case '<=':
-          return fieldValue <= value;
-      }
-    }
-    
-    return null; // Couldn't parse with enhanced operators
-  } catch (error) {
-    console.error('Error in enhanced condition evaluation:', error);
+  } catch {
     return null;
   }
 }
@@ -370,28 +249,28 @@ function evaluateEnhancedCondition(condition: string, currentValues: CurrentValu
 function evaluateNavigationalRuleSafe(conditionalRule: NavigationRule, currentValues: CurrentValues): EvaluationResult {
   try {
     const { condition, target, isPage } = conditionalRule;
-    
+
     // Parse simple conditions like "field == value" or "field != value"
     const operatorRegex: RegExp = /(.*?)\s*(==|!=|>|<|>=|<=)\s*(.*)/;
     const match: RegExpMatchArray | null = condition.match(operatorRegex);
-    
+
     if (!match) {
       throw new Error('Unsupported condition format');
     }
-    
+
     const [, leftSide, operator, rightSide]: string[] = match;
     const fieldName: string = leftSide.trim();
-    
+
     // Remove quotes from string values
     let expectedValue: string = rightSide.trim();
     if ((expectedValue.startsWith('"') && expectedValue.endsWith('"')) ||
         (expectedValue.startsWith("'") && expectedValue.endsWith("'"))) {
       expectedValue = expectedValue.slice(1, -1);
     }
-    
+
     const currentValue: string | number | boolean = currentValues[fieldName];
     let result: boolean = false;
-    
+
     switch (operator) {
       case '==':
         result = currentValue == expectedValue;
@@ -414,7 +293,7 @@ function evaluateNavigationalRuleSafe(conditionalRule: NavigationRule, currentVa
       default:
         throw new Error(`Unsupported operator: ${operator}`);
     }
-    
+
     if (result) {
       return {
         matched: true,
@@ -422,13 +301,13 @@ function evaluateNavigationalRuleSafe(conditionalRule: NavigationRule, currentVa
         isPage: isPage ? true : false,
       };
     }
-    
+
     return {
       matched: false,
       target: null,
       isPage: null
     };
-    
+
   } catch (error) {
     console.error('Error evaluating condition:', error);
     return {
@@ -444,27 +323,27 @@ function evaluateNavigationalRuleSafe(conditionalRule: NavigationRule, currentVa
  * Evaluates a condition expression or rule against field values
  */
 export function evaluateCondition(
-  condition: string | ConditionRule | ConditionRule[],
-  fieldValues: Record<string, any>
+    condition: string | ConditionRule | ConditionRule[],
+    fieldValues: Record<string, any>
 ): boolean {
   // If condition is a string, evaluate it as a JavaScript expression
   if (typeof condition === 'string') {
     try {
       // Basic sanitization
       const sanitizedCondition = condition
-        .replace(/import\s*\{/g, '')
-        .replace(/require\s*\(/g, '')
-        .replace(/process/g, '')
-        .replace(/global/g, '')
-        .replace(/window/g, '')
-        .replace(/document/g, '')
-        .replace(/eval\s*\(/g, '')
-        .trim();
+          .replace(/import\s*\{/g, '')
+          .replace(/require\s*\(/g, '')
+          .replace(/process/g, '')
+          .replace(/global/g, '')
+          .replace(/window/g, '')
+          .replace(/document/g, '')
+          .replace(/eval\s*\(/g, '')
+          .trim();
 
       // Allow conditions written as "return x > 0;" by stripping leading return
       const normalized = sanitizedCondition
-        .replace(/^return\s+/i, '')
-        .replace(/;?\s*$/,'');
+          .replace(/^return\s+/i, '')
+          .replace(/;?\s*$/,'');
 
       // Create a function that references values by using a parameter object instead of 'with'
       const conditionFn = new Function('values', `
@@ -495,7 +374,7 @@ export function evaluateCondition(
 
   // If condition is an array of rules, evaluate each rule and return true if all are true
   return (condition as ConditionRule[]).every(rule =>
-    evaluateConditionRule(rule, fieldValues)
+      evaluateConditionRule(rule, fieldValues)
   );
 }
 
@@ -526,10 +405,10 @@ function translateConditionToExplicitReferences(condition: string): string {
  * Determines the next page index based on branching logic
  */
 export function getNextPageIndex(
-  currentPage: number,
-  branchingLogic: BranchingLogic | undefined,
-  fieldValues: Record<string, any>,
-  totalPages: number
+    currentPage: number,
+    branchingLogic: BranchingLogic | undefined,
+    fieldValues: Record<string, any>,
+    totalPages: number
 ): number {
   // If no branching logic is defined, go to the next page
   if (!branchingLogic || !branchingLogic.condition) {
@@ -569,10 +448,10 @@ export function getNextPageIndex(
  * Evaluate navigation rules defined on blocks to determine next page
  */
 export function getNextPageFromNavigationRules(
-  blocks: BlockData[],
-  pages: Array<BlockData[]>,
-  pageIds: string[],
-  fieldValues: Record<string, any>
+    blocks: BlockData[],
+    pages: Array<BlockData[]>,
+    pageIds: string[],
+    fieldValues: Record<string, any>
 ): number | null {
   for (const block of blocks) {
     if (!block.navigationRules) continue;
@@ -586,7 +465,7 @@ export function getNextPageFromNavigationRules(
           if (idx >= 0) return idx;
         } else {
           const idx = pages.findIndex((p) =>
-            p.some((b) => b.uuid === rule.target)
+              p.some((b) => b.uuid === rule.target)
           );
           if (idx >= 0) return idx;
         }
@@ -600,8 +479,8 @@ export function getNextPageFromNavigationRules(
  * Find the page and block index for a block UUID
  */
 export function findBlockPosition(
-  pages: Array<BlockData[]>,
-  target: string
+    pages: Array<BlockData[]>,
+    target: string
 ): { pageIndex: number; blockIndex: number } | null {
   for (let pIndex = 0; pIndex < pages.length; pIndex++) {
     const bIndex = pages[pIndex].findIndex((b) => b.uuid === target);
@@ -616,10 +495,10 @@ export function findBlockPosition(
  * Evaluate navigation rules on a single block and return the target position
  */
 export function getNextStepFromNavigationRules(
-  block: BlockData,
-  pages: Array<BlockData[]>,
-  pageIds: string[],
-  fieldValues: Record<string, any>
+    block: BlockData,
+    pages: Array<BlockData[]>,
+    pageIds: string[],
+    fieldValues: Record<string, any>
 ): { pageIndex: number; blockIndex: number } | 'submit' | null {
   if (!block.navigationRules) return null;
 
@@ -659,19 +538,19 @@ export function getNextStepFromNavigationRules(
  * Executes a calculation rule to compute a field value
  */
 export function executeCalculation(
-  calculationRule: CalculationRule,
-  fieldValues: Record<string, any>
+    calculationRule: CalculationRule,
+    fieldValues: Record<string, any>
 ): any {
   try {
     // Basic sanitization
     const sanitizedFormula = calculationRule.formula
-      .replace(/import\s*\{/g, '')
-      .replace(/require\s*\(/g, '')
-      .replace(/process/g, '')
-      .replace(/global/g, '')
-      .replace(/window/g, '')
-      .replace(/document/g, '')
-      .replace(/eval\s*\(/g, '');
+        .replace(/import\s*\{/g, '')
+        .replace(/require\s*\(/g, '')
+        .replace(/process/g, '')
+        .replace(/global/g, '')
+        .replace(/window/g, '')
+        .replace(/document/g, '')
+        .replace(/eval\s*\(/g, '');
 
     // Simple direct execution approach
     const functionBody = `
@@ -680,8 +559,8 @@ export function executeCalculation(
       try {
         // Make all fields directly available
         ${Object.keys(fieldValues).map(key =>
-          `const ${key} = ${JSON.stringify(fieldValues[key])};`
-        ).join('\n')}
+        `const ${key} = ${JSON.stringify(fieldValues[key])};`
+    ).join('\n')}
 
         // Execute formula
         ${sanitizedFormula}
@@ -704,8 +583,8 @@ export function executeCalculation(
  * Evaluates if a block should be visible based on its visibility condition
  */
 export function isBlockVisible(
-  block: { visibleIf?: string | ConditionRule | ConditionRule[] },
-  fieldValues: Record<string, any>
+    block: { visibleIf?: string | ConditionRule | ConditionRule[] },
+    fieldValues: Record<string, any>
 ): boolean {
   // If no visibility condition, the block is always visible
   if (!block.visibleIf) {
@@ -720,8 +599,8 @@ export function isBlockVisible(
  * Simple BMI calculator example
  */
 export function calculateBMI(
-  weightInKg: number,
-  heightInCm: number
+    weightInKg: number,
+    heightInCm: number
 ): { bmi: number; category: string } {
   // Convert height to meters
   const heightInM = heightInCm / 100;
@@ -742,4 +621,111 @@ export function calculateBMI(
   }
 
   return { bmi: parseFloat(bmi.toFixed(1)), category };
+}
+
+// Helper function to evaluate enhanced conditions
+function evaluateEnhancedCondition(condition: string, currentValues: CurrentValues): boolean | null {
+  try {
+    // Check for isEmpty/isNotEmpty patterns
+    if (condition.match(/^!(\w+)\s*\|\|\s*\1\s*===\s*""$/)) {
+      const match = condition.match(/^!(\w+)/);
+      if (match) {
+        const fieldName = match[1];
+        const value = currentValues[fieldName];
+        return !value || value === "";
+      }
+    }
+
+    if (condition.match(/^(\w+)\s*&&\s*\1\s*!==\s*""$/)) {
+      const match = condition.match(/^(\w+)/);
+      if (match) {
+        const fieldName = match[1];
+        const value = currentValues[fieldName];
+        return value && value !== "";
+      }
+    }
+
+    // Check for array operations
+    if (condition.includes('.includes(')) {
+      // Pattern: ["a","b"].includes(field)
+      const includesMatch = condition.match(/^(!?)(\[.*?\])\.includes\((\w+)\)$/);
+      if (includesMatch) {
+        const [, negated, arrayStr, fieldName] = includesMatch;
+        const arrayValue = JSON.parse(arrayStr);
+        const fieldValue = currentValues[fieldName];
+        const result = Array.isArray(arrayValue) && arrayValue.includes(fieldValue);
+        return negated ? !result : result;
+      }
+
+      // Pattern: field.includes("value")
+      const fieldIncludesMatch = condition.match(/^(\w+)\.includes\((.+)\)$/);
+      if (fieldIncludesMatch) {
+        const [, fieldName, valueStr] = fieldIncludesMatch;
+        const fieldValue = currentValues[fieldName];
+        const value = JSON.parse(valueStr);
+        if (Array.isArray(fieldValue)) {
+          return fieldValue.includes(value);
+        }
+        return String(fieldValue).includes(String(value));
+      }
+    }
+
+    // Check for array some/every operations
+    if (condition.includes('.some(') || condition.includes('.every(')) {
+      // Pattern: field.some(v => ["a","b"].includes(v))
+      const someMatch = condition.match(/^(\w+)\.(some|every)\(v\s*=>\s*(\[.*?\])\.includes\(v\)\)$/);
+      if (someMatch) {
+        const [, fieldName, method, arrayStr] = someMatch;
+        const fieldValue = currentValues[fieldName];
+        const arrayValue = JSON.parse(arrayStr);
+
+        if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
+          if (method === 'some') {
+            return fieldValue.some(v => arrayValue.includes(v));
+          } else {
+            return fieldValue.every(v => arrayValue.includes(v));
+          }
+        }
+      }
+    }
+
+    // Check for simple comparisons
+    const comparisonMatch = condition.match(/^(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/);
+    if (comparisonMatch) {
+      const [, fieldName, operator, valueStr] = comparisonMatch;
+      const fieldValue = currentValues[fieldName];
+      let value = valueStr.trim();
+
+      // Remove quotes from string values
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      // Try to parse as number if possible
+      const numericValue = !isNaN(Number(value)) ? Number(value) : value;
+      const numericFieldValue = !isNaN(Number(fieldValue)) ? Number(fieldValue) : fieldValue;
+
+      switch (operator) {
+        case '==':
+          return numericFieldValue == numericValue;
+        case '!=':
+          return numericFieldValue != numericValue;
+        case '>':
+          return numericFieldValue > numericValue;
+        case '<':
+          return numericFieldValue < numericValue;
+        case '>=':
+          return numericFieldValue >= numericValue;
+        case '<=':
+          return numericFieldValue <= numericValue;
+      }
+    }
+
+    // If no enhanced patterns match, return null to fall back to Function constructor
+    return null;
+  } catch (error) {
+    console.error('Error in enhanced condition evaluation:', error);
+    return null;
+  }
 }

@@ -189,7 +189,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
 
       {/* Fixed Header Section */}
       <div className="w-full backdrop-blur-sm border-gray-100">
-        <div className="w-full max-w-lg min-w-80 sm:min-w-[32rem] mx-auto py-4 px-4">
+        <div className="w-full max-w-lg min-w-80 mx-auto py-4 px-4">
           
           {/* Progress Bar Section */}
           {progressBar && typeof progressBar === "object" && progressBar.position !== "bottom" && (
