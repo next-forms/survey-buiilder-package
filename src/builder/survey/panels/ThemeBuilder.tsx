@@ -434,7 +434,7 @@ const VisualStyleBuilder: React.FC<{
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 border-green-300 border-2 rounded-lg p-2">
       {/* Quick presets */}
       <div>
         <Label className="flex items-center gap-2 mb-2">
