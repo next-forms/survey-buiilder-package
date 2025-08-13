@@ -12,64 +12,7 @@ import {
   type ThemeDefinition,
   type UUID
 } from "../types";
-
-// Default theme
-const defaultTheme: ThemeDefinition = {
-  name: "default",
-  containerLayout: "max-w-2xl mx-auto py-4 px-4 sm:px-6",
-  header: "mb-8",
-  title: "text-3xl font-bold text-gray-900 mb-4 text-center",
-  description: "text-lg text-gray-600 mb-8 text-center",
-  background: "bg-gray-50",
-  card: "bg-white shadow-sm rounded-lg p-6 mb-6",
-  container: {
-    card: "bg-white border border-gray-200 rounded-lg",
-    border: "border-gray-200",
-    activeBorder: "border-blue-500",
-    activeBg: "bg-blue-50",
-    header: "bg-gray-50",
-  },
-  field: {
-    label: "block text-sm font-medium text-gray-700 mb-2",
-    input: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-    description: "mt-1 text-sm text-gray-500",
-    error: "mt-1 text-sm text-red-600",
-    radio: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300",
-    checkbox: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded",
-    select: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-    textarea: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
-    file: "w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50",
-    matrix: "border-collapse w-full text-sm",
-    range: "accent-blue-600",
-    text: "text-gray-900",
-    activeText: "text-blue-600",
-    placeholder: "text-gray-400",
-    boxBorder: "border-gray-300"
-  },
-  progress: {
-    bar: "h-2 bg-[#3B82F6] rounded-full overflow-hidden",
-    dots: "flex space-x-2 justify-center",
-    numbers: "flex space-x-2 justify-center",
-    percentage: "text-right text-sm text-gray-600 mb-1",
-    label: "text-sm text-gray-600 mb-1",
-  },
-  button: {
-    primary: "inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-    secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-    text: "text-sm font-medium text-blue-600 hover:text-blue-500",
-    navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-  },
-  colors: {
-    primary: "#3B82F6",
-    secondary: "#6B7280",
-    accent: "#1D4ED8",
-    background: "#FFFFFF",
-    text: "#111827",
-    border: "#D1D5DB",
-    error: "#EF4444",
-    success: "#10B981",
-  },
-};
+import { defaultTheme } from "../themes";
 
 // Custom hook
 export const useSurveyBuilder = () => {
