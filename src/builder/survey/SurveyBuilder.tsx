@@ -7,7 +7,7 @@ import { LocalizationEditor } from "./helpers/LocalizationEditor";
 import { v4 as uuidv4 } from "uuid";
 import { BlockLibrary } from "./panels/BlockLibrary";
 import { JsonEditor } from "./helpers/JsonEditor";
-import { BlockDefinition, LocalizationMap, NodeData, NodeDefinition } from "../../types";
+import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition } from "../../types";
 import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
@@ -24,6 +24,7 @@ interface SurveyBuilderProps {
   onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap }) => void;
   blockDefinitions?: BlockDefinition[];
   nodeDefinitions?: NodeDefinition[];
+  globalCustomFields?: GlobalCustomField[];
 }
 
 // The main component wrapped with provider
@@ -32,6 +33,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   onDataChange,
   blockDefinitions = [],
   nodeDefinitions = [],
+  globalCustomFields = [],
 }) => {
   return (
     <SurveyBuilderProvider initialData={initialData}>
@@ -39,6 +41,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
         onDataChange={onDataChange}
         blockDefinitions={blockDefinitions}
         nodeDefinitions={nodeDefinitions}
+        globalCustomFields={globalCustomFields}
       />
     </SurveyBuilderProvider>
   );
@@ -49,6 +52,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   onDataChange,
   blockDefinitions = [],
   nodeDefinitions = [],
+  globalCustomFields = [],
 }) => {
   const {
     state,
@@ -57,12 +61,12 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
     initSurvey,
     createNode,
     setDisplayMode,
-    exportSurvey
+    exportSurvey,
+    setGlobalCustomFields
   } = useSurveyBuilder();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isThemeBuilderOpen, setIsThemeBuilderOpen] = useState(false);
   const [isFlowBuilderOpen, setIsFlowBuilderOpen] = useState(false);
-  
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // 1. Block definitions (once or on true changes only)
@@ -85,7 +89,21 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
     });
   }, [nodeDefinitions, state.definitions.nodes, addNodeDefinition]);
 
-  // 3. Notify parent only on real data changes
+  // 3. Set global custom fields (only when changed)
+  React.useEffect(() => {
+    if (globalCustomFields.length > 0) {
+      // Only set if different from current state
+      const currentFields = state.globalCustomFields || [];
+      const hasChanges = globalCustomFields.length !== currentFields.length ||
+        globalCustomFields.some((field, index) => field.key !== currentFields[index]?.key);
+      
+      if (hasChanges) {
+        setGlobalCustomFields(globalCustomFields);
+      }
+    }
+  }, [globalCustomFields, state.globalCustomFields]);
+
+  // 4. Notify parent only on real data changes
   React.useEffect(() => {
     onDataChange?.(exportSurvey());
   }, [state.rootNode, state.localizations, onDataChange]);

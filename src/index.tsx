@@ -134,4 +134,9 @@ export * from './utils/nodeUtils';
 export { useFlowHistory } from './builder/flow/useFlowHistory';
 export type { FlowHistoryState, FlowHistoryEntry, FlowHistory, UseFlowHistoryReturn } from './builder/flow/useFlowHistory';
 
+// Export global custom fields components
+export { GlobalCustomFields } from './builder/common/GlobalCustomFields';
+export { ReferenceQuestionKeyField } from './examples/ReferenceQuestionKeyField';
+export { SimpleCustomField } from './examples/SimpleCustomField';
+
 export default SurveyForm;

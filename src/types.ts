@@ -137,6 +137,19 @@ export interface ThemeDefinition {
   };
 }
 
+export interface GlobalCustomField {
+  key: string;
+  label: string;
+  description?: string;
+  component: React.ComponentType<{
+    data: BlockData;
+    onUpdate: (data: BlockData) => void;
+    value?: any;
+  }>;
+  defaultValue?: any;
+  showLabel?: boolean;
+}
+
 export interface SurveyBuilderState {
   rootNode: NodeData | null;
   definitions: {
@@ -148,6 +161,7 @@ export interface SurveyBuilderState {
   selectedNode: UUID | null;
   displayMode: 'list' | 'graph' | 'flow' | 'lang' | 'theme';
   enableDebug?: boolean;
+  globalCustomFields?: GlobalCustomField[];
 }
 
 export interface SurveyBuilderAction {

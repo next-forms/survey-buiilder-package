@@ -3,6 +3,8 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
 // Re‑use the same BlockData type used across the builder
 import type { BlockData } from "../../types";
+import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
+import { GlobalCustomFields } from "./GlobalCustomFields";
 
 /**
  * CommonBlockRules
@@ -21,6 +23,8 @@ export interface CommonBlockRulesProps {
 }
 
 export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpdate }) => {
+  const { state } = useSurveyBuilder();
+  
   // Keep local checkbox state in sync with incoming data
   const [isEndBlock, setIsEndBlock] = React.useState<boolean>(!!data.isEndBlock);
   const [autoContinueOnSelect, setAutoContinueOnSelect] = React.useState<boolean>(!!data.autoContinueOnSelect);
@@ -59,32 +63,43 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
   }, [data.isEndBlock]);
 
   return (
-    <div className="space-y-4 mt-4 mb-4">
-      <Label className="text-sm">Base Settings</Label>
-      <div className="flex items-center gap-2 mt-4">
-        <Checkbox
-          id="is-end-block"
-          checked={isEndBlock}
-          onCheckedChange={handleEndBlockChange}
-        />
-        <Label className="text-sm" htmlFor="is-end-block">Mark as end block?</Label>
-      </div>      
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="is-auto-block"
-          checked={autoContinueOnSelect}
-          onCheckedChange={handleAutoContinueChange}
-        />
-        <Label className="text-sm" htmlFor="is-auto-block">Auto Continue To next?</Label>
+    <>
+      <div className="space-y-4 mt-4 mb-4">
+        <Label className="text-sm">Base Settings</Label>
+        <div className="flex items-center gap-2 mt-4">
+          <Checkbox
+            id="is-end-block"
+            checked={isEndBlock}
+            onCheckedChange={handleEndBlockChange}
+          />
+          <Label className="text-sm" htmlFor="is-end-block">Mark as end block?</Label>
+        </div>      
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="is-auto-block"
+            checked={autoContinueOnSelect}
+            onCheckedChange={handleAutoContinueChange}
+          />
+          <Label className="text-sm" htmlFor="is-auto-block">Auto Continue To next?</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="is-show-block"
+            checked={showContinueButton}
+            onCheckedChange={handleShowContinueChange}
+          />
+          <Label className="text-sm" htmlFor="is-show-block">Show Next Button?</Label>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="is-show-block"
-          checked={showContinueButton}
-          onCheckedChange={handleShowContinueChange}
+      
+      {/* Render global custom fields if they exist */}
+      {state.globalCustomFields && state.globalCustomFields.length > 0 && (
+        <GlobalCustomFields
+          data={data}
+          onUpdate={onUpdate}
+          customFields={state.globalCustomFields}
         />
-        <Label className="text-sm" htmlFor="is-show-block">Show Next Button?</Label>
-      </div>
-    </div>
+      )}
+    </>
   );
 };

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   BlockData,
   type BlockDefinition,
+  type GlobalCustomField,
   type LocalizationMap,
   type NodeData,
   type NodeDefinition,
@@ -53,6 +54,7 @@ export const ActionTypes = {
   UPDATE_LOCALIZATIONS: "UPDATE_LOCALIZATIONS",
   UPDATE_THEME: "UPDATE_THEME",
   IMPORT_SURVEY: "IMPORT_SURVEY",
+  SET_GLOBAL_CUSTOM_FIELDS: "SET_GLOBAL_CUSTOM_FIELDS",
 };
 
 // Reducer
@@ -314,6 +316,12 @@ const surveyBuilderReducer = (
         theme: action.payload.theme || defaultTheme,
       };
 
+    case ActionTypes.SET_GLOBAL_CUSTOM_FIELDS:
+      return {
+        ...state,
+        globalCustomFields: action.payload,
+      };
+
     default:
       return state;
   }
@@ -337,6 +345,7 @@ interface SurveyBuilderContextType {
   updateTheme: (theme: ThemeDefinition) => void;
   importSurvey: (data: { rootNode: NodeData; localizations?: LocalizationMap; theme?: ThemeDefinition }) => void;
   exportSurvey: () => { rootNode: NodeData | null; localizations: LocalizationMap; theme: ThemeDefinition };
+  setGlobalCustomFields: (customFields: GlobalCustomField[]) => void;
 }
 
 export const SurveyBuilderContext = createContext<SurveyBuilderContextType | undefined>(
@@ -489,6 +498,13 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     };
   };
 
+  const setGlobalCustomFields = (customFields: GlobalCustomField[]) => {
+    dispatch({
+      type: ActionTypes.SET_GLOBAL_CUSTOM_FIELDS,
+      payload: customFields,
+    });
+  };
+
   const value = {
     state,
     dispatch,
@@ -504,6 +520,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     updateTheme,
     importSurvey,
     exportSurvey,
+    setGlobalCustomFields,
   };
 
   return (
