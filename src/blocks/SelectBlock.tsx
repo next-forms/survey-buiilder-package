@@ -370,6 +370,7 @@ export const SelectBlock: BlockDefinition = {
   renderItem: (props) => <SelectBlockItem {...props} />,
   renderFormFields: (props) => <SelectBlockForm {...props} />,
   renderPreview: () => <SelectBlockPreview/>,
+  renderBlock: (props) => <SelectRenderer {...props}/>,
   validate: (data) => {
     if (!data.fieldName) return "Field name is required";
     if (!data.label) return "Label is required";
