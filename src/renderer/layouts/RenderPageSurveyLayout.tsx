@@ -2,7 +2,6 @@
 import React, { useEffect, useRef } from "react";
 import { useSurveyForm } from "../../context/SurveyFormContext";
 import { BlockRenderer } from "../renderers/BlockRenderer";
-import { themes } from "../../themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../../components/ui/button";
 import { ChevronLeft, ArrowRight, History } from "lucide-react";
