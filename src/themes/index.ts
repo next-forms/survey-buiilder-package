@@ -37,8 +37,8 @@ export const defaultTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-3",
     selectableBoxText: "text-gray-700 text-sm",
     selectableBoxTextSelected: "text-blue-900 font-medium",
-    selectableBoxIndicator: "bg-blue-600 text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-blue-600 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   container: {
     card: "bg-white border border-gray-200 rounded-lg",
@@ -55,10 +55,10 @@ export const defaultTheme: ThemeDefinition = {
     label: "text-sm text-gray-500 mb-1",
   },
   button: {
-    primary: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+    primary: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-[#FFFFFF] bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
     secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
     text: "text-sm font-medium text-blue-600 hover:text-blue-500",
-    navigation: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+    navigation: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-[#FFFFFF] bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
   },
   colors: {
     primary: "#3B82F6", // blue-500
@@ -106,8 +106,8 @@ export const minimalTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-0",
     selectableBoxText: "text-gray-700 text-sm font-light",
     selectableBoxTextSelected: "text-gray-900 font-normal",
-    selectableBoxIndicator: "bg-gray-900 text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-gray-900 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   container: {
     card: "bg-white border border-gray-200 rounded-lg",
@@ -124,10 +124,10 @@ export const minimalTheme: ThemeDefinition = {
     label: "text-xs text-gray-400 mb-1",
   },
   button: {
-    primary: "py-2 px-4 text-sm font-medium text-white bg-gray-900 hover:bg-black focus:outline-none",
+    primary: "py-2 px-4 text-sm font-medium text-[#FFFFFF] bg-gray-900 hover:bg-black focus:outline-none",
     secondary: "py-2 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 focus:outline-none",
     text: "text-sm font-medium text-gray-700 hover:text-gray-900",
-    navigation: "flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black focus:outline-none",
+    navigation: "flex items-center px-4 py-2 text-sm font-medium text-[#FFFFFF] bg-gray-900 hover:bg-black focus:outline-none",
   },
   colors: {
     primary: "#111827", // gray-900
@@ -182,8 +182,8 @@ export const colorfulTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-4",
     selectableBoxText: "text-purple-700 text-sm font-medium",
     selectableBoxTextSelected: "text-purple-900 font-semibold",
-    selectableBoxIndicator: "bg-gradient-to-r from-purple-600 to-pink-600 text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-gradient-to-r from-purple-600 to-pink-600 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   progress: {
     bar: "h-2 bg-purple-100 rounded-full overflow-hidden",
@@ -193,10 +193,10 @@ export const colorfulTheme: ThemeDefinition = {
     label: "text-sm text-purple-600 mb-1",
   },
   button: {
-    primary: "inline-flex justify-center py-2 px-6 shadow-md text-sm font-medium rounded-full text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
+    primary: "inline-flex justify-center py-2 px-6 shadow-md text-sm font-medium rounded-full text-[#FFFFFF] bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
     secondary: "inline-flex justify-center py-2 px-6 border border-purple-200 shadow-md text-sm font-medium rounded-full text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
     text: "text-sm font-medium text-purple-600 hover:text-purple-800",
-    navigation: "inline-flex items-center px-6 py-2 shadow-md text-sm font-medium rounded-full text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
+    navigation: "inline-flex items-center px-6 py-2 shadow-md text-sm font-medium rounded-full text-[#FFFFFF] bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500",
   },
   colors: {
     primary: "#8B5CF6", // purple-500
@@ -251,8 +251,8 @@ export const modernTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-4",
     selectableBoxText: "text-gray-900 text-base",
     selectableBoxTextSelected: "text-[#E67E4D] font-medium",
-    selectableBoxIndicator: "bg-[#E67E4D] text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-[#E67E4D] text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   progress: {
     bar: "h-2 bg-[#3B82F6] rounded-full overflow-hidden",
@@ -262,10 +262,10 @@ export const modernTheme: ThemeDefinition = {
     label: "text-base text-gray-600 mb-1 text-start",
   },
   button: {
-    primary: "inline-flex justify-center py-4 px-16 text-base font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] min-w-32 sm:min-w-[200px]",
+    primary: "inline-flex justify-center py-4 px-16 text-base font-medium rounded-full text-[#FFFFFF] bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] min-w-32 sm:min-w-[200px]",
     secondary: "inline-flex justify-center py-3 px-8 border border-gray-200 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E67E4D]",
     text: "text-base font-medium text-[#E67E4D] hover:text-[#D86B3C]",
-    navigation: "inline-flex items-center px-8 py-4 text-base font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200",
+    navigation: "inline-flex items-center px-8 py-4 text-base font-medium rounded-full text-[#FFFFFF] bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all duration-200",
   },
   colors: {
     primary: "#E67E4D", // coral orange
@@ -320,8 +320,8 @@ export const corporateTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-2",
     selectableBoxText: "text-gray-700 text-sm",
     selectableBoxTextSelected: "text-blue-900 font-semibold",
-    selectableBoxIndicator: "bg-blue-700 text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-blue-700 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   progress: {
     bar: "h-2 bg-gray-200 overflow-hidden",
@@ -331,10 +331,10 @@ export const corporateTheme: ThemeDefinition = {
     label: "text-sm text-gray-600 mb-1",
   },
   button: {
-    primary: "inline-flex justify-center py-2 px-4 text-sm font-medium rounded-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700",
+    primary: "inline-flex justify-center py-2 px-4 text-sm font-medium rounded-sm text-[#FFFFFF] bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700",
     secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700",
     text: "text-sm font-medium text-blue-700 hover:text-blue-800",
-    navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700",
+    navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-sm text-[#FFFFFF] bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700",
   },
   colors: {
     primary: "#1D4ED8", // blue-700
@@ -382,8 +382,8 @@ export const darkTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-3",
     selectableBoxText: "text-gray-200 text-sm",
     selectableBoxTextSelected: "text-blue-400 font-medium",
-    selectableBoxIndicator: "bg-blue-500 text-white",
-    selectableBoxIndicatorIcon: "text-white",
+    selectableBoxIndicator: "bg-blue-500 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
   },
   container: {
     card: "bg-gray-800 text-gray-100 border-gray-700",
@@ -400,10 +400,10 @@ export const darkTheme: ThemeDefinition = {
     label: "text-sm text-gray-400 mb-1",
   },
   button: {
-    primary: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500",
+    primary: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-[#FFFFFF] bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500",
     secondary: "inline-flex justify-center py-2 px-4 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500",
     text: "text-sm font-medium text-blue-400 hover:text-blue-300",
-    navigation: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500",
+    navigation: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-[#FFFFFF] bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500",
   },
   colors: {
     primary: "#3B82F6", // blue-500
@@ -458,8 +458,8 @@ export const himsTheme: ThemeDefinition = {
     selectableBoxContainer: "space-y-3",
     selectableBoxText: "text-gray-900 text-base font-normal",
     selectableBoxTextSelected: "text-gray-900 font-normal",
-    selectableBoxIndicator: "bg-gray-600 text-white",
-    selectableBoxIndicatorIcon: "text-white"
+    selectableBoxIndicator: "bg-gray-600 text-[#FFFFFF]",
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]"
   },
   progress: {
     bar: "h-2 bg-gray-600 rounded-full overflow-hidden",
@@ -469,10 +469,10 @@ export const himsTheme: ThemeDefinition = {
     label: "text-base text-gray-700 mb-2 font-medium"
   },
   button: {
-    primary: "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200",
+    primary: "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-[#FFFFFF] bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200",
     secondary: "inline-flex justify-center py-3 px-6 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
     text: "text-base font-medium text-gray-600 hover:text-gray-800",
-    navigation: "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+    navigation: "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-[#FFFFFF] bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
   },
   colors: {
     primary: "#111827",

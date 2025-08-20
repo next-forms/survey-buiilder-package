@@ -118,12 +118,15 @@
 }
 
 /* Button Styling with Theme Colors */
-.survey-isolated-content .bg-primary,
+.survey-isolated-content .bg-primary:not(button):not([data-slot="button"]) {
+  background-color: var(--survey-primary) !important;
+}
+
 .survey-isolated-content button[class*="primary"],
 .survey-isolated-content .btn-primary {
   background-color: var(--survey-primary) !important;
   border-color: var(--survey-primary) !important;
-  color: white !important;
+  /* Don't force color on buttons - let theme classes handle it */
 }
 
 .survey-isolated-content .bg-secondary,
@@ -182,23 +185,41 @@
   color: var(--survey-text) !important;
 }
 
+/* Commenting out aggressive text color overrides that affect buttons
 .survey-isolated-content p,
-.survey-isolated-content span,
-.survey-isolated-content div,
+.survey-isolated-content span:not(button span):not([data-slot="button"] span),
+.survey-isolated-content div:not(button):not([data-slot="button"]),
 .survey-isolated-content label {
   color: var(--survey-text) !important;
 }
+*/
 
-/* Override any specific text color classes that might interfere */
-.survey-isolated-content .text-foreground,
-.survey-isolated-content .text-primary,
-.survey-isolated-content .text-secondary,
-.survey-isolated-content .text-black,
-.survey-isolated-content .text-white,
-.survey-isolated-content .text-gray-900,
-.survey-isolated-content .text-gray-800,
-.survey-isolated-content .text-gray-700 {
+/* Override any specific text color classes that might interfere - but not for buttons */
+.survey-isolated-content :not(button):not([data-slot="button"]).text-foreground,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-primary,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-secondary,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-black,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-gray-900,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-gray-800,
+.survey-isolated-content :not(button):not([data-slot="button"]).text-gray-700 {
   color: var(--survey-text) !important;
+}
+
+/* Preserve button text colors with explicit values */
+.survey-isolated-content button.text-white,
+.survey-isolated-content [data-slot="button"].text-white {
+  color: #ffffff !important;
+}
+
+.survey-isolated-content button.text-black,
+.survey-isolated-content [data-slot="button"].text-black {
+  color: #000000 !important;
+}
+
+/* Don't override inline styles or custom color classes on buttons */
+.survey-isolated-content button[style*="color"],
+.survey-isolated-content [data-slot="button"][style*="color"] {
+  /* Inline styles should take precedence */
 }
 
 /* Form Controls */
@@ -375,13 +396,14 @@
     var(--survey-surface) 100%) !important;
 }
 
-/* Ensure proper contrast for all text elements */
-.survey-isolated-content {
+/* Ensure proper contrast for all text elements except buttons - commented out to fix button text colors
+.survey-isolated-content > *:not(button):not([data-slot="button"]) {
   color: var(--survey-text);
 }
+*/
 
-/* Override any conflicting Tailwind utilities */
-.survey-isolated-content .text-current {
+/* Override any conflicting Tailwind utilities - but not for buttons */
+.survey-isolated-content :not(button):not([data-slot="button"]).text-current {
   color: var(--survey-text) !important;
 }
 

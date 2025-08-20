@@ -254,13 +254,15 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={handlePrevious}
-                    className={cn(
-                      "opacity-70 hover:opacity-100 transition-all duration-200",
-                      "w-8 h-8 p-0 rounded-full",
-                      "border border-gray-200",
-                      "hover:bg-gray-50 hover:scale-105",
-                      "focus:ring-2 focus:ring-[#E67E4D]/20"
-                    )}
+                    className={
+                      theme?.button?.navigation || cn(
+                        "opacity-70 hover:opacity-100 transition-all duration-200",
+                        "w-8 h-8 p-0 rounded-full",
+                        "border border-gray-200",
+                        "hover:bg-gray-50 hover:scale-105",
+                        "focus:ring-2 focus:ring-[#E67E4D]/20"
+                      )
+                    }
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span className="sr-only">
@@ -393,7 +395,10 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                           type="button"
                           variant="outline"
                           onClick={handlePrevious}
-                          className="mr-auto"
+                          className={cn(
+                            "mr-auto",
+                            theme?.button?.secondary
+                          )}
                         >
                           <ChevronLeft className="mr-2 w-4 h-4" />
                           {navigationButtons?.previousText || "Previous"}
@@ -405,15 +410,18 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                       <Button
                         type="submit"
                         disabled={!isValid}
+                        variant="ghost"
                         size="lg"
-                        className={cn(
-                          "bg-black hover:bg-gray-800 text-white",
-                          "px-16 py-4 text-base font-medium",
-                          "rounded-full min-w-32 sm:min-w-[200px]",
-                          "transition-all duration-200",
-                          "hover:scale-[1.02] active:scale-[0.98]",
-                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        )}
+                        className={
+                          theme?.button?.navigation || cn(
+                            "bg-black hover:bg-gray-800 text-white",
+                            "px-16 py-4 text-base font-medium",
+                            "rounded-full min-w-32 sm:min-w-[200px]",
+                            "transition-all duration-200",
+                            "hover:scale-[1.02] active:scale-[0.98]",
+                            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          )
+                        }
                       >
                         <span className="flex items-center">
                           {isLastPage &&
