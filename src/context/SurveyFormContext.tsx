@@ -626,7 +626,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       setValues(prev => ({ ...prev, ...fValue }));
     }
 
-    // Validate current field before proceeding
+    // Validate current field and show errors (but don't block navigation)
     if (currentBlock?.fieldName) {
       const fieldName = currentBlock.fieldName;
       const currentValue = mergedValues[fieldName];
@@ -634,7 +634,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       // Run validation for the current field
       const validationError = validateField(fieldName, currentValue);
       if (validationError) {
-        // Set the error and prevent navigation
+        // Set the error but continue with navigation
         setConditionalErrors(prev => ({ ...prev, [fieldName]: validationError }));
         return; // Don't proceed if validation fails
       } else {
@@ -733,18 +733,18 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       .filter(block => block.fieldName)
       .map(block => block.fieldName as string);
 
-    const newConditionalErrors: Record<string, string> = {};
+    // const newConditionalErrors: Record<string, string> = {};
 
-    allFields.forEach(field => {
-      const value = values[field];
-      const validationError = validateField(field, value);
-      if (validationError) {
-        newConditionalErrors[field] = validationError;
-        hasErrors = true;
-      }
-    });
+    // allFields.forEach(field => {
+    //   const value = values[field];
+    //   const validationError = validateField(field, value);
+    //   if (validationError) {
+    //     newConditionalErrors[field] = validationError;
+    //     hasErrors = true;
+    //   }
+    // });
 
-    setConditionalErrors(newConditionalErrors);
+    // setConditionalErrors(newConditionalErrors);
 
     if (!hasErrors && Object.keys(errors).length === 0) {
       if (onSubmit) {
@@ -763,12 +763,15 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     setIsSubmitting(false);
   };
 
+  // Merge regular errors with conditional errors for display
+  const mergedErrors = { ...errors, ...conditionalErrors };
+
   return (
     <SurveyFormContext.Provider
       value={{
         values,
         setValue,
-        errors,
+        errors: mergedErrors,
         setError,
         currentPage,
         currentBlockIndex,
