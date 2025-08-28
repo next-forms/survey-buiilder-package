@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button";
 import { ChevronLeft, ArrowRight, History } from "lucide-react";
 import { cn } from '../../lib/utils';
 import { getSurveyPages } from "../../utils/surveyUtils";
+import { AnalyticsTrackedLayout } from './AnalyticsTrackedLayout';
 
 interface RenderPageSurveyLayoutProps {
   progressBar?:
@@ -86,6 +87,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     getTotalVisibleSteps,
     getCurrentStepPosition,
     getVisibleBlocks,
+    analytics,
   } = useSurveyForm();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -154,7 +156,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const currentBlock = currentPageBlocks[currentBlockIndex];
   const blockDisclaimer = currentBlock?.disclaimer;
 
-  return (
+  const layoutContent = (
     <div
       className="survey-fullpage-layout min-h-max flex flex-col w-full"
       ref={containerRef}
@@ -464,4 +466,15 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
         )}
     </div>
   );
+
+  // Wrap with analytics tracking if analytics is configured
+  if (analytics) {
+    return (
+      <AnalyticsTrackedLayout analytics={analytics}>
+        {layoutContent}
+      </AnalyticsTrackedLayout>
+    );
+  }
+
+  return layoutContent;
 };
