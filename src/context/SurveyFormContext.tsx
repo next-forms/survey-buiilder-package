@@ -38,6 +38,7 @@ interface EnhancedSurveyFormContextProps extends SurveyFormContextProps {
   getTotalVisibleSteps: () => number;
   getCurrentStepPosition: () => number;
   isCurrentPageValid: boolean;
+  analytics?: any;
 }
 
 // Create context with default values
@@ -77,6 +78,7 @@ export const SurveyFormContext = createContext<EnhancedSurveyFormContextProps>({
   getTotalVisibleSteps: () => 0,
   getCurrentStepPosition: () => 0,
   isCurrentPageValid: false,
+  analytics: undefined,
 });
 
 // Props for the provider
@@ -96,6 +98,7 @@ interface SurveyFormProviderProps {
   debug?: boolean;
   enableDebug?: boolean;
   logo?: any;
+  analytics?: any; // Analytics configuration passed from SurveyForm
 }
 
 // Provider component
@@ -113,6 +116,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   enableDebug = false,
   debug = false,
   logo = null,
+  analytics,
 }) => {
   // State for form values and errors
   const [values, setValues] = useState<Record<string, any>>(defaultValues);
@@ -804,7 +808,8 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
         getTotalVisibleSteps,
         getCurrentStepPosition,
         isCurrentPageValid,
-        logo
+        logo,
+        analytics
       }}
     >
       {children}

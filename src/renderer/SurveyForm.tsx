@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import type { SurveyFormRendererProps } from '../types';
 import { SurveyFormProvider } from '../context/SurveyFormContext';
 import { RenderPageSurveyLayout } from './layouts/RenderPageSurveyLayout';
 import { themes } from '../themes';
 import { applyDynamicColors } from '../utils/colorUtils';
+import { SurveyAnalyticsProvider } from '../analytics';
+import type { AnalyticsConfig } from '../analytics';
 
 // Import the theme isolation CSS
 import '../styles/survey-theme-isolation.css';
-
-// Theme mode type
-type ThemeMode = 'light' | 'dark' | 'system';
 
 export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   survey,
@@ -38,6 +37,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   logo = null,
   className = '',
   themeMode = 'light',
+  analytics,
 }) => {
 
   // Debug log - helps diagnose issues with the survey data
@@ -105,7 +105,28 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     logo
   };
 
-  return (
+  // Prepare analytics configuration
+  const analyticsConfig: AnalyticsConfig = analytics ? {
+    sessionId: analytics.sessionId,
+    userId: analytics.userId,
+    customDimensions: analytics.customDimensions,
+    googleAnalytics: analytics.googleAnalytics,
+    googleTagManager: analytics.googleTagManager
+  } : {};
+
+  // Determine if analytics should be enabled
+  const isAnalyticsEnabled = analytics?.enabled !== false && 
+    (analytics?.googleAnalytics || analytics?.googleTagManager);
+
+  if (enableDebug) {
+    console.log('[SurveyForm] Analytics config:', {
+      analytics,
+      isAnalyticsEnabled,
+      analyticsConfig
+    });
+  }
+
+  const surveyContent = (
     <div 
       className={`survey-theme-container ${getThemeClass()} min-h-screen`}
       style={surveyThemeStyle}
@@ -122,6 +143,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
             language={language}
             theme={themeConfig}
             logo={logo}
+            analytics={analytics}
           >
             <RenderPageSurveyLayout {...layoutProps} />
           </SurveyFormProvider>
@@ -129,4 +151,19 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
       </div>
     </div>
   );
+
+  // Wrap with analytics provider if enabled
+  if (isAnalyticsEnabled) {
+    return (
+      <SurveyAnalyticsProvider 
+        config={analyticsConfig}
+        enabled={analytics?.enabled !== false}
+        debug={enableDebug || analytics?.googleAnalytics?.debug || analytics?.googleTagManager?.debug}
+      >
+        {surveyContent}
+      </SurveyAnalyticsProvider>
+    );
+  }
+
+  return surveyContent;
 };

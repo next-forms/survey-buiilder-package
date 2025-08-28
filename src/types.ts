@@ -195,6 +195,27 @@ export interface SurveyFormRendererProps {
   debug?: boolean;
   enableDebug?: boolean;
   logo?: any;
+  // Analytics configuration
+  analytics?: {
+    enabled?: boolean;
+    sessionId?: string;
+    userId?: string;
+    surveyId?: string;
+    googleAnalytics?: {
+      measurementId: string;
+      debug?: boolean;
+    };
+    googleTagManager?: {
+      containerId: string;
+      auth?: string;
+      preview?: string;
+      debug?: boolean;
+    };
+    trackFieldInteractions?: boolean;
+    trackValidationErrors?: boolean;
+    trackTimings?: boolean;
+    customDimensions?: Record<string, any>;
+  };
 }
 
 
@@ -285,6 +306,14 @@ export interface SurveyFormContextProps {
   validateField: (fieldName: string, value: any) => string | null;
   enableDebug?: boolean;
   logo?: any;
+  analytics?: {
+    surveyId?: string;
+    sessionId?: string;
+    userId?: string;
+    trackFieldInteractions?: boolean;
+    trackValidationErrors?: boolean;
+    trackTimings?: boolean;
+  };
 }
 
 // New interfaces for conditional branching and validation
