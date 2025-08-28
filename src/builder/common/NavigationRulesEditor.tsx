@@ -53,6 +53,11 @@ function buildRule(state: RuleState): NavigationRule {
 
 export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   const { state } = useSurveyBuilder();
+  
+  // Initialize rules state early, before any conditional returns
+  const [rules, setRules] = React.useState<RuleState[]>(() => {
+    return (data.navigationRules || []).map(parseRule);
+  });
 
   const findBlockPath = React.useCallback((node: any, targetUuid: string, currentPath: any[] = []): any[] | null => {
     if (!node) return null;
@@ -355,10 +360,6 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
     return detectNavigationCycles(state.rootNode);
   }, [state.rootNode, detectNavigationCycles]);
 
-  const [rules, setRules] = React.useState<RuleState[]>(() => {
-    return (data.navigationRules || []).map(parseRule);
-  });
-
   // Track if we're internally updating to prevent sync loops
   const isInternalUpdateRef = React.useRef(false);
   
@@ -377,15 +378,15 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rules]);
 
-  const handleRuleChange = (index: number, field: keyof RuleState, value: any) => {
+  const handleRuleChange = React.useCallback((index: number, field: keyof RuleState, value: any) => {
     setRules((prev) => {
       const newRules = [...prev];
       newRules[index] = { ...newRules[index], [field]: value };
       return newRules;
     });
-  };
+  }, []);
 
-  const handleTargetChange = (index: number, val: string) => {
+  const handleTargetChange = React.useCallback((index: number, val: string) => {
     if (val === "submit") {
       setRules((prev) => {
         const newRules = [...prev];
@@ -400,25 +401,20 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
       newRules[index] = { ...newRules[index], target: uuid, isPage: kind === "page" };
       return newRules;
     });
-  };
+  }, []);
 
-  const addRule = () => {
+  const addRule = React.useCallback(() => {
     setRules((prev) => [
       ...prev,
       { field: "", operator: "==", value: "", target: "", isPage: true },
     ]);
-  };
+  }, []);
 
-  const removeRule = (index: number) => {
+  const removeRule = React.useCallback((index: number) => {
     setRules((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
-  // Don't render the editor if there's only one page or one block
-  if (!shouldShowEditor) {
-    return null;
-  }
-
-  const renderRuleEditor = (rule: RuleState, index: number) => {
+  const renderRuleEditor = React.useCallback((rule: RuleState, index: number) => {
     return (
         <div key={index} className="border rounded-md p-3 space-y-3 my-4">
           <div className="grid grid-cols-2 gap-3">
@@ -585,8 +581,12 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
         </div>
 
     );
-  };
+  }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type]);
 
+  // Don't render the editor if there's only one page or one block
+  if (!shouldShowEditor) {
+    return null;
+  }
 
   return (
     <div className="space-y-4">
