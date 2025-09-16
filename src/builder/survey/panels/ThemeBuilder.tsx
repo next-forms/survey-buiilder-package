@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useState, useEffect } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -16,7 +16,8 @@ import {
   ClipboardCopy, Palette, Type, Layout, MousePointer, BarChart3, Package, 
   RefreshCw, Download, Upload, Plus, X, Info, Eye, EyeOff, Sparkles,
   Square, Sliders, Paintbrush, Grid3X3, CheckSquare,
-  ArrowLeft, ArrowRight, Settings, Brush, Wrench, Check, ChevronRight, Zap
+  ArrowLeft, ArrowRight, Settings, Brush, Wrench, Check, ChevronRight, Zap,
+  PenLine
 } from "lucide-react";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { ThemeDefinition, SurveyTheme, SurveyBuilderState, NodeData, LocalizationMap } from "../../../types";
@@ -243,6 +244,92 @@ const extractColorFromClass = (colorClass: string): string => {
   return '#000000';
 };
 
+// Updated HexColorPicker component
+const HexColorPicker: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}> = ({ value, onChange, label }) => {
+  const hexColor = value?.startsWith('#') ? value : '#000000';
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Popover >
+          <PopoverTrigger asChild>
+            <Button
+              ref={buttonRef}
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => setOpen(!open)}
+            >
+              <div 
+                className="w-4 h-4 rounded border"
+                style={{ backgroundColor: hexColor }}
+              />
+              <span className="text-sm">{hexColor}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-80 z-50" 
+            align="start" 
+            sideOffset={5}
+          >
+            <div className="space-y-4">
+              <div>
+                <Label className="text-foreground">Quick Colors</Label>
+                <div className="grid grid-cols-6 gap-2 mt-2">
+                  {COLOR_PRESETS.map(preset => (
+                    <button
+                      key={preset.value}
+                      className="w-10 h-10 rounded border-2 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: preset.value }}
+                      onClick={() => {
+                        onChange(preset.value);
+                        setOpen(false);
+                      }}
+                      title={preset.name}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-foreground">Custom Color</Label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="color"
+                    value={hexColor}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-20 h-10 rounded cursor-pointer"
+                  />
+                  <Input
+                    value={hexColor}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.match(/^#[0-9A-Fa-f]{6}$/) || val === '' || val.match(/^#[0-9A-Fa-f]{0,6}$/)) {
+                        onChange(val);
+                      }
+                    }}
+                    placeholder="#000000"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setOpen(false);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+};
+
 // Component for color picker with presets
 const ColorPicker: React.FC<{
   value: string;
@@ -273,7 +360,7 @@ const ColorPicker: React.FC<{
               <span className="text-sm">{hexColor}</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
+          <PopoverContent className="w-80" align="start" sideOffset={5}>
             <div className="space-y-4">
               <div>
                 <Label className="text-foreground">Quick Colors</Label>
@@ -682,6 +769,24 @@ const FIELD_PRESETS = {
     { name: "Card Style", value: "p-6 transition-all duration-300 cursor-pointer rounded-2xl border-2 border-purple-200 bg-white shadow-sm hover:scale-105" },
     { name: "Corporate", value: "p-5 transition-all duration-200 cursor-pointer rounded-lg border border-slate-300 bg-white shadow-sm" },
     { name: "Dark", value: "p-5 transition-all duration-200 cursor-pointer rounded-lg border border-gray-600 bg-gray-800" },
+  ],
+  agreementContainer: [
+    { name: "Default", value: "p-5 space-y-4" },
+    { name: "Compact", value: "p-4 space-y-3" },
+    { name: "Spacious", value: "p-8 space-y-6" },
+    { name: "Minimal", value: "p-3 space-y-2" },
+  ],
+  agreementPanel: [
+    { name: "Default", value: "rounded-md border p-3 text-sm whitespace-pre-wrap bg-muted/30" },
+    { name: "Formal", value: "rounded-lg border-2 p-4 text-sm whitespace-pre-wrap bg-gray-50 border-gray-300" },
+    { name: "Modern", value: "rounded-xl p-4 text-sm whitespace-pre-wrap bg-gradient-to-br from-gray-50 to-gray-100" },
+    { name: "Minimal", value: "border-b pb-3 text-sm whitespace-pre-wrap" },
+  ],
+  signatureCanvas: [
+    { name: "Default", value: "w-full h-40 border rounded-md overflow-hidden bg-background" },
+    { name: "Large", value: "w-full h-48 border-2 rounded-lg overflow-hidden bg-white shadow-inner" },
+    { name: "Minimal", value: "w-full h-36 border-b-2 bg-transparent" },
+    { name: "Bordered", value: "w-full h-40 border-2 border-dashed rounded-md overflow-hidden bg-gray-50" },
   ],
 };
 
@@ -1509,7 +1614,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="label" className="space-y-4">
-                      <TabsList className="grid grid-cols-3 lg:grid-cols-7 gap-1">
+                      <TabsList className="grid grid-cols-4 lg:grid-cols-8 gap-1">
                         <TabsTrigger value="label">Label</TabsTrigger>
                         <TabsTrigger value="input">Input</TabsTrigger>
                         <TabsTrigger value="select">Select</TabsTrigger>
@@ -1519,6 +1624,10 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
                         <TabsTrigger value="selectableBox" className="flex items-center gap-1">
                           <CheckSquare className="w-3 h-3" />
                           <span className="hidden lg:inline">Box</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="agreement" className="flex items-center gap-1">
+                          <PenLine className="w-3 h-3" />
+                          <span className="hidden lg:inline">Agreement</span>
                         </TabsTrigger>
                       </TabsList>
 
@@ -1641,6 +1750,63 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
                           )}
                         </TabsContent>
                       ))}
+                      <TabsContent key="agreement" value="agreement">
+                        <div className="space-y-6">
+                          <Alert>
+                            <PenLine className="w-4 h-4" />
+                            <AlertDescription>
+                              Customize the appearance of agreement blocks with name input and signature canvas.
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <div className="grid grid-cols-1 gap-6">
+                            <div>
+                              <Label className="text-base font-semibold mb-3 block">Agreement Container</Label>
+                              <VisualStyleBuilder
+                                value={currentTheme.field.agreementContainer || "p-5 space-y-4"}
+                                onChange={(val) => updateNestedProperty('field', 'agreementContainer', val)}
+                                presetType="agreementContainer"
+                              />
+                            </div>
+                            
+                            <Separator />
+                            
+                            <div>
+                              <Label className="text-base font-semibold mb-3 block">Agreement Text Panel</Label>
+                              <VisualStyleBuilder
+                                value={currentTheme.field.agreementPanel || "rounded-md border p-3 text-sm whitespace-pre-wrap bg-muted/30"}
+                                onChange={(val) => updateNestedProperty('field', 'agreementPanel', val)}
+                                presetType="agreementPanel"
+                              />
+                            </div>
+                            
+                            <Separator />
+                            
+                            <div>
+                              <Label className="text-base font-semibold mb-3 block">Signature Canvas</Label>
+                              <VisualStyleBuilder
+                                value={currentTheme.field.signatureCanvas || "w-full h-40 border rounded-md overflow-hidden bg-background"}
+                                onChange={(val) => updateNestedProperty('field', 'signatureCanvas', val)}
+                                presetType="signatureCanvas"
+                              />
+                            </div>
+                            
+                            <Separator />
+                            
+                            <div>
+                              <Label className="text-base font-semibold mb-3 block">Signature Color</Label>
+                              <HexColorPicker 
+                                value={currentTheme.field.signatureColor || "#000000"} 
+                                onChange={(val) => updateNestedProperty('field', 'signatureColor', val)}
+                                label="Signature Stroke Color"
+                              />
+                              <p className="text-xs text-muted-foreground mt-2">
+                                The color of the signature stroke when drawing. Should be a hex color value.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
@@ -1875,7 +2041,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
         
         {/* Theme Builder Column - Flexible width */}
         <div 
-          className="flex-1 lg:min-w-96 space-y-6 p-4 lg:p-2 rounded-md lg:pr-3 overflow-y-auto"
+          className="flex-1 lg:min-w-96 space-y-6 p-4 lg:p-2 rounded-md lg:pr-3 overflow-y-auto relative"
           style={{
             width: 'var(--left-panel-width, auto)',
             maxWidth: 'var(--left-panel-width, none)',

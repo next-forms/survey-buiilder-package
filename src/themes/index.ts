@@ -39,6 +39,10 @@ export const defaultTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-blue-900 font-medium",
     selectableBoxIndicator: "bg-blue-600 text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-5 space-y-4",
+    agreementPanel: "rounded-md border p-3 text-sm whitespace-pre-wrap bg-muted/30 dark:bg-muted/20",
+    signatureCanvas: "w-full h-40 border rounded-md overflow-hidden bg-background",
+    signatureColor: "#111827", // gray-900
   },
   container: {
     card: "bg-white border border-gray-200 rounded-lg",
@@ -108,6 +112,10 @@ export const minimalTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-gray-900 font-normal",
     selectableBoxIndicator: "bg-gray-900 text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-4 space-y-3",
+    agreementPanel: "border-b pb-3 text-sm whitespace-pre-wrap",
+    signatureCanvas: "w-full h-36 border-b-2 bg-transparent",
+    signatureColor: "#111827", // gray-900
   },
   container: {
     card: "bg-white border border-gray-200 rounded-lg",
@@ -184,6 +192,10 @@ export const colorfulTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-purple-900 font-semibold",
     selectableBoxIndicator: "bg-gradient-to-r from-purple-600 to-pink-600 text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-6 space-y-5",
+    agreementPanel: "rounded-xl border-2 border-purple-200 p-4 text-sm whitespace-pre-wrap bg-gradient-to-br from-purple-50 to-pink-50",
+    signatureCanvas: "w-full h-44 border-2 border-purple-200 rounded-lg overflow-hidden bg-white shadow-inner",
+    signatureColor: "#8B5CF6", // purple-500
   },
   progress: {
     bar: "h-2 bg-purple-100 rounded-full overflow-hidden",
@@ -253,6 +265,10 @@ export const modernTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-[#E67E4D] font-medium",
     selectableBoxIndicator: "bg-[#E67E4D] text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-6 space-y-5",
+    agreementPanel: "rounded-xl p-4 text-base whitespace-pre-wrap bg-[#E67E4D]/5 border border-[#E67E4D]/20",
+    signatureCanvas: "w-full h-44 border rounded-xl overflow-hidden bg-white",
+    signatureColor: "#E67E4D", // coral orange
   },
   progress: {
     bar: "h-2 bg-[#3B82F6] rounded-full overflow-hidden",
@@ -322,6 +338,10 @@ export const corporateTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-blue-900 font-semibold",
     selectableBoxIndicator: "bg-blue-700 text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-5 space-y-4",
+    agreementPanel: "rounded-sm border border-gray-300 p-3 text-sm whitespace-pre-wrap bg-gray-50",
+    signatureCanvas: "w-full h-40 border border-gray-300 rounded-sm overflow-hidden bg-white",
+    signatureColor: "#1D4ED8", // blue-700
   },
   progress: {
     bar: "h-2 bg-gray-200 overflow-hidden",
@@ -384,6 +404,10 @@ export const darkTheme: ThemeDefinition = {
     selectableBoxTextSelected: "text-blue-400 font-medium",
     selectableBoxIndicator: "bg-blue-500 text-[#FFFFFF]",
     selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-5 space-y-4",
+    agreementPanel: "rounded-md border border-gray-600 p-3 text-sm whitespace-pre-wrap bg-gray-700 text-gray-100",
+    signatureCanvas: "w-full h-40 border border-gray-600 rounded-md overflow-hidden bg-gray-800",
+    signatureColor: "#60A5FA", // blue-400 (lighter for visibility on dark background)
   },
   container: {
     card: "bg-gray-800 text-gray-100 border-gray-700",
@@ -459,7 +483,11 @@ export const himsTheme: ThemeDefinition = {
     selectableBoxText: "text-gray-900 text-base font-normal",
     selectableBoxTextSelected: "text-gray-900 font-normal",
     selectableBoxIndicator: "bg-gray-600 text-[#FFFFFF]",
-    selectableBoxIndicatorIcon: "text-[#FFFFFF]"
+    selectableBoxIndicatorIcon: "text-[#FFFFFF]",
+    agreementContainer: "p-5 space-y-4",
+    agreementPanel: "rounded-lg border border-gray-300 p-4 text-base whitespace-pre-wrap bg-gray-50",
+    signatureCanvas: "w-full h-40 border border-gray-300 rounded-lg overflow-hidden bg-white",
+    signatureColor: "#111827", // gray-900
   },
   progress: {
     bar: "h-2 bg-gray-600 rounded-full overflow-hidden",

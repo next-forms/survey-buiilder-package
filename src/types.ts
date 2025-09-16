@@ -104,6 +104,12 @@ export interface ThemeDefinition {
     selectableBoxTextSelected?: string;        // Text styling when selected
     selectableBoxIndicator?: string;           // Selection indicator (checkmark) styling
     selectableBoxIndicatorIcon?: string;       // Icon styling within the indicator
+
+    // Agreement block specific styling
+    agreementContainer?: string; // Main container for the agreement block
+    agreementPanel?: string; // The agreement text display panel
+    signatureCanvas?: string; // Signature canvas styling
+    signatureColor?: string; // Signature stroke color (hex value)
   };
   container: {
     card: string;

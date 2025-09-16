@@ -1,4 +1,5 @@
 import type { BlockDefinition } from "../types";
+import { AgreementBlock } from "./AgreementBlock";
 import { TextInputBlock } from "./TextInputBlock";
 import { TextareaBlock } from "./TextareaBlock";
 import { AuthBlock } from "./AuthBlock";
@@ -20,6 +21,7 @@ import { SelectableBoxQuestionBlock } from "./SelectableBoxQuestionBlock";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
+  agreement: AgreementBlock,
   textfield: TextInputBlock,
   textarea: TextareaBlock,
   auth: AuthBlock,
@@ -43,6 +45,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
 // Export all standard block definitions - ALL NOW UNIFIED
 export const StandardBlocks: BlockDefinition[] = [
   // Basic input blocks
+  AgreementBlock,
   SelectableBoxQuestionBlock,
   TextInputBlock,
   TextareaBlock,
@@ -73,6 +76,7 @@ export const StandardBlocks: BlockDefinition[] = [
 
 // Export individual blocks for direct import
 export { 
+  AgreementBlock,
   TextInputBlock, 
   TextareaBlock, 
   AuthBlock,

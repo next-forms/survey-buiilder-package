@@ -19,6 +19,8 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
   const [testResults, setTestResults] = React.useState<string[]>([]);
   const [testData, setTestData] = React.useState({
     name: "Test User",
+    firstName: "Test",
+    lastName: "User",
     email: "test@example.com",
     mobile: "+1234567890",
     otp: "123456"
@@ -551,30 +553,55 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   {/* Required Fields */}
                   <Card className="p-4 bg-muted/50">
                     <h4 className="font-medium mb-3">Required Fields</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="requireName"
-                          checked={!!data.requireName}
-                          onCheckedChange={(checked) => handleChange("requireName", !!checked)}
-                        />
-                        <Label className="text-sm" htmlFor="requireName">Require Name</Label>
+                    <div className="space-y-4">
+                      {/* Name Configuration */}
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="requireName"
+                            checked={!!data.requireName}
+                            onCheckedChange={(checked) => handleChange("requireName", !!checked)}
+                          />
+                          <Label className="text-sm" htmlFor="requireName">Require Name</Label>
+                        </div>
+                        
+                        {data.requireName && (
+                          <div className="ml-6 space-y-2">
+                            <Label className="text-sm">Name Field Type</Label>
+                            <Select
+                              value={data.nameFieldType || "single"}
+                              onValueChange={(value) => handleChange("nameFieldType", value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="single">Single Name Field</SelectItem>
+                                <SelectItem value="separate">Separate First & Last Name</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="requireEmail"
-                          checked={!!data.requireEmail}
-                          onCheckedChange={(checked) => handleChange("requireEmail", !!checked)}
-                        />
-                        <Label className="text-sm" htmlFor="requireEmail">Require Email</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="requireMobile"
-                          checked={!!data.requireMobile}
-                          onCheckedChange={(checked) => handleChange("requireMobile", !!checked)}
-                        />
-                        <Label className="text-sm" htmlFor="requireMobile">Require Mobile</Label>
+                      
+                      {/* Email and Mobile checkboxes */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="requireEmail"
+                            checked={!!data.requireEmail}
+                            onCheckedChange={(checked) => handleChange("requireEmail", !!checked)}
+                          />
+                          <Label className="text-sm" htmlFor="requireEmail">Require Email</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="requireMobile"
+                            checked={!!data.requireMobile}
+                            onCheckedChange={(checked) => handleChange("requireMobile", !!checked)}
+                          />
+                          <Label className="text-sm" htmlFor="requireMobile">Require Mobile</Label>
+                        </div>
                       </div>
                     </div>
                     
@@ -589,16 +616,39 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                   </Card>
 
                   {/* Field Labels */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm" htmlFor="nameLabel">Name Field Label</Label>
-                      <Input
-                        id="nameLabel"
-                        value={data.nameLabel || "Name"}
-                        onChange={(e) => handleChange("nameLabel", e.target.value)}
-                        placeholder="Name"
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {data.nameFieldType === "single" ? (
+                      <div className="space-y-2">
+                        <Label className="text-sm" htmlFor="nameLabel">Name Field Label</Label>
+                        <Input
+                          id="nameLabel"
+                          value={data.nameLabel || "Name"}
+                          onChange={(e) => handleChange("nameLabel", e.target.value)}
+                          placeholder="Name"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-sm" htmlFor="firstNameLabel">First Name Label</Label>
+                          <Input
+                            id="firstNameLabel"
+                            value={data.firstNameLabel || "First Name"}
+                            onChange={(e) => handleChange("firstNameLabel", e.target.value)}
+                            placeholder="First Name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm" htmlFor="lastNameLabel">Last Name Label</Label>
+                          <Input
+                            id="lastNameLabel"
+                            value={data.lastNameLabel || "Last Name"}
+                            onChange={(e) => handleChange("lastNameLabel", e.target.value)}
+                            placeholder="Last Name"
+                          />
+                        </div>
+                      </>
+                    )}
                     <div className="space-y-2">
                       <Label className="text-sm" htmlFor="emailLabel">Email Field Label</Label>
                       <Input
@@ -888,15 +938,38 @@ const AuthBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemo
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm" htmlFor="testName">Test Name</Label>
-                      <Input
-                        id="testName"
-                        value={testData.name}
-                        onChange={(e) => setTestData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Test User"
-                      />
-                    </div>
+                    {data.nameFieldType === "separate" ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-sm" htmlFor="testFirstName">Test First Name</Label>
+                          <Input
+                            id="testFirstName"
+                            value={testData.firstName}
+                            onChange={(e) => setTestData(prev => ({ ...prev, firstName: e.target.value }))}
+                            placeholder="Test"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm" htmlFor="testLastName">Test Last Name</Label>
+                          <Input
+                            id="testLastName"
+                            value={testData.lastName}
+                            onChange={(e) => setTestData(prev => ({ ...prev, lastName: e.target.value }))}
+                            placeholder="User"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label className="text-sm" htmlFor="testName">Test Name</Label>
+                        <Input
+                          id="testName"
+                          value={testData.name}
+                          onChange={(e) => setTestData(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Test User"
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label className="text-sm" htmlFor="testEmail">Test Email</Label>
                       <Input
@@ -1178,7 +1251,7 @@ const AuthBlockPreview: React.FC = () => {
 };
 
 
-type AuthStep = 'name' | 'email' | 'phone' | 'email-otp' | 'phone-otp' | 'welcome' | 'skipped';
+type AuthStep = 'name' | 'firstName' | 'lastName' | 'email' | 'phone' | 'email-otp' | 'phone-otp' | 'welcome' | 'skipped';
 
 const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const { goToNextBlock, setValue, navigationHistory } = useSurveyForm();
@@ -1196,8 +1269,15 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const requireMobile = (block as any).requireMobile || false;
   const skipIfLoggedIn = (block as any).skipIfLoggedIn || false; // New configuration
 
+  // Add configuration for name field type:
+  const nameFieldType = (block as any).nameFieldType || 'single';
+  const firstNameLabel = (block as any).firstNameLabel || 'First Name';
+  const lastNameLabel = (block as any).lastNameLabel || 'Last Name';
+
   // Form state
-  const [currentStep, setCurrentStep] = useState<AuthStep>('name');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [currentStep, setCurrentStep] = useState<AuthStep>(nameFieldType == "single" ? "name" : "firstName");
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -1344,9 +1424,14 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     }
   }, [navigationHistory]);
 
+  // Update determineFirstStep function:
   const determineFirstStep = () => {
     if (requireName) {
-      setCurrentStep('name');
+      if (nameFieldType === 'separate') {
+        setCurrentStep('firstName');
+      } else {
+        setCurrentStep('name');
+      }
     } else if (requireEmail) {
       setCurrentStep('email');
     } else if (requireMobile) {
@@ -1378,7 +1463,9 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const saveToFieldName = (data: any, token?: string) => {
     const authResults = {
       ...data,
-      name,
+      name: nameFieldType === 'separate' ? `${firstName} ${lastName}` : name,
+      firstName: nameFieldType === 'separate' ? firstName : undefined,
+      lastName: nameFieldType === 'separate' ? lastName : undefined,
       email,
       mobile,
       token: token || data[tokenField],
@@ -1395,9 +1482,28 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     setSuccess(null);
 
     // Handle step transitions
+
     if (currentStep === 'name') {
       if (!name.trim()) {
         setError('Name is required');
+        return;
+      }
+      setCurrentStep(requireEmail ? 'email' : 'phone');
+      return;
+    }
+
+    if (currentStep === 'firstName') {
+      if (!firstName.trim()) {
+        setError('First name is required');
+        return;
+      }
+      setCurrentStep('lastName');
+      return;
+    }
+
+    if (currentStep === 'lastName') {
+      if (!lastName.trim()) {
+        setError('Last name is required');
         return;
       }
       setCurrentStep(requireEmail ? 'email' : 'phone');
@@ -1474,7 +1580,15 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     
     try {
       const baseBody: any = {};
-      if (requireName && name) baseBody.name = name;
+      if (requireName) {
+        if (nameFieldType === 'separate') {
+          baseBody.firstName = firstName;
+          baseBody.lastName = lastName;
+          baseBody.name = `${firstName} ${lastName}`; // Also send combined name
+        } else {
+          baseBody.name = name;
+        }
+      }
       if (requireEmail && email) baseBody.email = email;
       if (requireMobile && mobile) baseBody.mobile = mobile;
 
@@ -1602,8 +1716,16 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
   const handleSignInAsDifferent = () => {
     localStorage.removeItem(storageKey);
-    setCurrentStep('name');
+    if (nameFieldType === 'separate') {
+      setCurrentStep('firstName');
+    } else if (requireName) {
+      setCurrentStep('name');
+    } else {
+      determineFirstStep();
+    }
     setName('');
+    setFirstName('');
+    setLastName('');
     setEmail('');
     setMobile('');
     setError(null);
@@ -1613,7 +1735,9 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
   const getStepIcon = () => {
     switch (currentStep) {
-      case 'name': return <User className="w-6 h-6" />;
+      case 'name':
+      case 'firstName':
+      case 'lastName': return <User className="w-6 h-6" />;
       case 'email': return <Mail className="w-6 h-6" />;
       case 'phone': return <Phone className="w-6 h-6" />;
       case 'email-otp':
@@ -1626,6 +1750,8 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepTitle = () => {
     switch (currentStep) {
       case 'name': return `What's your ${nameLabel.toLowerCase()}?`;
+      case 'firstName': return `What's your ${firstNameLabel.toLowerCase()}?`;
+      case 'lastName': return `What's your ${lastNameLabel.toLowerCase()}?`;
       case 'email': return `What's your ${emailLabel.toLowerCase()}?`;
       case 'phone': return `What's your ${mobileLabel.toLowerCase()}?`;
       case 'email-otp': return 'Enter email verification code';
@@ -1638,11 +1764,19 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepDescription = () => {
     switch (currentStep) {
       case 'name': return `Please enter your ${nameLabel.toLowerCase()}`;
+      case 'firstName': return `Please enter your ${firstNameLabel.toLowerCase()}`;
+      case 'lastName': return `Please enter your ${lastNameLabel.toLowerCase()}`;
       case 'email': return useOtp ? 'We\'ll send a verification code to this email' : 'We\'ll use this to authenticate you';
       case 'phone': return useOtp ? 'We\'ll send a verification code to this number' : 'We\'ll use this to authenticate you';
       case 'email-otp': return `Enter the verification code sent to ${email}`;
       case 'phone-otp': return `Enter the verification code sent to ${mobile}`;
-      case 'welcome': return name ? `Hello ${name}, you're already authenticated.` : "You're already authenticated.";
+      case 'welcome': 
+        const displayName = nameFieldType === 'separate' && firstName 
+          ? firstName 
+          : name;
+        return displayName 
+          ? `Hello ${displayName}, you're already authenticated.` 
+          : "You're already authenticated.";
       default: return '';
     }
   };
@@ -1650,11 +1784,69 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const canSubmit = () => {
     switch (currentStep) {
       case 'name': return name.trim().length > 0;
+      case 'firstName': return firstName.trim().length > 0;
+      case 'lastName': return lastName.trim().length > 0;
       case 'email': return email.trim().length > 0 && email.includes('@');
       case 'phone': return mobile.trim().length > 0;
       case 'email-otp': return emailOtp.length >= 4;
       case 'phone-otp': return mobileOtp.length >= 4;
       default: return false;
+    }
+  };
+
+  // Add a function to determine the previous step
+  const getPreviousStep = (): AuthStep | null => {
+    switch (currentStep) {
+      case 'firstName':
+        // firstName is always the first step when using separate names
+        return null;
+      case 'lastName':
+        return 'firstName';
+      case 'name':
+        // name is always the first step when using single name field
+        return null;
+      case 'email':
+        if (requireName) {
+          // If separate names, go back to lastName; if single, go back to name
+          return nameFieldType === 'separate' ? 'lastName' : 'name';
+        }
+        // Email is the first step if no name required
+        return null;
+      case 'phone':
+        if (requireEmail) {
+          return 'email';
+        } else if (requireName) {
+          // If no email but name is required, go to appropriate name step
+          return nameFieldType === 'separate' ? 'lastName' : 'name';
+        }
+        // Phone is the first step if neither name nor email required
+        return null;
+      case 'email-otp':
+        // During OTP flow, might need to go back to the input step
+        if (requireEmail) {
+          return requireMobile ? 'phone' : 'email';
+        }
+        return 'email';
+      case 'phone-otp':
+        return 'phone';
+      default:
+        return null;
+    }
+  };
+
+  // Add a function to handle going back
+  const handleGoBack = () => {
+    const previousStep = getPreviousStep();
+    if (previousStep) {
+      setCurrentStep(previousStep);
+      setError(null);
+      setSuccess(null);
+      // Clear OTP specific data if moving away from OTP steps
+      if (currentStep.includes('otp')) {
+        setEmailOtp('');
+        setMobileOtp('');
+        setOtpSent({});
+      }
     }
   };
 
@@ -1667,6 +1859,30 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={`Enter your ${nameLabel.toLowerCase()}`}
+            className="text-lg h-14 text-center"
+            autoFocus
+            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
+          />
+        );
+      case 'firstName':
+        return (
+          <Input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder={`Enter your ${firstNameLabel.toLowerCase()}`}
+            className="text-lg h-14 text-center"
+            autoFocus
+            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
+          />
+        );
+      case 'lastName':
+        return (
+          <Input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder={`Enter your ${lastNameLabel.toLowerCase()}`}
             className="text-lg h-14 text-center"
             autoFocus
             onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
@@ -1897,17 +2113,10 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             )}
           </Button>
 
-          {currentStep.includes('otp') && (
+          {getPreviousStep() && (
             <Button 
               variant="outline" 
-              onClick={() => {
-                setCurrentStep(requireEmail ? 'email' : 'phone');
-                setError(null);
-                setSuccess(null);
-                setEmailOtp('');
-                setMobileOtp('');
-                setOtpSent({});
-              }}
+              onClick={handleGoBack}
               className="w-full"
             >
               Back to previous step
@@ -1927,8 +2136,8 @@ export const AuthBlock: BlockDefinition = {
   defaultData: {
     type: "auth",
     fieldName: "authResults",
-    loginUrl: "",
-    signupUrl: "",
+    loginUrl: "/api/patient/login",
+    signupUrl: "/api/patient/login",
     useOtp: false,
     sendEmailOtpUrl: "",
     verifyEmailOtpUrl: "",
@@ -1937,10 +2146,13 @@ export const AuthBlock: BlockDefinition = {
     tokenField: "token",
     tokenStorageKey: "authToken",
     validateTokenUrl: "",
-    requireName: false,
+    requireName: true,
+    nameFieldType: "separate", // New: "single" or "separate"
     requireEmail: true,
     requireMobile: false,
     nameLabel: "Name",
+    firstNameLabel: "First Name", // New
+    lastNameLabel: "Last Name", // New
     emailLabel: "Email",
     mobileLabel: "Mobile Number",
     fieldMappings: {},
