@@ -16,6 +16,8 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   onChange,
   onPageChange,
   defaultValues = {},
+  initialValues,
+  startPage = 0,
   language = 'en',
   progressBar = true,
   navigationButtons = {
@@ -40,7 +42,14 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   analytics,
 }) => {
 
-  // Debug log - helps diagnose issues with the survey data
+  // Debug log - helps diagnose issues with the survey data and resume functionality
+  console.log('[SurveyForm] Props received:', {
+    initialValues,
+    startPage,
+    enableDebug,
+    hasDefaultValues: !!defaultValues && Object.keys(defaultValues).length > 0
+  });
+
   if (enableDebug) {
     console.log('SurveyForm rendering with survey data:', survey?.rootNode?.type || 'No survey data');
   }
@@ -136,6 +145,8 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
           <SurveyFormProvider
             surveyData={survey}
             defaultValues={defaultValues}
+            initialValues={initialValues}
+            startPage={startPage}
             onSubmit={onSubmit}
             onChange={onChange}
             onPageChange={onPageChange}

@@ -88,6 +88,8 @@ interface SurveyFormProviderProps {
     rootNode: NodeData;
   };
   defaultValues?: Record<string, any>;
+  initialValues?: Record<string, any>; // For loading saved answers
+  startPage?: number; // For resuming from specific page
   onSubmit?: (data: Record<string, any>) => void;
   onChange?: (data: Record<string, any>) => void;
   onPageChange?: (pageIndex: number, totalPages: number) => void;
@@ -106,6 +108,8 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   children,
   surveyData,
   defaultValues = {},
+  initialValues,
+  startPage = 0,
   onSubmit,
   onChange,
   onPageChange,
@@ -118,25 +122,49 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   logo = null,
   analytics,
 }) => {
+  // Debug log for resume functionality
+  console.log('[SurveyFormProvider] Props received:', {
+    defaultValues,
+    initialValues,
+    startPage,
+    enableDebug,
+    hasInitialValues: !!initialValues && Object.keys(initialValues).length > 0
+  });
   // State for form values and errors
-  const [values, setValues] = useState<Record<string, any>>(defaultValues);
+  // Merge defaultValues with initialValues (initialValues takes precedence for loading saved answers)
+  const mergedInitialValues = { ...defaultValues, ...(initialValues || {}) };
+  console.log('[SurveyFormProvider] Merged initial values:', mergedInitialValues);
+  console.log('[SurveyFormProvider] Starting at page:', startPage);
+
+  const [values, setValues] = useState<Record<string, any>>(() => {
+    const initial = { ...defaultValues, ...(initialValues || {}) };
+    console.log('[SurveyFormProvider] Initial state values:', initial);
+    return initial;
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [conditionalErrors, setConditionalErrors] = useState<Record<string, string>>({});
   const [computedValues, setComputedValues] = useState<Record<string, any>>({});
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => {
+    console.log('[SurveyFormProvider] Initial currentPage state:', startPage);
+    return startPage;
+  });
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState(language);
-  
-  // Navigation history state
-  const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryEntry[]>([
-    {
-      pageIndex: 0,
-      blockIndex: 0,
-      timestamp: Date.now(),
-      trigger: 'initial'
-    }
-  ]);
+
+  // Navigation history state - initialize with startPage if provided
+  const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryEntry[]>(() => {
+    const initialHistory = [
+      {
+        pageIndex: startPage,
+        blockIndex: 0,
+        timestamp: Date.now(),
+        trigger: 'initial' as const
+      }
+    ];
+    console.log('[SurveyFormProvider] Initial navigation history:', initialHistory);
+    return initialHistory;
+  });
 
   // Refs to track state for popstate handler
   const navigationHistoryRef = useRef(navigationHistory);
@@ -156,6 +184,41 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   useEffect(() => {
     currentBlockIndexRef.current = currentBlockIndex;
   }, [currentBlockIndex]);
+
+  // Call onPageChange when component mounts with startPage
+  useEffect(() => {
+    if (startPage > 0 && onPageChange) {
+      onPageChange(startPage, totalPages);
+    }
+  }, []); // Only run once on mount
+
+  // Update values when initialValues changes (for dynamic loading)
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      console.log('[SurveyFormProvider] Updating values from initialValues:', initialValues);
+      setValues(prev => {
+        const updated = { ...prev, ...initialValues };
+        console.log('[SurveyFormProvider] Updated values:', updated);
+        return updated;
+      });
+    }
+  }, [initialValues]);
+
+  // Ensure page is set when component mounts with startPage
+  useEffect(() => {
+    if (startPage > 0) {
+      console.log('[SurveyFormProvider] Setting initial page to:', startPage);
+      setCurrentPage(startPage);
+      setCurrentBlockIndex(0);
+      // Update navigation history to reflect the start page
+      setNavigationHistory([{
+        pageIndex: startPage,
+        blockIndex: 0,
+        timestamp: Date.now(),
+        trigger: 'initial'
+      }]);
+    }
+  }, []); // Only run once on mount
 
   // Get all pages from the survey
   const pages = getSurveyPages(surveyData.rootNode);
@@ -272,13 +335,13 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       }, 100);
     };
 
-    // Add initial state to browser history
+    // Add initial state to browser history with startPage
     window.history.replaceState(
-      { 
-        surveyPage: currentPage, 
-        surveyBlock: currentBlockIndex,
+      {
+        surveyPage: startPage,
+        surveyBlock: 0,
         timestamp: Date.now()
-      }, 
+      },
       '',
       window.location.href
     );

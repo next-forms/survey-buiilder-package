@@ -185,6 +185,8 @@ export interface SurveyFormRendererProps {
   onChange?: (data: Record<string, any>) => void;
   onPageChange?: (pageIndex: number, totalPages: number) => void;
   defaultValues?: Record<string, any>;
+  initialValues?: Record<string, any>; // For loading saved answers
+  startPage?: number; // For resuming from specific page
   language?: string;
   theme?: SurveyTheme;
   themeMode?: 'light' | 'dark' | 'system';

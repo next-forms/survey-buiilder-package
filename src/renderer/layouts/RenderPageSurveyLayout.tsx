@@ -332,13 +332,20 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                     
                     <BlockRenderer
                       block={currentPageBlocks[currentBlockIndex]}
-                      value={
-                        currentPageBlocks[currentBlockIndex].fieldName
-                          ? values[
-                          currentPageBlocks[currentBlockIndex]
-                            .fieldName as string
-                          ]
-                          : undefined
+                      value={(() => {
+                        const fieldName = currentPageBlocks[currentBlockIndex].fieldName;
+                        const fieldValue = fieldName ? values[fieldName as string] : undefined;
+                        if (enableDebug) {
+                          console.log('[RenderPageSurveyLayout] BlockRenderer value:', {
+                            fieldName,
+                            fieldValue,
+                            allValues: values,
+                            currentBlockIndex,
+                            currentPage
+                          });
+                        }
+                        return fieldValue;
+                      })()
                       }
                       onChange={(value) => {
                         const currentBlock =
