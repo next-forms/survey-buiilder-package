@@ -6,11 +6,30 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Checkbox } from "../components/ui/checkbox";
-import { CirclePlus, CircleX, CheckSquare, Check } from "lucide-react";
+import { CirclePlus, CircleX, CheckSquare, Check, GripVertical } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { generateFieldName } from "./utils/GenFieldName";
 import { cn } from "../lib/utils";
 import { themes } from "../themes";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface BoxOption {
   id: string;
@@ -71,6 +90,30 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
     };
     handleChange("options", newOptions);
   };
+
+  // Handle drag end for reordering options
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = options.findIndex((option) => option.id === active.id);
+      const newIndex = options.findIndex((option) => option.id === over.id);
+
+      const newOptions = arrayMove(options, oldIndex, newIndex);
+      handleChange("options", newOptions);
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   return (
     <div className="space-y-4">
@@ -150,63 +193,56 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
           <Label className="text-sm">Selectable Options</Label>
         </div>
 
-        <div className="space-y-3">
-          {options.map((option, index) => (
-            <div key={option.id} className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">{index + 1}</span>
-              </div>
-              <div className="flex-grow grid grid-cols-2 gap-2">
-                <Input
-                  value={option.label}
-                  onChange={(e) => handleUpdateOption(index, "label", e.target.value)}
-                  placeholder="Option label"
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={options.map((option) => option.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <SortableOption
+                  key={option.id}
+                  option={option}
+                  index={index}
+                  onUpdateOption={handleUpdateOption}
+                  onRemoveOption={handleRemoveOption}
                 />
-                <Input
-                  value={option.value}
-                  onChange={(e) => handleUpdateOption(index, "value", e.target.value)}
-                  placeholder="Option value"
-                />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveOption(index)}
-                className="text-destructive"
-              >
-                <CircleX className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+              ))}
 
-          <div className="pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <CirclePlus className="h-4 w-4 text-muted-foreground" />
+              <div className="pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <CirclePlus className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-grow grid grid-cols-2 gap-2">
+                    <Input
+                      value={newOptionLabel}
+                      onChange={(e) => setNewOptionLabel(e.target.value)}
+                      placeholder="New option label"
+                      onKeyDown={(e) => e.key === "Enter" && handleAddOption()}
+                    />
+                    <Input
+                      value={newOptionValue}
+                      onChange={(e) => setNewOptionValue(e.target.value)}
+                      placeholder="New option value (optional)"
+                    />
+                  </div>
+                  <Button type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleAddOption}
+                  >
+                    <CirclePlus className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex-grow grid grid-cols-2 gap-2">
-                <Input
-                  value={newOptionLabel}
-                  onChange={(e) => setNewOptionLabel(e.target.value)}
-                  placeholder="New option label"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddOption()}
-                />
-                <Input
-                  value={newOptionValue}
-                  onChange={(e) => setNewOptionValue(e.target.value)}
-                  placeholder="New option value (optional)"
-                />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleAddOption}
-              >
-                <CirclePlus className="h-4 w-4 text-primary" />
-              </Button>
             </div>
-          </div>
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Optional visual configuration settings */}
@@ -262,6 +298,76 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
       </div>
+    </div>
+  );
+};
+
+// Sortable option component for drag and drop
+interface SortableOptionProps {
+  option: BoxOption;
+  index: number;
+  onUpdateOption: (index: number, field: "label" | "value", value: string) => void;
+  onRemoveOption: (index: number) => void;
+}
+
+const SortableOption: React.FC<SortableOptionProps> = ({
+  option,
+  index,
+  onUpdateOption,
+  onRemoveOption,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: option.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2"
+    >
+      <button
+        type="button"
+        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="w-6 h-6 flex items-center justify-center">
+        <span className="text-xs text-muted-foreground">{index + 1}</span>
+      </div>
+      <div className="flex-grow grid grid-cols-2 gap-2">
+        <Input
+          value={option.label}
+          onChange={(e) => onUpdateOption(index, "label", e.target.value)}
+          placeholder="Option label"
+        />
+        <Input
+          value={option.value}
+          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          placeholder="Option value"
+        />
+      </div>
+      <Button type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemoveOption(index)}
+        className="text-destructive"
+      >
+        <CircleX className="h-4 w-4" />
+      </Button>
     </div>
   );
 };
@@ -469,12 +575,14 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   
   // Handle single select option selection
   const handleSingleSelect = (optionValue: string) => {
-    setSelectedValue(optionValue);
-    
+    // Allow deselection if clicking the same option
+    const newValue = selectedValue === optionValue ? "" : optionValue;
+    setSelectedValue(newValue);
+
     if (onChange) {
-      onChange(optionValue);
+      onChange(newValue);
     }
-    
+
     if (onBlur) {
       onBlur();
     }
@@ -608,11 +716,18 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
             
             return (
               <div key={option.id} className="relative">
-                <RadioGroupItem 
-                  value={option.value} 
+                <RadioGroupItem
+                  value={option.value}
                   id={id}
                   className="sr-only"
                   aria-invalid={!!error}
+                  onClick={(e) => {
+                    // Prevent default RadioGroup behavior to allow deselection
+                    if (selected) {
+                      e.preventDefault();
+                      handleSingleSelect(option.value);
+                    }
+                  }}
                 />
                 <Label 
                   htmlFor={id} 
