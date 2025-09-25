@@ -260,7 +260,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
   }
 
   return (
-    <g>
+    <g style={{ pointerEvents: "auto" }}>
       {/* Ghost of original edge when dragging */}
       {isBeingDragged && (
         <path
@@ -275,7 +275,7 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
           }}
         />
       )}
-      
+
       {/* Invisible wider path for easier clicking */}
       <path
         d={path}
@@ -312,12 +312,15 @@ export const FlowEdgeComponent: React.FC<FlowEdgeComponentProps> = ({
         strokeWidth={selected ? strokeWidth + 1 : strokeWidth}
         fill="none"
         strokeDasharray={strokeDasharray}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         className={edge.animated || selected ? "animate-pulse" : ""}
         markerEnd={markerEnd}
         style={{
           opacity: isBeingDragged ? 0.8 : 1,
           filter: selected ? "brightness(1.2)" : "none",
-          transition: isBeingDragged ? "none" : "all 0.2s ease"
+          transition: isBeingDragged ? "none" : "all 0.2s ease",
+          pointerEvents: "stroke"
         }}
         onClick={handleEdgeClick}
       />

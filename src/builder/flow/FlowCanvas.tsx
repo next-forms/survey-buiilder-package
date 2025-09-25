@@ -1030,7 +1030,123 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
           </div>
         )}
 
-        {/* Transform container */}
+        {/* SVG for edges - outside transform container for better compatibility */}
+        <svg
+          className="absolute inset-0"
+          style={{
+            width: "100%",
+            height: "100%",
+            zIndex: 5,
+            overflow: "visible",
+            pointerEvents: "none"
+          }}
+        >
+          <g
+            transform={`translate(${viewport.x}, ${viewport.y}) scale(${viewport.zoom})`}
+            style={{ transformOrigin: "0 0" }}
+          >
+            {renderedEdges}
+
+            {/* Visual feedback line when dragging an edge */}
+            {edgeDragState.isDragging && edgeDragState.originalTarget && edgeDragState.currentPosition && (
+              <>
+                {/* Line from original target to current position */}
+                <path
+                  d={`M ${edgeDragState.currentPosition.x} ${edgeDragState.currentPosition.y}
+                      L ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.x || 0}
+                        ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.y || 0}`}
+                  stroke="#94a3b8"
+                  strokeWidth="1"
+                  strokeDasharray="2,4"
+                  fill="none"
+                  opacity="0.5"
+                  className="animate-pulse"
+                />
+                {/* Debug: Show current mouse position */}
+                <circle
+                  cx={edgeDragState.currentPosition.x}
+                  cy={edgeDragState.currentPosition.y}
+                  r="5"
+                  fill="red"
+                  opacity="0.8"
+                />
+              </>
+            )}
+          </g>
+
+          {/* Arrow marker definitions */}
+          <defs>
+            {/* Default arrowhead for page-to-block and sequential connections */}
+            <marker
+              id="arrowhead-default"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="#6b7280"
+                fillOpacity="1"
+              />
+            </marker>
+
+            {/* Conditional arrowhead for navigation rules */}
+            <marker
+              id="arrowhead-conditional"
+              markerWidth="12"
+              markerHeight="8"
+              refX="11"
+              refY="4"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 12 4, 0 8"
+                fill="#3b82f6"
+                fillOpacity="1"
+                stroke="#3b82f6"
+                strokeWidth="0.5"
+              />
+            </marker>
+
+            {/* Legacy markers for backward compatibility */}
+            <marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="#f59e0b"
+                fillOpacity="1"
+              />
+            </marker>
+            <marker
+              id="arrowhead-gray"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="#6b7280"
+                fillOpacity="1"
+              />
+            </marker>
+          </defs>
+        </svg>
+
+        {/* Transform container for nodes and other elements */}
         <div
           className="absolute"
           style={{
@@ -1141,119 +1257,6 @@ export const FlowCanvas = forwardRef<FlowCanvasRef, FlowCanvasProps>(({
             </>
           )}
 
-          {/* Edges */}
-          <svg 
-            className="absolute inset-0" 
-            style={{ 
-              width: "100%", 
-              height: "100%",
-              zIndex: 5,
-              overflow: "visible",
-              pointerEvents: "none"
-            }}
-            preserveAspectRatio="none"
-          >
-            
-            {renderedEdges}
-            
-            {/* Visual feedback line when dragging an edge */}
-            {edgeDragState.isDragging && edgeDragState.originalTarget && edgeDragState.currentPosition && (
-              <>
-                {/* Line from original target to current position */}
-                <path
-                  d={`M ${edgeDragState.currentPosition.x} ${edgeDragState.currentPosition.y} 
-                      L ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.x || 0} 
-                        ${nodes.find(n => n.id === edgeDragState.originalTarget)?.position.y || 0}`}
-                  stroke="#94a3b8"
-                  strokeWidth="1"
-                  strokeDasharray="2,4"
-                  fill="none"
-                  opacity="0.5"
-                  className="animate-pulse"
-                />
-                {/* Debug: Show current mouse position */}
-                <circle
-                  cx={edgeDragState.currentPosition.x}
-                  cy={edgeDragState.currentPosition.y}
-                  r="5"
-                  fill="red"
-                  opacity="0.8"
-                />
-                {/* <text
-                  x={edgeDragState.currentPosition.x + 10}
-                  y={edgeDragState.currentPosition.y - 10}
-                  fill="red"
-                  fontSize="12"
-                  fontFamily="monospace"
-                >
-                  {Math.round(edgeDragState.currentPosition.x)},{Math.round(edgeDragState.currentPosition.y)}
-                </text> */}
-              </>
-            )}
-            
-            {/* Arrow marker definitions */}
-            <defs>
-              {/* Default arrowhead for page-to-block and sequential connections */}
-              <marker
-                id="arrowhead-default"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill="#6b7280"
-                />
-              </marker>
-              
-              {/* Conditional arrowhead for navigation rules */}
-              <marker
-                id="arrowhead-conditional"
-                markerWidth="12"
-                markerHeight="8"
-                refX="11"
-                refY="4"
-                orient="auto"
-              >
-                <polygon
-                  points="0 0, 12 4, 0 8"
-                  fill="#3b82f6"
-                  stroke="#3b82f6"
-                  strokeWidth="0.5"
-                />
-              </marker>
-              
-              {/* Legacy markers for backward compatibility */}
-              <marker
-                id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill="#f59e0b"
-                />
-              </marker>
-              <marker
-                id="arrowhead-gray"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill="#6b7280"
-                />
-              </marker>
-            </defs>
-          </svg>
 
           {/* Nodes */}
           <div className="relative">
