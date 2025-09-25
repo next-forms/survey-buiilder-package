@@ -683,12 +683,12 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     const pageBlocks = pages[currentPage] || [];
     const currentBlock = pageBlocks[currentBlockIndex];
 
+    const mergedValues = fValue ? { ...values, ...fValue } : values;
+
     if (currentBlock?.isEndBlock) {
-      submit();
+      submit(mergedValues);
       return;
     }
-
-    const mergedValues = fValue ? { ...values, ...fValue } : values;
     if (fValue) {
       setValues(prev => ({ ...prev, ...fValue }));
     }
@@ -722,7 +722,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     );
 
     if (target === 'submit') {
-      submit();
+      submit(mergedValues);
       return;
     }
 
@@ -746,7 +746,8 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
 
     const nextIndex = getNextPageIndex();
     if (nextIndex === null) {
-      submit();
+      // Pass the merged values to submit to avoid race conditions
+      submit(mergedValues);
     } else {
       addToNavigationHistory(nextIndex, 0, 'forward');
       goToPage(nextIndex);
@@ -790,7 +791,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   };
 
   // Submit function
-  const submit = async () => {
+  const submit = async (overrideValues?: Record<string, any>) => {
     setIsSubmitting(true);
 
     updateComputedValues();
@@ -800,10 +801,13 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       .filter(block => block.fieldName)
       .map(block => block.fieldName as string);
 
+    // Use override values if provided, otherwise use state values
+    const finalValues = overrideValues || values;
+
     // const newConditionalErrors: Record<string, string> = {};
 
     // allFields.forEach(field => {
-    //   const value = values[field];
+    //   const value = finalValues[field];
     //   const validationError = validateField(field, value);
     //   if (validationError) {
     //     newConditionalErrors[field] = validationError;
@@ -817,7 +821,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       if (onSubmit) {
         try {
           const submissionData = {
-            ...values,
+            ...finalValues,
             ...computedValues
           };
           await onSubmit(submissionData);

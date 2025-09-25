@@ -1340,7 +1340,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
               setValue(fieldName, user);
               setLoading(false);
               goToNextBlock();
-            }, 100); // Small delay to show loading state
+            }, 200); // Small delay to show loading state
             return;
           }
     
@@ -1474,7 +1474,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       skipped: false
     };
     
-    setValue(fieldName, data);
+    setValue(fieldName, authResults);
   };
 
   const handleStepSubmit = async () => {
@@ -1643,8 +1643,21 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             localStorage.setItem(storageKey, JSON.stringify(data));
           }
           
-          saveToFieldName(processedData, data[tokenField]);
-          goToNextBlock();
+          const authResults = {
+            ...processedData,
+            name: nameFieldType === 'separate' ? `${firstName} ${lastName}` : name,
+            firstName: nameFieldType === 'separate' ? firstName : undefined,
+            lastName: nameFieldType === 'separate' ? lastName : undefined,
+            email,
+            mobile,
+            token: data[tokenField],
+            isAuthenticated: true,
+            timestamp: new Date().toISOString(),
+            skipped: false
+          };
+          
+          await new Promise(f => setTimeout(f, 1000));
+          goToNextBlock({ [fieldName]: authResults });
         } else {
           throw new Error(data.error || 'Authentication failed');
         }
@@ -1688,8 +1701,21 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           localStorage.setItem(storageKey, JSON.stringify(data));
         }
         
-        saveToFieldName(processedData, data[tokenField]);
-        goToNextBlock();
+        const authResults = {
+          ...processedData,
+          name: nameFieldType === 'separate' ? `${firstName} ${lastName}` : name,
+          firstName: nameFieldType === 'separate' ? firstName : undefined,
+          lastName: nameFieldType === 'separate' ? lastName : undefined,
+          email,
+          mobile,
+          token: data[tokenField],
+          isAuthenticated: true,
+          timestamp: new Date().toISOString(),
+          skipped: false
+        };
+        
+        await new Promise(f => setTimeout(f, 1000));
+        goToNextBlock({ [fieldName]: authResults });
       } else {
         throw new Error(data.error || 'OTP verification failed');
       }
@@ -2146,6 +2172,7 @@ export const AuthBlock: BlockDefinition = {
     customHeaders: {},
     additionalBodyParams: {},
     skipIfLoggedIn: false, // New configuration option
+    showContinueButton: false
   },
   renderItem: (props: ContentBlockItemProps) => <AuthBlockItem {...props} />,
   renderFormFields: (props: ContentBlockItemProps) => <AuthBlockForm {...props} />,
