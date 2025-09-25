@@ -1,26 +1,115 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useState } from "react";
 import { BlockData, BlockDefinition, ContentBlockItemProps, ThemeDefinition } from "../types";
 import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { CheckSquare } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { CheckSquare, CirclePlus, CircleX, GripVertical } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { generateFieldName } from "./utils/GenFieldName";
 import { cn } from "../lib/utils";
 import { themes } from "../themes";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+interface CheckboxOption {
+  id: string;
+  label: string;
+  value: string;
+}
 
 // Form component for editing the block configuration
 const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
   data,
   onUpdate,
 }) => {
+  const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+
+  // Extract options from block data
+  const options: CheckboxOption[] = data.options || [];
+
   // Handle field changes
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: string | CheckboxOption[] | boolean) => {
     onUpdate?.({
       ...data,
       [field]: value,
     });
   };
+
+  // Handle adding a new option
+  const handleAddOption = () => {
+    if (!newOptionLabel.trim()) return;
+
+    const newOptions = [
+      ...options,
+      {
+        id: uuidv4(),
+        label: newOptionLabel,
+        value: newOptionValue || newOptionLabel,
+      }
+    ];
+
+    handleChange("options", newOptions);
+    setNewOptionLabel("");
+    setNewOptionValue("");
+  };
+
+  // Handle removing an option
+  const handleRemoveOption = (index: number) => {
+    const newOptions = [...options];
+    newOptions.splice(index, 1);
+    handleChange("options", newOptions);
+  };
+
+  // Handle updating an option
+  const handleUpdateOption = (index: number, field: "label" | "value", value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = {
+      ...newOptions[index],
+      [field]: value,
+    };
+    handleChange("options", newOptions);
+  };
+
+  // Handle drag end for reordering options
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = options.findIndex((option) => option.id === active.id);
+      const newIndex = options.findIndex((option) => option.id === over.id);
+
+      const newOptions = arrayMove(options, oldIndex, newIndex);
+      handleChange("options", newOptions);
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   return (
     <div className="space-y-4">
@@ -44,34 +133,11 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
             id="label"
             value={data.label || ""}
             onChange={(e) => handleChange("label", e.target.value)}
-            placeholder="Checkbox option"
+            placeholder="Select all that apply"
           />
           <p className="text-xs text-muted-foreground">
-            Text displayed next to the checkbox
+            Question or prompt shown to the respondent
           </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-sm" htmlFor="value">Value (when checked)</Label>
-          <Input
-            id="value"
-            value={data.value || ""}
-            onChange={(e) => handleChange("value", e.target.value)}
-            placeholder="true"
-          />
-        </div>
-
-        <div className="flex items-center space-x-2 pt-8">
-          <Checkbox
-            id="defaultChecked"
-            checked={!!data.defaultValue}
-            onCheckedChange={(checked) => {
-              handleChange("defaultValue", !!checked);
-            }}
-          />
-          <Label className="text-sm" htmlFor="defaultChecked">Default to checked</Label>
         </div>
       </div>
 
@@ -81,43 +147,66 @@ const CheckboxBlockForm: React.FC<ContentBlockItemProps> = ({
           id="description"
           value={data.description || ""}
           onChange={(e) => handleChange("description", e.target.value)}
-          placeholder="Additional information about this option"
+          placeholder="Additional information about this question"
         />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="showYesNo"
-            checked={!!data.showYesNo}
-            onCheckedChange={(checked) => {
-              handleChange("showYesNo", !!checked);
-            }}
-          />
-          <Label className="text-sm" htmlFor="showYesNo">Show Yes/No labels</Label>
+      {/* Options section */}
+      <div className="space-y-2 border rounded-md p-4">
+        <div className="flex justify-between items-center">
+          <Label className="text-sm">Checkbox Options</Label>
         </div>
 
-        {data.showYesNo && (
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-sm" htmlFor="trueLabel">Yes Label</Label>
-              <Input
-                id="trueLabel"
-                value={data.trueLabel || "Yes"}
-                onChange={(e) => handleChange("trueLabel", e.target.value)}
-              />
-            </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={options.map((option) => option.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <SortableCheckboxOption
+                  key={option.id}
+                  option={option}
+                  index={index}
+                  onUpdateOption={handleUpdateOption}
+                  onRemoveOption={handleRemoveOption}
+                />
+              ))}
 
-            <div className="space-y-2">
-              <Label className="text-sm" htmlFor="falseLabel">No Label</Label>
-              <Input
-                id="falseLabel"
-                value={data.falseLabel || "No"}
-                onChange={(e) => handleChange("falseLabel", e.target.value)}
-              />
+              <div className="pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <CirclePlus className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-grow grid grid-cols-2 gap-2">
+                    <Input
+                      value={newOptionLabel}
+                      onChange={(e) => setNewOptionLabel(e.target.value)}
+                      placeholder="New option label"
+                      onKeyDown={(e) => e.key === "Enter" && handleAddOption()}
+                    />
+                    <Input
+                      value={newOptionValue}
+                      onChange={(e) => setNewOptionValue(e.target.value)}
+                      placeholder="New option value (optional)"
+                    />
+                  </div>
+                  <Button type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleAddOption}
+                  >
+                    <CirclePlus className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );
@@ -264,6 +353,76 @@ const CheckboxRenderer = forwardRef<HTMLButtonElement, CheckboxRendererProps>(
 
 CheckboxRenderer.displayName = 'CheckboxRenderer';
 
+// Sortable option component for drag and drop
+interface SortableCheckboxOptionProps {
+  option: CheckboxOption;
+  index: number;
+  onUpdateOption: (index: number, field: "label" | "value", value: string) => void;
+  onRemoveOption: (index: number) => void;
+}
+
+const SortableCheckboxOption: React.FC<SortableCheckboxOptionProps> = ({
+  option,
+  index,
+  onUpdateOption,
+  onRemoveOption,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: option.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2"
+    >
+      <button
+        type="button"
+        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="w-6 h-6 flex items-center justify-center">
+        <span className="text-xs text-muted-foreground">{index + 1}</span>
+      </div>
+      <div className="flex-grow grid grid-cols-2 gap-2">
+        <Input
+          value={option.label}
+          onChange={(e) => onUpdateOption(index, "label", e.target.value)}
+          placeholder="Option label"
+        />
+        <Input
+          value={option.value}
+          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          placeholder="Option value"
+        />
+      </div>
+      <Button type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemoveOption(index)}
+        className="text-destructive"
+      >
+        <CircleX className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 
 // Export the block definition
 export const CheckboxBlock: BlockDefinition = {
@@ -274,24 +433,38 @@ export const CheckboxBlock: BlockDefinition = {
   defaultData: {
     type: "checkbox",
     fieldName: generateFieldName("checkbox"),
-    label: "Check this option",
+    label: "Select all that apply",
     description: "",
-    value: "true",
-    defaultValue: false,
-    showYesNo: false,
-    trueLabel: "Yes",
-    falseLabel: "No",
+    options: [
+      {
+        id: uuidv4(),
+        label: "Option 1",
+        value: "option-1"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 2",
+        value: "option-2"
+      }
+    ],
   },
   generateDefaultData: () => ({
     type: "checkbox",
     fieldName: generateFieldName("checkbox"),
-    label: "Check this option",
+    label: "Select all that apply",
     description: "",
-    value: "true",
-    defaultValue: false,
-    showYesNo: false,
-    trueLabel: "Yes",
-    falseLabel: "No",
+    options: [
+      {
+        id: uuidv4(),
+        label: "Option 1",
+        value: "option-1"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 2",
+        value: "option-2"
+      }
+    ],
   }),
   renderItem: (props) => <CheckboxBlockItem {...props} />,
   renderFormFields: (props) => <CheckboxBlockForm {...props} />,

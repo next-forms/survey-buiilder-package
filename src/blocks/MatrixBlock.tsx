@@ -5,11 +5,28 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { CirclePlus, CircleX, Grid3X3 } from "lucide-react";
+import { CirclePlus, CircleX, Grid3X3, GripVertical } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { generateFieldName } from "./utils/GenFieldName";
 import { cn } from "../lib/utils";
 import { themes } from "../themes";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface MatrixQuestion {
   id: string;
@@ -111,6 +128,43 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
     handleChange("options", newOptions);
   };
 
+  // Handle drag end for reordering questions
+  const handleQuestionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = questions.findIndex((question) => question.id === active.id);
+      const newIndex = questions.findIndex((question) => question.id === over.id);
+
+      const newQuestions = arrayMove(questions, oldIndex, newIndex);
+      handleChange("questions", newQuestions);
+    }
+  };
+
+  // Handle drag end for reordering options
+  const handleOptionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = options.findIndex((option) => option.id === active.id);
+      const newIndex = options.findIndex((option) => option.id === over.id);
+
+      const newOptions = arrayMove(options, oldIndex, newIndex);
+      handleChange("options", newOptions);
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -154,53 +208,51 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
           <Label>Rows (Questions)</Label>
         </div>
 
-        <div className="space-y-3">
-          {questions.map((question, index) => (
-            <div key={question.id} className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">{index + 1}</span>
-              </div>
-              <div className="flex-grow">
-                <Input
-                  value={question.text}
-                  onChange={(e) => handleUpdateQuestion(index, e.target.value)}
-                  placeholder="Question text"
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleQuestionDragEnd}
+        >
+          <SortableContext
+            items={questions.map((question) => question.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {questions.map((question, index) => (
+                <SortableMatrixQuestion
+                  key={question.id}
+                  question={question}
+                  index={index}
+                  onUpdateQuestion={handleUpdateQuestion}
+                  onRemoveQuestion={handleRemoveQuestion}
                 />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveQuestion(index)}
-                className="text-destructive"
-              >
-                <CircleX className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+              ))}
 
-          <div className="pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <CirclePlus className="h-4 w-4 text-muted-foreground" />
+              <div className="pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <CirclePlus className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-grow">
+                    <Input
+                      value={newQuestionText}
+                      onChange={(e) => setNewQuestionText(e.target.value)}
+                      placeholder="Add new question"
+                      onKeyDown={(e) => e.key === "Enter" && handleAddQuestion()}
+                    />
+                  </div>
+                  <Button type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleAddQuestion}
+                  >
+                    <CirclePlus className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex-grow">
-                <Input
-                  value={newQuestionText}
-                  onChange={(e) => setNewQuestionText(e.target.value)}
-                  placeholder="Add new question"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddQuestion()}
-                />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleAddQuestion}
-              >
-                <CirclePlus className="h-4 w-4 text-primary" />
-              </Button>
             </div>
-          </div>
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Columns (options) section */}
@@ -209,62 +261,55 @@ const MatrixBlockForm: React.FC<ContentBlockItemProps> = ({
           <Label>Columns (Answer Options)</Label>
         </div>
 
-        <div className="space-y-3">
-          {options.map((option, index) => (
-            <div key={option.id} className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">{index + 1}</span>
-              </div>
-              <div className="flex-grow grid grid-cols-2 gap-2">
-                <Input
-                  value={option.text}
-                  onChange={(e) => handleUpdateOption(index, "text", e.target.value)}
-                  placeholder="Option label"
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleOptionDragEnd}
+        >
+          <SortableContext
+            items={options.map((option) => option.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <SortableMatrixOption
+                  key={option.id}
+                  option={option}
+                  index={index}
+                  onUpdateOption={handleUpdateOption}
+                  onRemoveOption={handleRemoveOption}
                 />
-                <Input
-                  value={option.value}
-                  onChange={(e) => handleUpdateOption(index, "value", e.target.value)}
-                  placeholder="Option value"
-                />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveOption(index)}
-                className="text-destructive"
-              >
-                <CircleX className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+              ))}
 
-          <div className="pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <CirclePlus className="h-4 w-4 text-muted-foreground" />
+              <div className="pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <CirclePlus className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-grow grid grid-cols-2 gap-2">
+                    <Input
+                      value={newOptionText}
+                      onChange={(e) => setNewOptionText(e.target.value)}
+                      placeholder="New option label"
+                    />
+                    <Input
+                      value={newOptionValue}
+                      onChange={(e) => setNewOptionValue(e.target.value)}
+                      placeholder="New option value (optional)"
+                    />
+                  </div>
+                  <Button type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleAddOption}
+                  >
+                    <CirclePlus className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex-grow grid grid-cols-2 gap-2">
-                <Input
-                  value={newOptionText}
-                  onChange={(e) => setNewOptionText(e.target.value)}
-                  placeholder="New option label"
-                />
-                <Input
-                  value={newOptionValue}
-                  onChange={(e) => setNewOptionValue(e.target.value)}
-                  placeholder="New option value (optional)"
-                />
-              </div>
-              <Button type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleAddOption}
-              >
-                <CirclePlus className="h-4 w-4 text-primary" />
-              </Button>
             </div>
-          </div>
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       <div className="space-y-2">
@@ -501,6 +546,141 @@ const MatrixRenderer: React.FC<MatrixRendererProps> = ({
   );
 };
 
+
+// Sortable question component for drag and drop
+interface SortableMatrixQuestionProps {
+  question: MatrixQuestion;
+  index: number;
+  onUpdateQuestion: (index: number, text: string) => void;
+  onRemoveQuestion: (index: number) => void;
+}
+
+const SortableMatrixQuestion: React.FC<SortableMatrixQuestionProps> = ({
+  question,
+  index,
+  onUpdateQuestion,
+  onRemoveQuestion,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2"
+    >
+      <button
+        type="button"
+        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="w-6 h-6 flex items-center justify-center">
+        <span className="text-xs text-muted-foreground">{index + 1}</span>
+      </div>
+      <div className="flex-grow">
+        <Input
+          value={question.text}
+          onChange={(e) => onUpdateQuestion(index, e.target.value)}
+          placeholder="Question text"
+        />
+      </div>
+      <Button type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemoveQuestion(index)}
+        className="text-destructive"
+      >
+        <CircleX className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+// Sortable option component for drag and drop
+interface SortableMatrixOptionProps {
+  option: MatrixOption;
+  index: number;
+  onUpdateOption: (index: number, field: "text" | "value", value: string) => void;
+  onRemoveOption: (index: number) => void;
+}
+
+const SortableMatrixOption: React.FC<SortableMatrixOptionProps> = ({
+  option,
+  index,
+  onUpdateOption,
+  onRemoveOption,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: option.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2"
+    >
+      <button
+        type="button"
+        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="w-6 h-6 flex items-center justify-center">
+        <span className="text-xs text-muted-foreground">{index + 1}</span>
+      </div>
+      <div className="flex-grow grid grid-cols-2 gap-2">
+        <Input
+          value={option.text}
+          onChange={(e) => onUpdateOption(index, "text", e.target.value)}
+          placeholder="Option label"
+        />
+        <Input
+          value={option.value}
+          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          placeholder="Option value"
+        />
+      </div>
+      <Button type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemoveOption(index)}
+        className="text-destructive"
+      >
+        <CircleX className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
 
 // Export the block definition
 export const MatrixBlock: BlockDefinition = {

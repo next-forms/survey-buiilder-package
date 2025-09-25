@@ -4,12 +4,35 @@ import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { CircleCheck, CirclePlus, CircleX } from "lucide-react";
+import { CircleCheck, CirclePlus, CircleX, GripVertical } from "lucide-react";
 import { Circle } from "lucide-react";  // optional, for an SVG circle
 import { v4 as uuidv4 } from "uuid";
 import { generateFieldName } from "./utils/GenFieldName";
 import { cn } from "../lib/utils";
 import { themes } from "../themes";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+interface RadioOption {
+  id: string;
+  label: string;
+  value: string;
+}
 
 // Form component for editing the block configuration
 const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -18,6 +41,14 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
 }) => {
   const [newLabel, setNewLabel] = useState("");
   const [newValue, setNewValue] = useState("");
+
+  // Convert legacy labels/values arrays to options format
+  const options: RadioOption[] = data.options ||
+    (data.labels || []).map((label: string, index: number) => ({
+      id: uuidv4(),
+      label,
+      value: (data.values || [])[index] || label,
+    }));
 
   // Handle field changes
   const handleChange = (field: string, value: any) => {
@@ -31,36 +62,60 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
   const handleAddOption = () => {
     if (!newLabel.trim()) return;
 
-    const labels = [...(data.labels || [])];
-    const values = [...(data.values || [])];
+    const newOptions = [
+      ...options,
+      {
+        id: uuidv4(),
+        label: newLabel,
+        value: newValue || newLabel,
+      }
+    ];
 
-    labels.push(newLabel);
-    values.push(newValue || newLabel);
-
-    onUpdate?.({
-      ...data,
-      labels,
-      values,
-    });
-
+    handleChange("options", newOptions);
     setNewLabel("");
     setNewValue("");
   };
 
   // Handle removing an option
   const handleRemoveOption = (index: number) => {
-    const labels = [...(data.labels || [])];
-    const values = [...(data.values || [])];
-
-    labels.splice(index, 1);
-    values.splice(index, 1);
-
-    onUpdate?.({
-      ...data,
-      labels,
-      values,
-    });
+    const newOptions = [...options];
+    newOptions.splice(index, 1);
+    handleChange("options", newOptions);
   };
+
+  // Handle updating an option
+  const handleUpdateOption = (index: number, field: "label" | "value", value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = {
+      ...newOptions[index],
+      [field]: value,
+    };
+    handleChange("options", newOptions);
+  };
+
+  // Handle drag end for reordering options
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = options.findIndex((option) => option.id === active.id);
+      const newIndex = options.findIndex((option) => option.id === over.id);
+
+      const newOptions = arrayMove(options, oldIndex, newIndex);
+      handleChange("options", newOptions);
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   return (
     <div className="space-y-4">
@@ -105,43 +160,28 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
       <div className="space-y-2">
         <Label>Options</Label>
         <div className="border rounded-md p-4 space-y-3">
-          <div className="space-y-4">
-            {(data.labels || []).map((label, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-6 h-6 flex items-center justify-center">
-                  <Circle className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex-grow grid grid-cols-2 gap-2">
-                  <Input
-                    value={label}
-                    onChange={(e) => {
-                      const labels = [...(data.labels || [])];
-                      labels[index] = e.target.value;
-                      handleChange("labels", labels);
-                    }}
-                    placeholder="Option label"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={options.map((option) => option.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {options.map((option, index) => (
+                  <SortableRadioOption
+                    key={option.id}
+                    option={option}
+                    index={index}
+                    onUpdateOption={handleUpdateOption}
+                    onRemoveOption={handleRemoveOption}
                   />
-                  <Input
-                    value={(data.values || [])[index] as string}
-                    onChange={(e) => {
-                      const values = [...(data.values || [])];
-                      values[index] = e.target.value;
-                      handleChange("values", values);
-                    }}
-                    placeholder="Option value"
-                  />
-                </div>
-                <Button type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveOption(index)}
-                  className="text-destructive"
-                >
-                  <CircleX className="h-4 w-4" />
-                </Button>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
 
           <div className="pt-2 border-t mt-2">
             <div className="flex items-center gap-2 mt-2">
@@ -322,6 +362,76 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
   );
 };
 
+// Sortable option component for drag and drop
+interface SortableRadioOptionProps {
+  option: RadioOption;
+  index: number;
+  onUpdateOption: (index: number, field: "label" | "value", value: string) => void;
+  onRemoveOption: (index: number) => void;
+}
+
+const SortableRadioOption: React.FC<SortableRadioOptionProps> = ({
+  option,
+  index,
+  onUpdateOption,
+  onRemoveOption,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: option.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2"
+    >
+      <button
+        type="button"
+        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="w-6 h-6 flex items-center justify-center">
+        <Circle className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="flex-grow grid grid-cols-2 gap-2">
+        <Input
+          value={option.label}
+          onChange={(e) => onUpdateOption(index, "label", e.target.value)}
+          placeholder="Option label"
+        />
+        <Input
+          value={option.value}
+          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          placeholder="Option value"
+        />
+      </div>
+      <Button type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemoveOption(index)}
+        className="text-destructive"
+      >
+        <CircleX className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 // Export the block definition
 export const RadioBlock: BlockDefinition = {
   type: "radio",
@@ -333,8 +443,23 @@ export const RadioBlock: BlockDefinition = {
     fieldName: generateFieldName("radioOptions"),
     label: "Select an option",
     description: "",
-    labels: ["Option 1", "Option 2", "Option 3"],
-    values: ["1", "2", "3"],
+    options: [
+      {
+        id: uuidv4(),
+        label: "Option 1",
+        value: "1"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 2",
+        value: "2"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 3",
+        value: "3"
+      }
+    ],
     defaultValue: "1",
   },
   generateDefaultData: () => ({
@@ -342,8 +467,23 @@ export const RadioBlock: BlockDefinition = {
     fieldName: generateFieldName("radioOptions"),
     label: "Select an option",
     description: "",
-    labels: ["Option 1", "Option 2", "Option 3"],
-    values: ["1", "2", "3"],
+    options: [
+      {
+        id: uuidv4(),
+        label: "Option 1",
+        value: "1"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 2",
+        value: "2"
+      },
+      {
+        id: uuidv4(),
+        label: "Option 3",
+        value: "3"
+      }
+    ],
     defaultValue: "1",
   }),
 
