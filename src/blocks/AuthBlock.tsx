@@ -1251,7 +1251,7 @@ const AuthBlockPreview: React.FC = () => {
 };
 
 
-type AuthStep = 'name' | 'firstName' | 'lastName' | 'email' | 'phone' | 'email-otp' | 'phone-otp' | 'welcome' | 'skipped';
+type AuthStep = 'name' | 'firstName' | 'email' | 'phone' | 'email-otp' | 'phone-otp' | 'welcome' | 'skipped';
 
 const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const { goToNextBlock, setValue, navigationHistory } = useSurveyForm();
@@ -1497,11 +1497,6 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         setError('First name is required');
         return;
       }
-      setCurrentStep('lastName');
-      return;
-    }
-
-    if (currentStep === 'lastName') {
       if (!lastName.trim()) {
         setError('Last name is required');
         return;
@@ -1736,8 +1731,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepIcon = () => {
     switch (currentStep) {
       case 'name':
-      case 'firstName':
-      case 'lastName': return <User className="w-6 h-6" />;
+      case 'firstName': return <User className="w-6 h-6" />;
       case 'email': return <Mail className="w-6 h-6" />;
       case 'phone': return <Phone className="w-6 h-6" />;
       case 'email-otp':
@@ -1750,8 +1744,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepTitle = () => {
     switch (currentStep) {
       case 'name': return `What's your ${nameLabel.toLowerCase()}?`;
-      case 'firstName': return `What's your ${firstNameLabel.toLowerCase()}?`;
-      case 'lastName': return `What's your ${lastNameLabel.toLowerCase()}?`;
+      case 'firstName': return `What's your name?`;
       case 'email': return `What's your ${emailLabel.toLowerCase()}?`;
       case 'phone': return `What's your ${mobileLabel.toLowerCase()}?`;
       case 'email-otp': return 'Enter email verification code';
@@ -1764,18 +1757,17 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepDescription = () => {
     switch (currentStep) {
       case 'name': return `Please enter your ${nameLabel.toLowerCase()}`;
-      case 'firstName': return `Please enter your ${firstNameLabel.toLowerCase()}`;
-      case 'lastName': return `Please enter your ${lastNameLabel.toLowerCase()}`;
+      case 'firstName': return `Please enter your first and last name`;
       case 'email': return useOtp ? 'We\'ll send a verification code to this email' : 'We\'ll use this to authenticate you';
       case 'phone': return useOtp ? 'We\'ll send a verification code to this number' : 'We\'ll use this to authenticate you';
       case 'email-otp': return `Enter the verification code sent to ${email}`;
       case 'phone-otp': return `Enter the verification code sent to ${mobile}`;
-      case 'welcome': 
-        const displayName = nameFieldType === 'separate' && firstName 
-          ? firstName 
+      case 'welcome':
+        const displayName = nameFieldType === 'separate' && firstName
+          ? firstName
           : name;
-        return displayName 
-          ? `Hello ${displayName}, you're already authenticated.` 
+        return displayName
+          ? `Hello ${displayName}, you're already authenticated.`
           : "You're already authenticated.";
       default: return '';
     }
@@ -1784,8 +1776,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const canSubmit = () => {
     switch (currentStep) {
       case 'name': return name.trim().length > 0;
-      case 'firstName': return firstName.trim().length > 0;
-      case 'lastName': return lastName.trim().length > 0;
+      case 'firstName': return firstName.trim().length > 0 && lastName.trim().length > 0;
       case 'email': return email.trim().length > 0 && email.includes('@');
       case 'phone': return mobile.trim().length > 0;
       case 'email-otp': return emailOtp.length >= 4;
@@ -1800,15 +1791,13 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       case 'firstName':
         // firstName is always the first step when using separate names
         return null;
-      case 'lastName':
-        return 'firstName';
       case 'name':
         // name is always the first step when using single name field
         return null;
       case 'email':
         if (requireName) {
-          // If separate names, go back to lastName; if single, go back to name
-          return nameFieldType === 'separate' ? 'lastName' : 'name';
+          // If separate names, go back to firstName; if single, go back to name
+          return nameFieldType === 'separate' ? 'firstName' : 'name';
         }
         // Email is the first step if no name required
         return null;
@@ -1817,7 +1806,7 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           return 'email';
         } else if (requireName) {
           // If no email but name is required, go to appropriate name step
-          return nameFieldType === 'separate' ? 'lastName' : 'name';
+          return nameFieldType === 'separate' ? 'firstName' : 'name';
         }
         // Phone is the first step if neither name nor email required
         return null;
@@ -1866,27 +1855,25 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         );
       case 'firstName':
         return (
-          <Input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder={`Enter your ${firstNameLabel.toLowerCase()}`}
-            className="text-lg h-14 text-center"
-            autoFocus
-            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
-          />
-        );
-      case 'lastName':
-        return (
-          <Input
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder={`Enter your ${lastNameLabel.toLowerCase()}`}
-            className="text-lg h-14 text-center"
-            autoFocus
-            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
-          />
+          <div className="space-y-4">
+            <Input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder={`Enter your ${firstNameLabel.toLowerCase()}`}
+              className="text-lg h-14 text-center"
+              autoFocus
+              onKeyPress={(e) => e.key === 'Enter' && lastName.trim() && canSubmit() && handleStepSubmit()}
+            />
+            <Input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder={`Enter your ${lastNameLabel.toLowerCase()}`}
+              className="text-lg h-14 text-center"
+              onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
+            />
+          </div>
         );
       case 'email':
         return (
