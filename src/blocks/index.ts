@@ -22,7 +22,7 @@ import { PatientBlock } from "./PatieintBlock";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
-  patient: PatientBlock,
+  patientAuth: PatientBlock,
   agreement: AgreementBlock,
   textfield: TextInputBlock,
   textarea: TextareaBlock,
