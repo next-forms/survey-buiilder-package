@@ -140,14 +140,16 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
   const testPatientFlow = async () => {
     setIsTestingFlow(true);
     const results: string[] = [];
+    let authToken: string | null = null;
+    const tokenFieldName = data.tokenField || 'token';
 
     try {
       results.push("🚀 Testing new authentication flow...\n");
-      
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
-      
+
       const customHeaders = data.customHeaders as Record<string, string> || {};
       Object.entries(customHeaders).forEach(([key, value]) => {
         if (key && value && key.trim() && value.trim()) {
@@ -222,6 +224,14 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
 
         if (validateRes.ok) {
           const patientData = await validateRes.json();
+
+          // Extract and store the token
+          if (patientData[tokenFieldName]) {
+            authToken = patientData[tokenFieldName];
+            results.push(`🔑 Token received: ${authToken.substring(0, 20)}...`);
+            results.push(`Token will be used for subsequent requests\n`);
+          }
+
           results.push(`✅ Authentication successful`);
           results.push(`Patient data received: ${JSON.stringify(patientData, null, 2)}\n`);
 
@@ -252,10 +262,21 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
 
             results.push(`Update request body: ${JSON.stringify(updateBody, null, 2)}`);
 
+            // Add Authorization header with the token
+            const updateHeaders = { ...headers };
+            if (authToken) {
+              updateHeaders['Authorization'] = `Bearer ${authToken}`;
+              results.push(`🔐 Adding Authorization header: Bearer ${authToken.substring(0, 20)}...\n`);
+            } else {
+              results.push(`⚠️ WARNING: No token available for Authorization header\n`);
+            }
+
+            results.push(`Update request headers: ${JSON.stringify(updateHeaders, null, 2)}\n`);
+
             try {
               const updateRes = await fetch(data.updatePatientUrl, {
                 method: 'POST',
-                headers,
+                headers: updateHeaders,
                 body: JSON.stringify(updateBody)
               });
 
@@ -1280,26 +1301,54 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
 
-  const hasInitialized = useRef(false);
+  const hasCheckedToken = useRef(false);
 
   useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
+    // Only run token check once per mount
+    if (hasCheckedToken.current) return;
 
     // Check if already logged in
     if (skipIfLoggedIn) {
       try {
         const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
         if (stored[tokenField]) {
+          hasCheckedToken.current = true;
           setLoading(true);
-          
+
           if (!(block as any).validateTokenUrl) {
-            // No validation URL, assume token is valid
-            setTimeout(() => {
-              setValue(fieldName, stored);
+            // No validation URL, need to check stored patient data for completeness
+            const patientInfo = stored.patient || stored;
+
+            const missing = [];
+            if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
+            if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
+            if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
+            if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
+            if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
+            if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
+            if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
+            if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+
+            if (missing.length > 0) {
+              // Profile incomplete, show collection form
+              setPatientData(patientInfo);
+              if (patientInfo.email) {
+                setFormData(prev => ({ ...prev, email: patientInfo.email }));
+              }
+              if (patientInfo.phone) {
+                setFormData(prev => ({ ...prev, phone: patientInfo.phone }));
+              }
+              setMissingFields(missing);
+              setCurrentStep('collect');
               setLoading(false);
-              goToNextBlock();
-            }, 200);
+            } else {
+              // Profile complete, skip to next block
+              setTimeout(() => {
+                setValue(fieldName, stored);
+                setLoading(false);
+                goToNextBlock();
+              }, 200);
+            }
             return;
           }
 
@@ -1312,9 +1361,38 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           })
             .then(res => res.ok ? res.json() : Promise.reject())
             .then(data => {
-              setValue(fieldName, data);
-              setLoading(false);
-              goToNextBlock();
+              // Check if patient data is complete before skipping
+              const patientInfo = data.patient || data;
+              setPatientData(patientInfo);
+
+              const missing = [];
+              if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
+              if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
+              if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
+              if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
+              if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
+              if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
+              if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
+              if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+
+              if (missing.length > 0) {
+                // Profile incomplete, show collection form
+                // Pre-populate email/phone from patient data
+                if (patientInfo.email) {
+                  setFormData(prev => ({ ...prev, email: patientInfo.email }));
+                }
+                if (patientInfo.phone) {
+                  setFormData(prev => ({ ...prev, phone: patientInfo.phone }));
+                }
+                setMissingFields(missing);
+                setCurrentStep('collect');
+                setLoading(false);
+              } else {
+                // Profile complete, skip to next block
+                setValue(fieldName, data);
+                setLoading(false);
+                goToNextBlock();
+              }
             })
             .catch(() => {
               localStorage.removeItem(storageKey);
@@ -1325,7 +1403,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         // Ignore errors
       }
     }
-  }, []);
+
+    // Cleanup: reset the flag when component unmounts
+    return () => {
+      hasCheckedToken.current = false;
+    };
+  }, [skipIfLoggedIn, storageKey, tokenField]);
 
   const buildRequestHeaders = () => {
     const headers: Record<string, string> = {
@@ -1491,7 +1574,20 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           isAuthenticated: true,
           timestamp: new Date().toISOString()
         };
-        
+
+        // Update localStorage with complete patient data
+        const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        const updatedStorage = {
+          ...stored,
+          ...authResults,
+          patient: {
+            ...(stored.patient || {}),
+            ...(data.patient || {}),
+            ...formData
+          }
+        };
+        localStorage.setItem(storageKey, JSON.stringify(updatedStorage));
+
         setValue(fieldName, authResults);
         await new Promise(f => setTimeout(f, 1000));
         goToNextBlock();
@@ -1530,6 +1626,29 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     return true;
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem(storageKey);
+    setPatientData(null);
+    setFormData({
+      email: '',
+      phone: '',
+      password: '',
+      otp: '',
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      gender: '',
+      genderBiological: '',
+      dateOfBirth: '',
+      height: '',
+      weight: ''
+    });
+    setMissingFields([]);
+    setCurrentStep('auth');
+    setError(null);
+    setSuccess(null);
+  };
+
   const getStepIcon = () => {
     switch (currentStep) {
       case 'auth': return authField === 'email' ? <Mail className="w-6 h-6" /> : <Phone className="w-6 h-6" />;
@@ -1553,10 +1672,13 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getStepDescription = () => {
     switch (currentStep) {
       case 'auth': return `We'll use this to ${authMethod === 'otp' ? 'send you a verification code' : 'authenticate you'}`;
-      case 'verify': return authMethod === 'otp' 
+      case 'verify': return authMethod === 'otp'
         ? `Enter the code sent to ${authField === 'email' ? formData.email : formData.phone}`
         : `Enter your password to continue`;
-      case 'collect': return 'Please provide the following information';
+      case 'collect': {
+        const identifier = authField === 'email' ? formData.email : formData.phone;
+        return identifier ? `Completing profile for ${identifier}` : 'Please provide the following information';
+      }
       case 'welcome': return "You're already authenticated";
       default: return '';
     }
@@ -1984,24 +2106,34 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           )}
 
           {currentStep === 'collect' && (
-            <Button
-              onClick={handleUpdatePatient}
-              disabled={!canSubmitCollect() || loading}
-              className={`${theme?.button.primary || ""} w-full`}
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  Complete Profile
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </>
-              )}
-            </Button>
+            <>
+              <Button
+                onClick={handleUpdatePatient}
+                disabled={!canSubmitCollect() || loading}
+                className={`${theme?.button.primary || ""} w-full`}
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Complete Profile
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className={`${theme?.button.secondary || ""} w-full`}
+              >
+                Use Different Account
+              </Button>
+            </>
           )}
 
           {currentStep === 'verify' && authMethod === 'otp' && (
