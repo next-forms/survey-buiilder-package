@@ -18,9 +18,11 @@ import { MatrixBlock } from "./MatrixBlock";
 import { RangeBlock } from "./RangeBlock";
 import { ScriptBlock } from "./ScriptBlock";
 import { SelectableBoxQuestionBlock } from "./SelectableBoxQuestionBlock";
+import { PatientBlock } from "./PatieintBlock";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
+  patient: PatientBlock,
   agreement: AgreementBlock,
   textfield: TextInputBlock,
   textarea: TextareaBlock,
@@ -45,6 +47,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
 // Export all standard block definitions - ALL NOW UNIFIED
 export const StandardBlocks: BlockDefinition[] = [
   // Basic input blocks
+  PatientBlock,
   AgreementBlock,
   SelectableBoxQuestionBlock,
   TextInputBlock,
@@ -76,6 +79,7 @@ export const StandardBlocks: BlockDefinition[] = [
 
 // Export individual blocks for direct import
 export { 
+  PatientBlock,
   AgreementBlock,
   TextInputBlock, 
   TextareaBlock, 
