@@ -8,27 +8,29 @@ import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight } from "lucide-react";
+import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from '../components/ui/badge';
 import { AlertCircle, Loader2, ArrowRight, KeyRound, Calendar } from 'lucide-react';
 import { useSurveyForm } from '../context/SurveyFormContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 
 const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemove }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
   const [testData, setTestData] = React.useState({
+    email: "john.doe@example.com",
+    phone: "8888888888",
+    password: "password123",
+    otp: "123456",
     firstName: "John",
     middleName: "Q",
     lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "8888888888",
     gender: "male",
     genderBiological: "male",
     dateOfBirth: "01-15-1990",
     height: "72",
-    weight: "200",
-    otp: "123456"
+    weight: "200"
   });
   const [isTestingFlow, setIsTestingFlow] = React.useState(false);
 
@@ -115,29 +117,19 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
     handleChange('additionalBodyParams', additionalBodyParams);
   };
 
-  const getNestedValue = (obj: any, path: string) => {
-    if (!path || !obj) return undefined;
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
-
   const getValidationErrors = () => {
     const errors: string[] = [];
     
-    if (!data.requireEmail && !data.requirePhone) {
-      errors.push("Either email or phone must be enabled for authentication to work");
+    if (!data.sendOtpUrl && data.authMethod === 'otp') {
+      errors.push("Send OTP URL is required when using OTP authentication");
     }
     
-    if (!data.loginUrl && !data.signupUrl) {
-      errors.push("At least one authentication URL (login or signup) is required");
+    if (!data.validateAuthUrl) {
+      errors.push("Validate authentication URL is required");
     }
     
-    if (data.useOtp) {
-      if (data.requireEmail && (!data.sendEmailOtpUrl || !data.verifyEmailOtpUrl)) {
-        errors.push("Email OTP URLs are required when email is enabled with OTP");
-      }
-      if (data.requirePhone && (!data.sendPhoneOtpUrl || !data.verifyPhoneOtpUrl)) {
-        errors.push("Phone OTP URLs are required when phone is enabled with OTP");
-      }
+    if (!data.updatePatientUrl) {
+      errors.push("Update patient information URL is required");
     }
     
     return errors;
@@ -150,7 +142,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
     const results: string[] = [];
 
     try {
-      results.push("🚀 Testing complete authentication flow...\n");
+      results.push("🚀 Testing new authentication flow...\n");
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -164,100 +156,133 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
       });
 
       results.push(`🔧 Request headers: ${JSON.stringify(headers, null, 2)}\n`);
-      
-      const baseRequestBody: any = {};
-      if (data.requireFirstName) baseRequestBody.firstName = testData.firstName;
-      if (data.requireMiddleName) baseRequestBody.middleName = testData.middleName;
-      if (data.requireLastName) baseRequestBody.lastName = testData.lastName;
-      if (data.requireEmail) baseRequestBody.email = testData.email;
-      if (data.requirePhone) baseRequestBody.phone = testData.phone;
-      if (data.requireGender) baseRequestBody.gender = testData.gender;
-      if (data.requireGenderBiological) baseRequestBody.genderBiological = testData.genderBiological;
-      if (data.requireDateOfBirth) baseRequestBody.dateOfBirth = testData.dateOfBirth;
-      if (data.requireHeight) baseRequestBody.height = parseInt(testData.height);
-      if (data.requireWeight) baseRequestBody.weight = parseInt(testData.weight);
-      
-      const additionalParams = data.additionalBodyParams as Record<string, string> || {};
-      Object.entries(additionalParams).forEach(([key, value]) => {
-        if (key && value && key.trim() && value.trim()) {
-          baseRequestBody[key] = value;
-        }
-      });
-      
-      results.push(`📋 Request body: ${JSON.stringify(baseRequestBody, null, 2)}\n`);
 
-      if (data.useOtp) {
-        results.push("🔐 Testing OTP Flow...");
+      // Step 1: Send OTP (if using OTP)
+      if (data.authMethod === 'otp') {
+        results.push("📧 Step 1: Sending OTP...");
+        const otpBody = data.authField === 'email' 
+          ? { email: testData.email }
+          : { phone: testData.phone };
         
-        if (data.requireEmail && data.sendEmailOtpUrl) {
-          try {
-            results.push("📧 Step 1: Sending email OTP...");
-            const otpRes = await fetch(data.sendEmailOtpUrl, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(baseRequestBody)
-            });
-            
-            if (otpRes.ok) {
-              const otpData = await otpRes.json();
-              results.push(`✅ Email OTP sent successfully`);
-              results.push(`📧 Response: ${JSON.stringify(otpData, null, 2)}\n`);
-              
-              if (data.verifyEmailOtpUrl) {
-                results.push("🔍 Step 2: Verifying email OTP...");
-                const verifyBody = { ...baseRequestBody, otp: testData.otp };
-                const verifyRes = await fetch(data.verifyEmailOtpUrl, {
-                  method: 'POST',
-                  headers,
-                  body: JSON.stringify(verifyBody)
-                });
-                
-                if (verifyRes.ok) {
-                  const verifyData = await verifyRes.json();
-                  results.push(`✅ Email OTP verification successful`);
-                  results.push(`🔐 Auth response: ${JSON.stringify(verifyData, null, 2)}\n`);
-                } else {
-                  const errorData = await verifyRes.text();
-                  results.push(`❌ Email OTP verification failed: ${verifyRes.status}`);
-                  results.push(`Error: ${errorData}`);
-                }
-              }
-            } else {
-              const errorData = await otpRes.text();
-              results.push(`❌ Email OTP sending failed: ${otpRes.status}`);
-              results.push(`Error: ${errorData}`);
-            }
-          } catch (error: any) {
-            results.push(`❌ Email OTP flow error: ${error.message}`);
+        const additionalParams = data.additionalBodyParams as Record<string, string> || {};
+        Object.entries(additionalParams).forEach(([key, value]) => {
+          if (key && value) otpBody[key] = value;
+        });
+
+        otpBody["isTest"] = true;
+
+        results.push(`Request body: ${JSON.stringify(otpBody, null, 2)}`);
+
+        try {
+          const otpRes = await fetch(data.sendOtpUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(otpBody)
+          });
+
+          if (otpRes.ok) {
+            const otpData = await otpRes.json();
+            results.push(`✅ OTP sent successfully`);
+            results.push(`Response: ${JSON.stringify(otpData, null, 2)}\n`);
+          } else {
+            const errorData = await otpRes.text();
+            results.push(`❌ OTP sending failed: ${otpRes.status}`);
+            results.push(`Error: ${errorData}\n`);
           }
-        }
-      } else {
-        results.push("🔓 Testing Direct Authentication Flow...");
-        
-        if (data.loginUrl) {
-          try {
-            results.push("🔑 Testing login endpoint...");
-            const loginRes = await fetch(data.loginUrl, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(baseRequestBody)
-            });
-            
-            if (loginRes.ok) {
-              const loginData = await loginRes.json();
-              results.push(`✅ Direct login successful`);
-              results.push(`🔐 Auth response: ${JSON.stringify(loginData, null, 2)}\n`);
-            } else {
-              const errorData = await loginRes.text();
-              results.push(`❌ Direct login failed: ${loginRes.status}`);
-              results.push(`Error: ${errorData}`);
-            }
-          } catch (error: any) {
-            results.push(`❌ Direct login error: ${error.message}`);
-          }
+        } catch (error: any) {
+          results.push(`❌ OTP sending error: ${error.message}\n`);
         }
       }
-      
+
+      // Step 2: Validate Authentication
+      results.push(`🔐 Step 2: Validating ${data.authMethod === 'otp' ? 'OTP' : 'Password'}...`);
+      const validateBody: any = data.authField === 'email'
+        ? { email: testData.email }
+        : { phone: testData.phone };
+
+      if (data.authMethod === 'otp') {
+        validateBody.otp = testData.otp;
+      } else {
+        validateBody.password = testData.password;
+      }
+
+      const additionalParams = data.additionalBodyParams as Record<string, string> || {};
+      Object.entries(additionalParams).forEach(([key, value]) => {
+        if (key && value) validateBody[key] = value;
+      });
+
+      results.push(`Request body: ${JSON.stringify(validateBody, null, 2)}`);
+
+      try {
+        const validateRes = await fetch(data.validateAuthUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(validateBody)
+        });
+
+        if (validateRes.ok) {
+          const patientData = await validateRes.json();
+          results.push(`✅ Authentication successful`);
+          results.push(`Patient data received: ${JSON.stringify(patientData, null, 2)}\n`);
+
+          // Check if patient info needs updating
+          const missingFields = [];
+          if (data.requireFirstName && !patientData.firstName) missingFields.push('firstName');
+          if (data.requireLastName && !patientData.lastName) missingFields.push('lastName');
+          if (data.requireDateOfBirth && !patientData.dateOfBirth) missingFields.push('dateOfBirth');
+          if (data.requireGender && !patientData.gender) missingFields.push('gender');
+          if (data.requireHeight && !patientData.height) missingFields.push('height');
+          if (data.requireWeight && !patientData.weight) missingFields.push('weight');
+
+          if (missingFields.length > 0) {
+            results.push(`📝 Step 3: Missing fields detected: ${missingFields.join(', ')}`);
+            results.push("Testing update patient info API...");
+
+            const updateBody = {
+              ...validateBody,
+              firstName: testData.firstName,
+              lastName: testData.lastName,
+              middleName: testData.middleName,
+              gender: testData.gender,
+              genderBiological: testData.genderBiological,
+              dateOfBirth: testData.dateOfBirth,
+              height: parseInt(testData.height),
+              weight: parseInt(testData.weight)
+            };
+
+            results.push(`Update request body: ${JSON.stringify(updateBody, null, 2)}`);
+
+            try {
+              const updateRes = await fetch(data.updatePatientUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(updateBody)
+              });
+
+              if (updateRes.ok) {
+                const updateData = await updateRes.json();
+                results.push(`✅ Patient info updated successfully`);
+                results.push(`Response: ${JSON.stringify(updateData, null, 2)}\n`);
+              } else {
+                const errorData = await updateRes.text();
+                results.push(`❌ Update failed: ${updateRes.status}`);
+                results.push(`Error: ${errorData}\n`);
+              }
+            } catch (error: any) {
+              results.push(`❌ Update error: ${error.message}\n`);
+            }
+          } else {
+            results.push("✅ All required patient info already present - would skip to next block");
+          }
+        } else {
+          const errorData = await validateRes.text();
+          results.push(`❌ Validation failed: ${validateRes.status}`);
+          results.push(`Error: ${errorData}\n`);
+        }
+      } catch (error: any) {
+        results.push(`❌ Validation error: ${error.message}\n`);
+      }
+
       results.push("\n🎉 Flow testing completed!");
     } catch (error: any) {
       results.push(`❌ Flow test error: ${error.message}`);
@@ -302,7 +327,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
             </TabsList>
 
             <TabsContent value="fields" className="space-y-4">
-              {/* Field Name */}
+              {/* Basic Settings */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -324,6 +349,40 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                     </p>
                   </div>
 
+                  <div className="space-y-3">
+                    <Label className="text-sm">Authentication Method</Label>
+                    <RadioGroup 
+                      value={data.authMethod || "otp"} 
+                      onValueChange={(value) => handleChange("authMethod", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="otp" id="otp" />
+                        <Label htmlFor="otp">OTP (One-Time Password)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="password" id="password" />
+                        <Label htmlFor="password">Password</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm">Authentication Field</Label>
+                    <RadioGroup 
+                      value={data.authField || "email"} 
+                      onValueChange={(value) => handleChange("authField", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="email" id="email" />
+                        <Label htmlFor="email">Email</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="phone" id="phone" />
+                        <Label htmlFor="phone">Mobile/Phone</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   <Card className="p-4 border-blue-200">
                     <div className="flex items-center space-x-2 mb-3">
                       <Checkbox
@@ -343,13 +402,16 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                 </CardContent>
               </Card>
 
-              {/* Name Fields */}
+              {/* Patient Information Fields */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <User className="w-4 h-4" />
-                    Name Fields
+                    Patient Information Fields
                   </CardTitle>
+                  <CardDescription>
+                    Configure which fields to collect if not already present in patient data
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
@@ -360,7 +422,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           checked={!!data.requireFirstName}
                           onCheckedChange={(checked) => handleChange("requireFirstName", !!checked)}
                         />
-                        <Label className="text-sm font-medium" htmlFor="requireFirstName">First Name *</Label>
+                        <Label className="text-sm font-medium" htmlFor="requireFirstName">First Name</Label>
                       </div>
                       {data.requireFirstName && (
                         <Input
@@ -370,7 +432,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="outline" className="text-xs">Required in API</Badge>
                     </div>
 
                     <div className="space-y-2">
@@ -390,7 +451,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional</Badge>
                     </div>
 
                     <div className="space-y-2">
@@ -400,7 +460,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           checked={!!data.requireLastName}
                           onCheckedChange={(checked) => handleChange("requireLastName", !!checked)}
                         />
-                        <Label className="text-sm font-medium" htmlFor="requireLastName">Last Name *</Label>
+                        <Label className="text-sm font-medium" htmlFor="requireLastName">Last Name</Label>
                       </div>
                       {data.requireLastName && (
                         <Input
@@ -410,83 +470,9 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="outline" className="text-xs">Required in API</Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Contact Fields */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Mail className="w-4 h-4" />
-                    Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="requireEmail"
-                          checked={!!data.requireEmail}
-                          onCheckedChange={(checked) => handleChange("requireEmail", !!checked)}
-                        />
-                        <Label className="text-sm font-medium" htmlFor="requireEmail">Email *</Label>
-                      </div>
-                      {data.requireEmail && (
-                        <Input
-                          value={data.emailLabel || "Email"}
-                          onChange={(e) => handleChange("emailLabel", e.target.value)}
-                          placeholder="Field Label"
-                          className="text-sm"
-                        />
-                      )}
-                      <Badge variant="outline" className="text-xs">Required in API</Badge>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="requirePhone"
-                          checked={!!data.requirePhone}
-                          onCheckedChange={(checked) => handleChange("requirePhone", !!checked)}
-                        />
-                        <Label className="text-sm font-medium" htmlFor="requirePhone">Phone *</Label>
-                      </div>
-                      {data.requirePhone && (
-                        <Input
-                          value={data.phoneLabel || "Phone Number"}
-                          onChange={(e) => handleChange("phoneLabel", e.target.value)}
-                          placeholder="Field Label"
-                          className="text-sm"
-                        />
-                      )}
-                      <Badge variant="outline" className="text-xs">Required in API</Badge>
-                    </div>
-                  </div>
-                  
-                  {(!data.requireEmail && !data.requirePhone) && (
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        At least one of Email or Phone must be enabled for authentication to work
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Demographics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <UserCheck className="w-4 h-4" />
-                    Demographics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -505,7 +491,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional • male/female/other</Badge>
                     </div>
 
                     <div className="space-y-2">
@@ -525,7 +510,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional • male/female</Badge>
                     </div>
 
                     <div className="space-y-2">
@@ -545,21 +529,9 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional • mm-dd-yyyy</Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Physical Measurements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Ruler className="w-4 h-4" />
-                    Physical Measurements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -578,7 +550,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional • in inches</Badge>
                     </div>
 
                     <div className="space-y-2">
@@ -598,7 +569,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                           className="text-sm"
                         />
                       )}
-                      <Badge variant="secondary" className="text-xs">Optional • in pounds</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -610,29 +580,51 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="w-4 h-4" />
-                    Authentication URLs
+                    API URLs Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
+                  {data.authMethod === 'otp' && (
                     <div className="space-y-2">
-                      <Label className="text-sm" htmlFor="loginUrl">Login URL</Label>
+                      <Label className="text-sm" htmlFor="sendOtpUrl">Send OTP URL</Label>
                       <Input
-                        id="loginUrl"
-                        value={data.loginUrl || ""}
-                        onChange={(e) => handleChange("loginUrl", e.target.value)}
-                        placeholder="https://api.example.com/login"
+                        id="sendOtpUrl"
+                        value={data.sendOtpUrl || ""}
+                        onChange={(e) => handleChange("sendOtpUrl", e.target.value)}
+                        placeholder="https://api.example.com/send-otp"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        API endpoint to send OTP to {data.authField === 'email' ? 'email' : 'phone'}
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm" htmlFor="signupUrl">Signup URL (Optional)</Label>
-                      <Input
-                        id="signupUrl"
-                        value={data.signupUrl || ""}
-                        onChange={(e) => handleChange("signupUrl", e.target.value)}
-                        placeholder="https://api.example.com/signup"
-                      />
-                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-sm" htmlFor="validateAuthUrl">
+                      Validate {data.authMethod === 'otp' ? 'OTP' : 'Password'} URL
+                    </Label>
+                    <Input
+                      id="validateAuthUrl"
+                      value={data.validateAuthUrl || ""}
+                      onChange={(e) => handleChange("validateAuthUrl", e.target.value)}
+                      placeholder={`https://api.example.com/validate-${data.authMethod === 'otp' ? 'otp' : 'password'}`}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      API endpoint to validate {data.authMethod === 'otp' ? 'OTP' : 'password'} and retrieve patient data
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm" htmlFor="updatePatientUrl">Update Patient Information URL</Label>
+                    <Input
+                      id="updatePatientUrl"
+                      value={data.updatePatientUrl || ""}
+                      onChange={(e) => handleChange("updatePatientUrl", e.target.value)}
+                      placeholder="https://api.example.com/update-patient"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      API endpoint to update missing patient information
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -664,76 +656,10 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                       onChange={(e) => handleChange("validateTokenUrl", e.target.value)}
                       placeholder="https://api.example.com/validate-token"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Used when "Skip if Already Logged In" is enabled
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    OTP Configuration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="useOtp"
-                      checked={!!data.useOtp}
-                      onCheckedChange={(checked) => handleChange("useOtp", !!checked)}
-                    />
-                    <Label className="text-sm" htmlFor="useOtp">Enable OTP Authentication</Label>
-                  </div>
-
-                  {data.useOtp && (
-                    <div className="space-y-4 p-4 border rounded-lg">
-                      {data.requireEmail && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-sm" htmlFor="sendEmailOtpUrl">Send Email OTP URL</Label>
-                            <Input
-                              id="sendEmailOtpUrl"
-                              value={data.sendEmailOtpUrl || ""}
-                              onChange={(e) => handleChange("sendEmailOtpUrl", e.target.value)}
-                              placeholder="https://api.example.com/send-email-otp"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm" htmlFor="verifyEmailOtpUrl">Verify Email OTP URL</Label>
-                            <Input
-                              id="verifyEmailOtpUrl"
-                              value={data.verifyEmailOtpUrl || ""}
-                              onChange={(e) => handleChange("verifyEmailOtpUrl", e.target.value)}
-                              placeholder="https://api.example.com/verify-email-otp"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {data.requirePhone && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-sm" htmlFor="sendPhoneOtpUrl">Send Phone OTP URL</Label>
-                            <Input
-                              id="sendPhoneOtpUrl"
-                              value={data.sendPhoneOtpUrl || ""}
-                              onChange={(e) => handleChange("sendPhoneOtpUrl", e.target.value)}
-                              placeholder="https://api.example.com/send-phone-otp"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm" htmlFor="verifyPhoneOtpUrl">Verify Phone OTP URL</Label>
-                            <Input
-                              id="verifyPhoneOtpUrl"
-                              value={data.verifyPhoneOtpUrl || ""}
-                              onChange={(e) => handleChange("verifyPhoneOtpUrl", e.target.value)}
-                              placeholder="https://api.example.com/verify-phone-otp"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -859,7 +785,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                         <Input
                           value={apiPath}
                           onChange={(e) => handleMappingChange(apiPath, e.target.value, formField)}
-                          placeholder="user.department"
+                          placeholder="patient.firstName"
                           className="text-sm"
                         />
                       </div>
@@ -869,7 +795,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                         <Input
                           value={formField}
                           onChange={(e) => handleMappingChange(apiPath, apiPath, e.target.value)}
-                          placeholder="department"
+                          placeholder="firstName"
                           className="text-sm"
                         />
                       </div>
@@ -901,6 +827,47 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        {data.authField === 'email' ? 'Email' : 'Phone'}
+                      </Label>
+                      {data.authField === 'email' ? (
+                        <Input
+                          value={testData.email}
+                          onChange={(e) => setTestData(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="john@example.com"
+                        />
+                      ) : (
+                        <Input
+                          value={testData.phone}
+                          onChange={(e) => setTestData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="8888888888"
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        {data.authMethod === 'otp' ? 'OTP Code' : 'Password'}
+                      </Label>
+                      {data.authMethod === 'otp' ? (
+                        <Input
+                          value={testData.otp}
+                          onChange={(e) => setTestData(prev => ({ ...prev, otp: e.target.value }))}
+                          placeholder="123456"
+                        />
+                      ) : (
+                        <Input
+                          type="password"
+                          value={testData.password}
+                          onChange={(e) => setTestData(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="password"
+                        />
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm">First Name</Label>
@@ -924,25 +891,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                         value={testData.lastName}
                         onChange={(e) => setTestData(prev => ({ ...prev, lastName: e.target.value }))}
                         placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Email</Label>
-                      <Input
-                        value={testData.email}
-                        onChange={(e) => setTestData(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">Phone</Label>
-                      <Input
-                        value={testData.phone}
-                        onChange={(e) => setTestData(prev => ({ ...prev, phone: e.target.value }))}
-                        placeholder="8888888888"
                       />
                     </div>
                   </div>
@@ -989,7 +937,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm">Height (inches)</Label>
                       <Input
@@ -1006,14 +954,6 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                         placeholder="200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">OTP Code</Label>
-                      <Input
-                        value={testData.otp}
-                        onChange={(e) => setTestData(prev => ({ ...prev, otp: e.target.value }))}
-                        placeholder="123456"
-                      />
-                    </div>
                   </div>
 
                   <Button 
@@ -1022,13 +962,13 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                     onClick={testPatientFlow}
                     disabled={isTestingFlow || validationErrors.length > 0}
                   >
-                    {isTestingFlow ? "Testing..." : "Test Complete Patient Flow"}
+                    {isTestingFlow ? "Testing..." : "Test Complete Authentication Flow"}
                   </Button>
 
                   {testResults.length > 0 && (
-                    <div className="p-4 border rounded">
+                    <div className="p-4 border rounded overflow-x-scroll">
                       <h4 className="font-medium mb-2">Test Results:</h4>
-                      <pre className="text-sm whitespace-pre-wrap font-mono max-h-96 overflow-y-auto">
+                      <pre className="text-sm whitespace-pre-wrap font-mono max-h-96 max-w-128 overflow-x-scroll">
                         {testResults.join('\n')}
                       </pre>
                     </div>
@@ -1038,51 +978,222 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
             </TabsContent>
 
             <TabsContent value="docs" className="space-y-4">
-              <Card>
+              <Card className="max-w-3xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
-                    API Documentation
+                    API Documentation - New Authentication Flow
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="prose prose-sm max-w-none">
-                  <h4>Expected Request Format</h4>
-                  <div className="p-3 bg-gray-50 rounded text-sm">
-                    <pre className="bg-gray-800 text-green-400 p-3 rounded overflow-x-auto">
-{`POST /api/login
+                <CardContent className="space-y-4">
+                  <div className="prose prose-sm max-w-none">
+                    <h3>New Authentication Flow Overview</h3>
+                    
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                      <h4 className="text-blue-800 dark:text-white font-medium">User Flow:</h4>
+                      <ol className="text-blue-700 dark:text-white mt-2 space-y-1 list-decimal list-inside">
+                        <li>User enters email or mobile number</li>
+                        <li>{data.authMethod === 'otp' ? 'System sends OTP to the provided contact' : 'User enters password'}</li>
+                        <li>User enters {data.authMethod === 'otp' ? 'OTP' : 'password'} for validation</li>
+                        <li>System validates and returns patient data</li>
+                        <li>If patient data is incomplete:
+                          <ul className="ml-6 list-disc">
+                            <li>User fills missing information</li>
+                            <li>System updates patient profile</li>
+                          </ul>
+                        </li>
+                        <li>If patient data is complete: Skip to next block</li>
+                      </ol>
+                    </div>
+
+                    <h4>API Endpoints</h4>
+
+                    {data.authMethod === 'otp' && (
+                      <>
+                        <h5>1. Send OTP</h5>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                          <strong>Request:</strong>
+                          <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.sendOtpUrl || '/api/send-otp'}
 Content-Type: application/json
 
 {
-  "firstName": "John",      // Required
-  "middleName": "Q",        // Optional
-  "lastName": "Doe",        // Required
-  "email": "john@example.com", // Required
-  "phone": "8888888888",    // Required (no dashes)
-  "gender": "male",         // Optional: male/female/other
-  "genderBiological": "male", // Optional: male/female
-  "dateOfBirth": "01-15-1990", // Optional: mm-dd-yyyy
-  "height": 72,             // Optional: inches
-  "weight": 200             // Optional: pounds
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}"${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
 }`}
-                    </pre>
-                  </div>
+                          </pre>
+                          <strong>Success Response:</strong>
+                          <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "success": true,
+  "message": "OTP sent successfully",
+  "expiresIn": 300
+}`}
+                          </pre>
+                        </div>
+                      </>
+                    )}
 
-                  <h4>Expected Response Format</h4>
-                  <div className="p-3 bg-gray-50 rounded text-sm">
-                    <pre className="bg-gray-800 text-green-400 p-3 rounded overflow-x-auto">
+                    <h5>{data.authMethod === 'otp' ? '2' : '1'}. Validate {data.authMethod === 'otp' ? 'OTP' : 'Password'}</h5>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                      <strong>Request:</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.validateAuthUrl || `/api/validate-${data.authMethod}`}
+Content-Type: application/json
+
+{
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}",
+  "${data.authMethod === 'otp' ? 'otp' : 'password'}": "${data.authMethod === 'otp' ? '123456' : 'password123'}"${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
+}`}
+                      </pre>
+                      <strong>Success Response (Complete Patient Data):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
 {`{
   "token": "jwt_token_here",
-  "user": {
-    "id": "user123",
-    "firstName": "John",
-    "lastName": "Doe",
+  "patient": {
+    "id": "patient123",
+    "firstName": "John",      // If present, skip collection
+    "lastName": "Doe",        // If present, skip collection
+    "middleName": "Q",
     "email": "john@example.com",
-    "phone": "8888888888"
-    // ... additional user data
+    "phone": "8888888888",
+    "gender": "male",         // If present, skip collection
+    "genderBiological": "male",
+    "dateOfBirth": "01-15-1990", // If present, skip collection
+    "height": 72,             // If present, skip collection
+    "weight": 200             // If present, skip collection
   },
   "success": true
 }`}
-                    </pre>
+                      </pre>
+                      <strong>Success Response (Incomplete Patient Data):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "token": "jwt_token_here",
+  "patient": {
+    "id": "patient123",
+    "email": "john@example.com",
+    "phone": "8888888888"
+    // Missing fields will be collected from user
+  },
+  "success": true
+}`}
+                      </pre>
+                    </div>
+
+                    <h5>{data.authMethod === 'otp' ? '3' : '2'}. Update Patient Information</h5>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                      <strong>Request (only sent if patient data is incomplete):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.updatePatientUrl || '/api/update-patient'}
+Content-Type: application/json
+Authorization: Bearer {token}
+
+{
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}",
+  "firstName": "John",           // Only if missing
+  "lastName": "Doe",            // Only if missing
+  "middleName": "Q",            // Optional
+  "gender": "male",             // Only if missing
+  "genderBiological": "male",   // Only if missing
+  "dateOfBirth": "01-15-1990",  // Only if missing
+  "height": 72,                 // Only if missing
+  "weight": 200                 // Only if missing${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
+}`}
+                      </pre>
+                      <strong>Success Response:</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "success": true,
+  "patient": {
+    "id": "patient123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "middleName": "Q",
+    "email": "john@example.com",
+    "phone": "8888888888",
+    "gender": "male",
+    "genderBiological": "male",
+    "dateOfBirth": "01-15-1990",
+    "height": 72,
+    "weight": 200
+  },
+  "message": "Patient information updated successfully"
+}`}
+                      </pre>
+                    </div>
+
+                    <h4>Field Validation Rules</h4>
+                    <div className="p-3 bg-yellow-50 rounded text-sm">
+                      <ul className="space-y-2 text-yellow-800">
+                        <li><strong>Email:</strong> Must be a valid email format</li>
+                        <li><strong>Phone:</strong> 10-digit number without special characters</li>
+                        <li><strong>OTP:</strong> Typically 4-6 digits</li>
+                        <li><strong>Password:</strong> Based on your system requirements</li>
+                        <li><strong>Date of Birth:</strong> Format: mm-dd-yyyy</li>
+                        <li><strong>Height:</strong> Numeric value in inches</li>
+                        <li><strong>Weight:</strong> Numeric value in pounds</li>
+                        <li><strong>Gender:</strong> male/female/other</li>
+                        <li><strong>Biological Gender:</strong> male/female</li>
+                      </ul>
+                    </div>
+
+                    <h4>Skip Logic</h4>
+                    <div className="p-3 bg-green-50 rounded text-sm">
+                      <p className="text-green-800">
+                        <strong>Automatic Field Skipping:</strong> If the validation API returns patient data with any of the configured fields already populated, those fields will be automatically skipped in the UI. Only missing fields will be presented to the user for collection.
+                      </p>
+                      <div className="mt-3 p-2 bg-green-100 rounded">
+                        <strong className="text-green-900">Example:</strong>
+                        <ul className="mt-2 space-y-1 text-green-800">
+                          <li>• If patient.firstName exists → Skip name collection</li>
+                          <li>• If patient.dateOfBirth exists → Skip DOB collection</li>
+                          <li>• If all required fields exist → Direct navigation to next block</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {data.skipIfLoggedIn && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm">
+                        <h4 className="text-blue-800 dark:text-blue-80 font-medium">Skip if Logged In:</h4>
+                        <p className="text-blue-700 dark:text-blue-70 mt-2">
+                          When enabled, the system checks for an existing valid token. If found and validated successfully, the entire authentication block is skipped, and the user proceeds directly to the next block.
+                        </p>
+                      </div>
+                    )}
+
+                    <h4>Error Handling</h4>
+                    <div className="p-3 bg-red-50 dark:bg-red-500 rounded text-sm">
+                      <strong>Standard Error Response:</strong>
+                      <pre className="mt-2 bg-gray-800 dark:bg-gray-80 text-red-400 dark:text-red-40 p-2 rounded overflow-x-auto">
+{`{
+  "success": false,
+  "error": "Invalid OTP",
+  "code": "AUTH_FAILED"
+}`}
+                      </pre>
+                    </div>
+
+                    <h4>Custom Headers & Parameters</h4>
+                    <div className="p-3 bg-purple-50 dark:bg-purple-800 rounded text-sm">
+                      <p className="text-purple-800 dark:text-white">
+                        <strong>Custom Headers:</strong> All configured headers are sent with every API request. Common uses: API keys, merchant IDs, version tracking.
+                      </p>
+                      <p className="text-purple-800 dark:text-white mt-2">
+                        <strong>Additional Body Parameters:</strong> These are automatically included in all request bodies for context like merchant_id, source tracking, etc.
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1095,20 +1206,27 @@ Content-Type: application/json
 };
 
 const PatientBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
+  const authMethod = data.authMethod === 'otp' ? 'OTP' : 'Password';
+  const authField = data.authField === 'email' ? 'Email' : 'Phone';
+  
   const enabledFields = [];
   if (data.requireFirstName || data.requireLastName) enabledFields.push('Name');
-  if (data.requireEmail) enabledFields.push('Email');
-  if (data.requirePhone) enabledFields.push('Phone');
-  if (data.requireGender || data.requireDateOfBirth) enabledFields.push('Demographics');
+  if (data.requireDateOfBirth) enabledFields.push('DOB');
+  if (data.requireGender) enabledFields.push('Gender');
   if (data.requireHeight || data.requireWeight) enabledFields.push('Physical');
 
   return (
     <div className="p-4 border rounded-md text-center text-sm">
       <UserCheck className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-      <div className="font-medium">Patient Block</div>
+      <div className="font-medium">Patient Authentication</div>
       <div className="text-xs text-muted-foreground mt-1">
-        {enabledFields.length > 0 ? enabledFields.join(' • ') : 'Configure fields'}
+        {authField} + {authMethod}
       </div>
+      {enabledFields.length > 0 && (
+        <div className="text-xs text-muted-foreground mt-1">
+          Collects: {enabledFields.join(' • ')}
+        </div>
+      )}
       {data.skipIfLoggedIn && (
         <div className="text-xs text-blue-600 flex items-center justify-center gap-1 mt-1">
           <SkipForward className="w-3 h-3" />
@@ -1122,12 +1240,12 @@ const PatientBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
 const PatientBlockPreview: React.FC = () => {
   return (
     <div className="w-full flex items-center justify-center py-1 text-sm">
-      <UserCheck className="w-4 h-4 mr-2" /> Patient
+      <UserCheck className="w-4 h-4 mr-2" /> Patient Auth
     </div>
   );
 };
 
-type PatientStep = 'name' | 'contact' | 'demographics' | 'physical' | 'email-otp' | 'phone-otp' | 'welcome';
+type AuthStep = 'auth' | 'verify' | 'collect' | 'welcome';
 
 const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const { goToNextBlock, setValue, navigationHistory, theme } = useSurveyForm();
@@ -1135,104 +1253,79 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const fieldName = (block as any).fieldName || 'authResults';
   const tokenField = (block as any).tokenField || 'token';
   const storageKey = (block as any).tokenStorageKey || 'authToken';
-  const useOtp = (block as any).useOtp || false;
+  const authMethod = (block as any).authMethod || 'otp';
+  const authField = (block as any).authField || 'email';
   const skipIfLoggedIn = (block as any).skipIfLoggedIn || false;
 
-  const [currentStep, setCurrentStep] = useState<PatientStep>('name');
+  const [currentStep, setCurrentStep] = useState<AuthStep>('auth');
+  const [patientData, setPatientData] = useState<any>(null);
   const [formData, setFormData] = useState({
+    email: '',
+    phone: '',
+    password: '',
+    otp: '',
     firstName: '',
     middleName: '',
     lastName: '',
-    email: '',
-    phone: '',
     gender: '',
     genderBiological: '',
     dateOfBirth: '',
     height: '',
-    weight: '',
-    emailOtp: '',
-    phoneOtp: ''
+    weight: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
-  const [isManualNavigation, setIsManualNavigation] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
 
   const hasInitialized = useRef(false);
-
-  const checkIfBackNavigation = () => {
-    if (navigationHistory.length < 2) return false;
-    const currentEntry = navigationHistory[navigationHistory.length - 1];
-    const previousEntry = navigationHistory[navigationHistory.length - 2];
-    return currentEntry && previousEntry && 
-      (previousEntry.pageIndex > currentEntry.pageIndex ||
-       (previousEntry.pageIndex === currentEntry.pageIndex && previousEntry.blockIndex > currentEntry.blockIndex)) &&
-      previousEntry.trigger === 'back';
-  };
 
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    const isBackNav = checkIfBackNavigation();
-    setIsManualNavigation(isBackNav);
+    // Check if already logged in
+    if (skipIfLoggedIn) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        if (stored[tokenField]) {
+          setLoading(true);
+          
+          if (!(block as any).validateTokenUrl) {
+            // No validation URL, assume token is valid
+            setTimeout(() => {
+              setValue(fieldName, stored);
+              setLoading(false);
+              goToNextBlock();
+            }, 200);
+            return;
+          }
 
-    try {
-      const user = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      const existing = user[tokenField];
-      
-      if (existing && skipIfLoggedIn && !isBackNav) {
-        setLoading(true);
-        
-        if (!(block as any).validateTokenUrl) {
-          setTimeout(() => {
-            setValue(fieldName, user);
-            setLoading(false);
-            goToNextBlock();
-          }, 200);
-          return;
-        }
-
-        const headers = buildRequestHeaders();
-        fetch((block as any).validateTokenUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ [tokenField]: existing })
-        })
-          .then(res => res.ok ? res.json() : Promise.reject())
-          .then(data => {
-            setValue(fieldName, data);
-            setLoading(false);
-            goToNextBlock();
+          // Validate token
+          const headers = buildRequestHeaders();
+          fetch((block as any).validateTokenUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ [tokenField]: stored[tokenField] })
           })
-          .catch(() => {
-            localStorage.removeItem(storageKey);
-            determineFirstStep();
-            setLoading(false);
-          });
-      } else if (existing) {
-        setCurrentStep('welcome');
-      } else {
-        determineFirstStep();
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+              setValue(fieldName, data);
+              setLoading(false);
+              goToNextBlock();
+            })
+            .catch(() => {
+              localStorage.removeItem(storageKey);
+              setLoading(false);
+            });
+        }
+      } catch {
+        // Ignore errors
       }
-    } catch {
-      determineFirstStep();
     }
   }, []);
-
-  const determineFirstStep = () => {
-    if ((block as any).requireFirstName || (block as any).requireLastName) {
-      setCurrentStep('name');
-    } else if ((block as any).requireEmail || (block as any).requirePhone) {
-      setCurrentStep('contact');
-    } else if ((block as any).requireGender || (block as any).requireDateOfBirth) {
-      setCurrentStep('demographics');
-    } else if ((block as any).requireHeight || (block as any).requireWeight) {
-      setCurrentStep('physical');
-    }
-  };
 
   const buildRequestHeaders = () => {
     const headers: Record<string, string> = {
@@ -1242,6 +1335,10 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     Object.entries(customHeaders).forEach(([key, value]) => {
       if (key && value) headers[key] = value as string;
     });
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (stored[tokenField]) {
+      headers['Authorization'] = `Bearer ${stored[tokenField]}`;
+    }
     return headers;
   };
 
@@ -1254,244 +1351,190 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     return requestBody;
   };
 
-  const handleStepSubmit = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (currentStep === 'name') {
-      if ((block as any).requireFirstName && !formData.firstName.trim()) {
-        setError('First name is required');
-        return;
-      }
-      if ((block as any).requireLastName && !formData.lastName.trim()) {
-        setError('Last name is required');
-        return;
-      }
-      
-      const hasContact = (block as any).requireEmail || (block as any).requirePhone;
-      const hasDemographics = (block as any).requireGender || (block as any).requireGenderBiological || (block as any).requireDateOfBirth;
-      const hasPhysical = (block as any).requireHeight || (block as any).requireWeight;
-      
-      if (hasContact) {
-        setCurrentStep('contact');
-      } else if (hasDemographics) {
-        setCurrentStep('demographics');
-      } else if (hasPhysical) {
-        setCurrentStep('physical');
-      } else {
-        await handleAuthentication();
-      }
-      return;
-    }
-
-    if (currentStep === 'contact') {
-      if ((block as any).requireEmail && !formData.email.trim()) {
-        setError('Email is required');
-        return;
-      }
-      if ((block as any).requirePhone && !formData.phone.trim()) {
-        setError('Phone is required');
-        return;
-      }
-
-      const hasDemographics = (block as any).requireGender || (block as any).requireGenderBiological || (block as any).requireDateOfBirth;
-      const hasPhysical = (block as any).requireHeight || (block as any).requireWeight;
-      
-      if (hasDemographics) {
-        setCurrentStep('demographics');
-      } else if (hasPhysical) {
-        setCurrentStep('physical');
-      } else {
-        await handleAuthentication();
-      }
-      return;
-    }
-
-    if (currentStep === 'demographics') {
-      const hasPhysical = (block as any).requireHeight || (block as any).requireWeight;
-      if (hasPhysical) {
-        setCurrentStep('physical');
-      } else {
-        await handleAuthentication();
-      }
-      return;
-    }
-
-    if (currentStep === 'physical') {
-      await handleAuthentication();
-      return;
-    }
-
-    if (currentStep === 'email-otp' || currentStep === 'phone-otp') {
-      await handleOtpVerification(currentStep === 'email-otp' ? 'email' : 'phone');
-      return;
-    }
-  };
-
-  const handleAuthentication = async () => {
-    setLoading(true);
-    
-    try {
-      const baseBody: any = {};
-      if ((block as any).requireFirstName) baseBody.firstName = formData.firstName;
-      if ((block as any).requireMiddleName && formData.middleName) baseBody.middleName = formData.middleName;
-      if ((block as any).requireLastName) baseBody.lastName = formData.lastName;
-      if ((block as any).requireEmail) baseBody.email = formData.email;
-      if ((block as any).requirePhone) baseBody.phone = formData.phone;
-      if ((block as any).requireGender && formData.gender) baseBody.gender = formData.gender;
-      if ((block as any).requireGenderBiological && formData.genderBiological) baseBody.genderBiological = formData.genderBiological;
-      if ((block as any).requireDateOfBirth && formData.dateOfBirth) baseBody.dateOfBirth = formData.dateOfBirth;
-      if ((block as any).requireHeight && formData.height) baseBody.height = parseInt(formData.height);
-      if ((block as any).requireWeight && formData.weight) baseBody.weight = parseInt(formData.weight);
-
-      const headers = buildRequestHeaders();
-      const requestBody = buildRequestBody(baseBody);
-
-      if (useOtp) {
-        if ((block as any).requireEmail && (block as any).sendEmailOtpUrl) {
-          const otpRes = await fetch((block as any).sendEmailOtpUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(requestBody)
-          });
-          
-          if (otpRes.ok) {
-            setOtpSent(true);
-            setSuccess('OTP sent to your email');
-            setCurrentStep('email-otp');
-          } else {
-            throw new Error('Failed to send email OTP');
-          }
-        } else if ((block as any).requirePhone && (block as any).sendPhoneOtpUrl) {
-          const otpRes = await fetch((block as any).sendPhoneOtpUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(requestBody)
-          });
-          
-          if (otpRes.ok) {
-            setOtpSent(true);
-            setSuccess('OTP sent to your phone');
-            setCurrentStep('phone-otp');
-          } else {
-            throw new Error('Failed to send phone OTP');
-          }
-        }
-      } else {
-        const url = (block as any).loginUrl || (block as any).signupUrl;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestBody)
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          if (data[tokenField]) {
-            localStorage.setItem(storageKey, JSON.stringify(data));
-          }
-          
-          const authResults = {
-            ...data,
-            ...formData,
-            isAuthenticated: true,
-            timestamp: new Date().toISOString()
-          };
-          
-          await new Promise(f => setTimeout(f, 1000));
-          goToNextBlock({ [fieldName]: authResults });
-        } else {
-          throw new Error(data.error || 'Authentication failed');
-        }
-      }
-    } catch (e: any) {
-      setError(e.message || 'Authentication failed');
-    }
-    
-    setLoading(false);
-  };
-
-  const handleOtpVerification = async (type: 'email' | 'phone') => {
+  const handleSendOtp = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const otp = type === 'email' ? formData.emailOtp : formData.phoneOtp;
-      const verifyUrl = type === 'email' 
-        ? (block as any).verifyEmailOtpUrl 
-        : (block as any).verifyPhoneOtpUrl;
-      
-      const baseBody: any = { ...formData, otp };
-      const headers = buildRequestHeaders();
-      const requestBody = buildRequestBody(baseBody);
+      const body = authField === 'email'
+        ? { email: formData.email }
+        : { phone: formData.phone };
 
-      const res = await fetch(verifyUrl, {
+      const headers = buildRequestHeaders();
+      const requestBody = buildRequestBody(body);
+
+      const res = await fetch((block as any).sendOtpUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody)
       });
-      
-      const data = await res.json();
-      
+
       if (res.ok) {
+        setOtpSent(true);
+        setSuccess('Verification code sent successfully');
+        setCurrentStep('verify');
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to send OTP' }));
+        throw new Error(errorData.error || 'Failed to send OTP');
+      }
+    } catch (e: any) {
+      setError(e.message);
+    }
+
+    setLoading(false);
+  };
+
+  const handleValidateAuth = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const body: any = authField === 'email'
+        ? { email: formData.email }
+        : { phone: formData.phone };
+
+      if (authMethod === 'otp') {
+        body.otp = formData.otp;
+      } else {
+        body.password = formData.password;
+      }
+
+      const headers = buildRequestHeaders();
+      const requestBody = buildRequestBody(body);
+
+      const res = await fetch((block as any).validateAuthUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Store token if present
         if (data[tokenField]) {
-          localStorage.setItem(storageKey, JSON.stringify(data));
+          localStorage.setItem(storageKey, JSON.stringify({ [tokenField]: data[tokenField] }));
         }
-        
+
+        setPatientData(data.patient || data);
+
+        // Check for missing fields
+        const missing = [];
+        if ((block as any).requireFirstName && !data.patient?.firstName) missing.push('firstName');
+        if ((block as any).requireLastName && !data.patient?.lastName) missing.push('lastName');
+        if ((block as any).requireMiddleName && !data.patient?.middleName) missing.push('middleName');
+        if ((block as any).requireGender && !data.patient?.gender) missing.push('gender');
+        if ((block as any).requireGenderBiological && !data.patient?.genderBiological) missing.push('genderBiological');
+        if ((block as any).requireDateOfBirth && !data.patient?.dateOfBirth) missing.push('dateOfBirth');
+        if ((block as any).requireHeight && !data.patient?.height) missing.push('height');
+        if ((block as any).requireWeight && !data.patient?.weight) missing.push('weight');
+
+        if (missing.length > 0) {
+          setMissingFields(missing);
+          setCurrentStep('collect');
+        } else {
+          // All data present, go to next block
+          const authResults = {
+            ...data,
+            isAuthenticated: true,
+            timestamp: new Date().toISOString()
+          };
+          setValue(fieldName, authResults);
+          await new Promise(f => setTimeout(f, 1000));
+          goToNextBlock();
+        }
+      } else {
+        throw new Error(data.error || 'Authentication failed');
+      }
+    } catch (e: any) {
+      setError(e.message);
+    }
+
+    setLoading(false);
+  };
+
+  const handleUpdatePatient = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const body: any = authField === 'email'
+        ? { email: formData.email }
+        : { phone: formData.phone };
+
+      // Add missing fields
+      if (missingFields.includes('firstName')) body.firstName = formData.firstName;
+      if (missingFields.includes('lastName')) body.lastName = formData.lastName;
+      if (missingFields.includes('middleName')) body.middleName = formData.middleName;
+      if (missingFields.includes('gender')) body.gender = formData.gender;
+      if (missingFields.includes('genderBiological')) body.genderBiological = formData.genderBiological;
+      if (missingFields.includes('dateOfBirth')) body.dateOfBirth = formData.dateOfBirth;
+      if (missingFields.includes('height')) body.height = parseInt(formData.height);
+      if (missingFields.includes('weight')) body.weight = parseInt(formData.weight);
+
+      const headers = buildRequestHeaders();
+      const requestBody = buildRequestBody(body);
+
+      const res = await fetch((block as any).updatePatientUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
         const authResults = {
-          ...data,
+          ...patientData,
+          ...data.patient,
           ...formData,
           isAuthenticated: true,
           timestamp: new Date().toISOString()
         };
         
+        setValue(fieldName, authResults);
         await new Promise(f => setTimeout(f, 1000));
-        goToNextBlock({ [fieldName]: authResults });
+        goToNextBlock();
       } else {
-        throw new Error(data.error || 'OTP verification failed');
+        throw new Error(data.error || 'Failed to update patient information');
       }
     } catch (e: any) {
-      setError(e.message || 'OTP verification failed');
+      setError(e.message);
     }
-    
+
     setLoading(false);
   };
 
-  const handleWelcomeContinue = () => {
-    goToNextBlock();
+  const canSubmitAuth = () => {
+    if (authField === 'email') {
+      return formData.email.includes('@') && formData.email.length > 3;
+    } else {
+      return formData.phone.replace(/\D/g, '').length === 10;
+    }
   };
 
-  const handleSignInAsDifferent = () => {
-    localStorage.removeItem(storageKey);
-    determineFirstStep();
-    setFormData({
-      firstName: '',
-      middleName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      gender: '',
-      genderBiological: '',
-      dateOfBirth: '',
-      height: '',
-      weight: '',
-      emailOtp: '',
-      phoneOtp: ''
-    });
-    setError(null);
-    setSuccess(null);
-    setIsManualNavigation(false);
+  const canSubmitVerify = () => {
+    if (authMethod === 'otp') {
+      return formData.otp.length >= 4;
+    } else {
+      return formData.password.length > 0;
+    }
+  };
+
+  const canSubmitCollect = () => {
+    for (const field of missingFields) {
+      if (field === 'firstName' && !formData.firstName.trim()) return false;
+      if (field === 'lastName' && !formData.lastName.trim()) return false;
+      // Other fields are optional or have defaults
+    }
+    return true;
   };
 
   const getStepIcon = () => {
     switch (currentStep) {
-      case 'name': return <User className="w-6 h-6" />;
-      case 'contact': return <Mail className="w-6 h-6" />;
-      case 'demographics': return <UserCheck className="w-6 h-6" />;
-      case 'physical': return <Ruler className="w-6 h-6" />;
-      case 'email-otp':
-      case 'phone-otp': return <KeyRound className="w-6 h-6" />;
+      case 'auth': return authField === 'email' ? <Mail className="w-6 h-6" /> : <Phone className="w-6 h-6" />;
+      case 'verify': return authMethod === 'otp' ? <KeyRound className="w-6 h-6" /> : <Lock className="w-6 h-6" />;
+      case 'collect': return <User className="w-6 h-6" />;
       case 'welcome': return <CheckCircle2 className="w-6 h-6" />;
       default: return <User className="w-6 h-6" />;
     }
@@ -1499,12 +1542,9 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 'name': return "What's your name?";
-      case 'contact': return "Contact information";
-      case 'demographics': return "Tell us about yourself";
-      case 'physical': return "Physical measurements";
-      case 'email-otp': return 'Enter email verification code';
-      case 'phone-otp': return 'Enter phone verification code';
+      case 'auth': return `Enter your ${authField === 'email' ? 'email' : 'phone number'}`;
+      case 'verify': return authMethod === 'otp' ? 'Enter verification code' : 'Enter your password';
+      case 'collect': return 'Complete your profile';
       case 'welcome': return 'Welcome back!';
       default: return 'Authentication';
     }
@@ -1512,87 +1552,127 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
   const getStepDescription = () => {
     switch (currentStep) {
-      case 'name': return "Please enter your full name";
-      case 'contact': return "We need your contact details";
-      case 'demographics': return "Help us understand you better";
-      case 'physical': return "Optional physical information";
-      case 'email-otp': return `Enter the code sent to ${formData.email}`;
-      case 'phone-otp': return `Enter the code sent to ${formData.phone}`;
-      case 'welcome': return formData.firstName ? `Hello ${formData.firstName}, you're already authenticated.` : "You're already authenticated.";
+      case 'auth': return `We'll use this to ${authMethod === 'otp' ? 'send you a verification code' : 'authenticate you'}`;
+      case 'verify': return authMethod === 'otp' 
+        ? `Enter the code sent to ${authField === 'email' ? formData.email : formData.phone}`
+        : `Enter your password to continue`;
+      case 'collect': return 'Please provide the following information';
+      case 'welcome': return "You're already authenticated";
       default: return '';
-    }
-  };
-
-  const canSubmit = () => {
-    switch (currentStep) {
-      case 'name':
-        return ((block as any).requireFirstName ? formData.firstName.trim() : true) &&
-               ((block as any).requireLastName ? formData.lastName.trim() : true);
-      case 'contact':
-        return ((block as any).requireEmail ? formData.email.trim() && formData.email.includes('@') : true) &&
-               ((block as any).requirePhone ? formData.phone.trim().length >= 10 : true);
-      case 'demographics':
-      case 'physical':
-        return true;
-      case 'email-otp': return formData.emailOtp.length >= 4;
-      case 'phone-otp': return formData.phoneOtp.length >= 4;
-      default: return false;
-    }
-  };
-
-  const getPreviousStep = (): PatientStep | null => {
-    switch (currentStep) {
-      case 'name': return null;
-      case 'contact':
-        if ((block as any).requireFirstName || (block as any).requireLastName) return 'name';
-        return null;
-      case 'demographics':
-        if ((block as any).requireEmail || (block as any).requirePhone) return 'contact';
-        if ((block as any).requireFirstName || (block as any).requireLastName) return 'name';
-        return null;
-      case 'physical':
-        if ((block as any).requireGender || (block as any).requireDateOfBirth) return 'demographics';
-        if ((block as any).requireEmail || (block as any).requirePhone) return 'contact';
-        if ((block as any).requireFirstName || (block as any).requireLastName) return 'name';
-        return null;
-      case 'email-otp':
-      case 'phone-otp':
-        return 'contact';
-      default:
-        return null;
-    }
-  };
-
-  const handleGoBack = () => {
-    const previousStep = getPreviousStep();
-    if (previousStep) {
-      setCurrentStep(previousStep);
-      setError(null);
-      setSuccess(null);
     }
   };
 
   const renderInput = () => {
     switch (currentStep) {
-      case 'name':
+      case 'auth':
         return (
           <div className="space-y-4">
-            {(block as any).requireFirstName && (
+            {authField === 'email' ? (
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email"
+                className={theme?.field.input || "text-lg h-12"}
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && canSubmitAuth()) {
+                    if (authMethod === 'otp') {
+                      handleSendOtp();
+                    } else {
+                      setCurrentStep('verify');
+                    }
+                  }
+                }}
+              />
+            ) : (
+              <Input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
+                placeholder="8888888888"
+                className={theme?.field.input || "text-lg h-12"}
+                maxLength={10}
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && canSubmitAuth()) {
+                    if (authMethod === 'otp') {
+                      handleSendOtp();
+                    } else {
+                      setCurrentStep('verify');
+                    }
+                  }
+                }}
+              />
+            )}
+
+            {authMethod === 'password' && canSubmitAuth() && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+              >
+                <Input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter your password"
+                  className={theme?.field.input || "text-lg h-12"}
+                  onKeyPress={(e) => e.key === 'Enter' && canSubmitVerify() && handleValidateAuth()}
+                />
+              </motion.div>
+            )}
+          </div>
+        );
+
+      case 'verify':
+        return authMethod === 'otp' ? (
+          <Input
+            type="text"
+            value={formData.otp}
+            onChange={(e) => setFormData(prev => ({ ...prev, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+            placeholder="Enter verification code"
+            className={`${theme?.field.input || "text-lg h-14"} text-center tracking-widest font-mono`}
+            maxLength={6}
+            autoFocus
+            onKeyPress={(e) => e.key === 'Enter' && canSubmitVerify() && handleValidateAuth()}
+          />
+        ) : (
+          <Input
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+            placeholder="Enter your password"
+            className={theme?.field.input || "text-lg h-12"}
+            autoFocus
+            onKeyPress={(e) => e.key === 'Enter' && canSubmitVerify() && handleValidateAuth()}
+          />
+        );
+
+      case 'collect':
+        return (
+          <div className="space-y-4">
+            {missingFields.includes('firstName') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).firstNameLabel || 'First Name'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).firstNameLabel || 'First Name'}
+                </Label>
                 <Input
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder="Enter your first name"
                   className={theme?.field.input || "text-lg h-12"}
-                  autoFocus
+                  autoFocus={missingFields[0] === 'firstName'}
                 />
               </div>
             )}
-            {(block as any).requireMiddleName && (
+
+            {missingFields.includes('middleName') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).middleNameLabel || 'Middle Name'} <span className="text-muted-foreground">(Optional)</span></Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).middleNameLabel || 'Middle Name'} <span className="text-muted-foreground">(Optional)</span>
+                </Label>
                 <Input
                   type="text"
                   value={formData.middleName}
@@ -1602,62 +1682,27 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 />
               </div>
             )}
-            {(block as any).requireLastName && (
+
+            {missingFields.includes('lastName') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).lastNameLabel || 'Last Name'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).lastNameLabel || 'Last Name'}
+                </Label>
                 <Input
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder="Enter your last name"
                   className={theme?.field.input || "text-lg h-12"}
-                  onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
                 />
               </div>
             )}
-          </div>
-        );
-      
-      case 'contact':
-        return (
-          <div className="space-y-4">
-            {(block as any).requireEmail && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).emailLabel || 'Email'}</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter your email"
-                  className={theme?.field.input || "text-lg h-12"}
-                  autoFocus
-                />
-              </div>
-            )}
-            {(block as any).requirePhone && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).phoneLabel || 'Phone Number'}</Label>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
-                  placeholder="8888888888"
-                  className={theme?.field.input || "text-lg h-12"}
-                  maxLength={10}
-                  onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
-                />
-                <p className={theme?.field.description || "text-xs text-muted-foreground"}>Enter 10 digits without dashes</p>
-              </div>
-            )}
-          </div>
-        );
 
-      case 'demographics':
-        return (
-          <div className="space-y-4">
-            {(block as any).requireGender && (
+            {missingFields.includes('gender') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).genderLabel || 'Gender'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).genderLabel || 'Gender'}
+                </Label>
                 <Select
                   value={formData.gender}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
@@ -1673,9 +1718,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 </Select>
               </div>
             )}
-            {(block as any).requireGenderBiological && (
+
+            {missingFields.includes('genderBiological') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).genderBiologicalLabel || 'Biological Gender'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).genderBiologicalLabel || 'Biological Gender'}
+                </Label>
                 <Select
                   value={formData.genderBiological}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, genderBiological: value }))}
@@ -1690,9 +1738,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 </Select>
               </div>
             )}
-            {(block as any).requireDateOfBirth && (
+
+            {missingFields.includes('dateOfBirth') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).dateOfBirthLabel || 'Date of Birth'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).dateOfBirthLabel || 'Date of Birth'}
+                </Label>
                 <Input
                   type="text"
                   value={formData.dateOfBirth}
@@ -1703,15 +1754,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 <p className={theme?.field.description || "text-xs text-muted-foreground"}>Format: mm-dd-yyyy</p>
               </div>
             )}
-          </div>
-        );
 
-      case 'physical':
-        return (
-          <div className="space-y-4">
-            {(block as any).requireHeight && (
+            {missingFields.includes('height') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).heightLabel || 'Height'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).heightLabel || 'Height'}
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -1724,9 +1772,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 </div>
               </div>
             )}
-            {(block as any).requireWeight && (
+
+            {missingFields.includes('weight') && (
               <div className="space-y-2">
-                <Label className={theme?.field.label}>{(block as any).weightLabel || 'Weight'}</Label>
+                <Label className={theme?.field.label}>
+                  {(block as any).weightLabel || 'Weight'}
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -1742,40 +1793,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           </div>
         );
 
-      case 'email-otp':
-        return (
-          <Input
-            type="text"
-            value={formData.emailOtp}
-            onChange={(e) => setFormData(prev => ({ ...prev, emailOtp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-            placeholder="Enter verification code"
-            className={`${theme?.field.input || "text-lg h-14"} text-center tracking-widest font-mono`}
-            maxLength={6}
-            autoFocus
-            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
-          />
-        );
-
-      case 'phone-otp':
-        return (
-          <Input
-            type="text"
-            value={formData.phoneOtp}
-            onChange={(e) => setFormData(prev => ({ ...prev, phoneOtp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-            placeholder="Enter verification code"
-            className={`${theme?.field.input || "text-lg h-14"} text-center tracking-widest font-mono`}
-            maxLength={6}
-            autoFocus
-            onKeyPress={(e) => e.key === 'Enter' && canSubmit() && handleStepSubmit()}
-          />
-        );
-
       default:
         return null;
     }
   };
 
-  if (loading && currentStep !== 'email-otp' && currentStep !== 'phone-otp' && currentStep !== 'welcome') {
+  if (loading && currentStep !== 'verify') {
     return (
       <Card className={`${theme?.card || ""} w-full min-w-0 mx-auto`}>
         <CardContent className="pt-6">
@@ -1812,19 +1835,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
-              onClick={handleWelcomeContinue}
+              onClick={() => goToNextBlock()}
               className={`${theme?.button.primary || ""} w-full`}
               size="lg"
             >
               Continue
               <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSignInAsDifferent}
-              className={`${theme?.button.secondary || ""} w-full`}
-            >
-              Sign in as different user
             </Button>
           </CardContent>
         </Card>
@@ -1894,29 +1910,123 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             {renderInput()}
           </motion.div>
 
-          <Button
-            onClick={handleStepSubmit}
-            disabled={!canSubmit() || loading}
-            className={`${theme?.button.primary || ""} w-full`}
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                {currentStep.includes('otp') ? 'Verifying...' : 'Processing...'}
-              </>
-            ) : (
-              <>
-                {currentStep.includes('otp') ? 'Verify Code' : 'Continue'}
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </>
-            )}
-          </Button>
+          {currentStep === 'auth' && (
+            <Button
+              onClick={() => {
+                if (authMethod === 'otp') {
+                  handleSendOtp();
+                } else if (authMethod === 'password' && canSubmitAuth()) {
+                  if (canSubmitVerify()) {
+                    handleValidateAuth();
+                  } else {
+                    setCurrentStep('verify');
+                  }
+                }
+              }}
+              disabled={!canSubmitAuth() || loading || (authMethod === 'password' && !canSubmitVerify())}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {authMethod === 'otp' ? 'Sending...' : 'Authenticating...'}
+                </>
+              ) : (
+                <>
+                  {authMethod === 'otp' ? 'Send Code' : (canSubmitVerify() ? 'Sign In' : 'Continue')}
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
 
-          {getPreviousStep() && (
+          {currentStep === 'verify' && authMethod === 'otp' && (
+            <Button
+              onClick={handleValidateAuth}
+              disabled={!canSubmitVerify() || loading}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  Verify Code
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep === 'verify' && authMethod === 'password' && (
+            <Button
+              onClick={handleValidateAuth}
+              disabled={!canSubmitVerify() || loading}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep === 'collect' && (
+            <Button
+              onClick={handleUpdatePatient}
+              disabled={!canSubmitCollect() || loading}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Complete Profile
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep === 'verify' && authMethod === 'otp' && (
             <Button
               variant="outline"
-              onClick={handleGoBack}
+              onClick={() => {
+                setCurrentStep('auth');
+                setOtpSent(false);
+                setError(null);
+                setSuccess(null);
+              }}
+              className={`${theme?.button.secondary || ""} w-full`}
+            >
+              Change {authField === 'email' ? 'Email' : 'Phone'}
+            </Button>
+          )}
+
+          {currentStep === 'verify' && authMethod === 'password' && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentStep('auth');
+                setError(null);
+                setSuccess(null);
+              }}
               className={`${theme?.button.secondary || ""} w-full`}
             >
               Back
@@ -1931,36 +2041,30 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 export const PatientBlock: BlockDefinition = {
   type: "patientAuth",
   name: "PatientAuthentication",
-  description: "Comprehensive patient authentication with all required fields",
+  description: "Patient authentication with conditional data collection",
   icon: <UserCheck className="w-4 h-4" />,
   defaultData: {
     type: "patientAuth",
     fieldName: "patientAuthResults",
-    loginUrl: "/api/patient/login",
-    signupUrl: "/api/patient/login",
-    useOtp: false,
-    sendEmailOtpUrl: "",
-    verifyEmailOtpUrl: "",
-    sendPhoneOtpUrl: "",
-    verifyPhoneOtpUrl: "",
+    authMethod: "otp", // 'otp' or 'password'
+    authField: "email", // 'email' or 'phone'
+    sendOtpUrl: "/api/v2/patient/send-otp",
+    validateAuthUrl: "/api/v2/patient/validate",
+    updatePatientUrl: "/api/v2/patient/update",
     tokenField: "token",
     tokenStorageKey: "authToken",
     validateTokenUrl: "",
     requireFirstName: true,
     requireMiddleName: false,
     requireLastName: true,
-    requireEmail: true,
-    requirePhone: true,
-    requireGender: false,
-    requireGenderBiological: false,
-    requireDateOfBirth: false,
-    requireHeight: false,
-    requireWeight: false,
+    requireGender: true,
+    requireGenderBiological: true,
+    requireDateOfBirth: true,
+    requireHeight: true,
+    requireWeight: true,
     firstNameLabel: "First Name",
     middleNameLabel: "Middle Name",
     lastNameLabel: "Last Name",
-    emailLabel: "Email",
-    phoneLabel: "Phone Number",
     genderLabel: "Gender",
     genderBiologicalLabel: "Biological Gender",
     dateOfBirthLabel: "Date of Birth",
@@ -1969,7 +2073,7 @@ export const PatientBlock: BlockDefinition = {
     fieldMappings: {},
     customHeaders: {},
     additionalBodyParams: {},
-    skipIfLoggedIn: false,
+    skipIfLoggedIn: true,
     showContinueButton: false
   },
   renderItem: (props: ContentBlockItemProps) => <PatientBlockItem {...props} />,
@@ -1977,19 +2081,14 @@ export const PatientBlock: BlockDefinition = {
   renderPreview: () => <PatientBlockPreview />,
   renderBlock: (props: BlockRendererProps) => <PatientRenderer {...props} />,
   validate: (data: BlockData) => {
-    if (!data.requireEmail && !data.requirePhone) {
-      return "Either email or phone must be enabled for authentication to work";
+    if (!data.validateAuthUrl) {
+      return "Validate authentication URL is required";
     }
-    if (!data.loginUrl && !data.signupUrl) {
-      return "At least one authentication URL (login or signup) is required";
+    if (data.authMethod === 'otp' && !data.sendOtpUrl) {
+      return "Send OTP URL is required when using OTP authentication";
     }
-    if (data.useOtp) {
-      if (data.requireEmail && (!data.sendEmailOtpUrl || !data.verifyEmailOtpUrl)) {
-        return "Email OTP URLs are required when email is enabled with OTP";
-      }
-      if (data.requirePhone && (!data.sendPhoneOtpUrl || !data.verifyPhoneOtpUrl)) {
-        return "Phone OTP URLs are required when phone is enabled with OTP";
-      }
+    if (!data.updatePatientUrl) {
+      return "Update patient information URL is required";
     }
     return null;
   },
