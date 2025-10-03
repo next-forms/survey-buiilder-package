@@ -1974,7 +1974,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="MM" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='max-h-[200px]'>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                         <SelectItem key={month} value={month.toString().padStart(2, '0')}>
                           {month.toString().padStart(2, '0')}
@@ -1997,7 +1997,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="DD" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='max-h-[200px]'>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                         <SelectItem key={day} value={day.toString().padStart(2, '0')}>
                           {day.toString().padStart(2, '0')}
@@ -2020,7 +2020,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="YYYY" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='max-h-[200px]'>
                       {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
@@ -2116,7 +2116,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     switch (currentStep) {
       case 'auth': return `Enter your ${authField === 'email' ? 'email' : 'phone number'}`;
       case 'verify': return authMethod === 'otp' ? 'Enter verification code' : 'Enter your password';
-      case 'collect': return 'Complete your profile';
+      case 'collect': return "Let's Complete your profile";
       case 'welcome': return 'Welcome back!';
       default: return 'Authentication';
     }
