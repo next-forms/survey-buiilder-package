@@ -1298,13 +1298,10 @@ const AuthRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     
     const currentEntry = navigationHistory[navigationHistory.length - 1];
     const previousEntry = navigationHistory[navigationHistory.length - 2];
-    
-    // If the previous entry had a higher page index or same page with higher block index,
-    // this might be back navigation
+
+    // Check if this is back navigation by looking at the trigger
     return (
-      currentEntry && previousEntry && 
-      (previousEntry.pageIndex > currentEntry.pageIndex ||
-       (previousEntry.pageIndex === currentEntry.pageIndex && previousEntry.blockIndex > currentEntry.blockIndex)) &&
+      currentEntry && previousEntry &&
       previousEntry.trigger === 'back'
     );
   };

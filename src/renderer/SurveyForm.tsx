@@ -15,9 +15,11 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   onSubmit,
   onChange,
   onPageChange,
+  onNavigationHistoryChange,
   defaultValues = {},
   initialValues,
   startPage = 0,
+  initialNavigationHistory,
   language = 'en',
   progressBar = true,
   navigationButtons = {
@@ -41,9 +43,21 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   themeMode = 'light',
   analytics,
 }) => {
+  // Track render count to diagnose re-render issues
+  const renderCountRef = React.useRef(0);
+  const mountIdRef = React.useRef(Math.random().toString(36).substr(2, 9));
+  renderCountRef.current += 1;
+
+  // Track mount/unmount
+  React.useEffect(() => {
+    console.log(`[SurveyForm] MOUNTED (instance: ${mountIdRef.current})`);
+    return () => {
+      console.log(`[SurveyForm] UNMOUNTED (instance: ${mountIdRef.current})`);
+    };
+  }, []);
 
   // Debug log - helps diagnose issues with the survey data and resume functionality
-  console.log('[SurveyForm] Props received:', {
+  console.log(`[SurveyForm] Render #${renderCountRef.current} (instance: ${mountIdRef.current}) - Props received:`, {
     initialValues,
     startPage,
     enableDebug,
@@ -54,15 +68,18 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     console.log('SurveyForm rendering with survey data:', survey?.rootNode?.type || 'No survey data');
   }
 
-  // Get the selected theme
-  const themeConfig = survey?.theme ?? themes.modern;
+  // Get the selected theme - memoize to prevent recreation
+  const themeConfig = React.useMemo(() => survey?.theme ?? themes.modern, [survey?.theme]);
 
   // Determine if we should use dark theme based on the themeMode prop
-  const isDarkMode = themeMode === 'dark' || 
-    (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDarkMode = React.useMemo(() =>
+    themeMode === 'dark' ||
+    (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches),
+    [themeMode]
+  );
 
-  // Create theme-specific CSS variables that override default values
-  const surveyThemeStyle = {
+  // Create theme-specific CSS variables that override default values - memoize to prevent recreation
+  const surveyThemeStyle = React.useMemo(() => ({
     // Use CSS custom properties to override within the survey scope
     '--survey-primary': themeConfig.colors.primary,
     '--survey-secondary': themeConfig.colors.secondary,
@@ -79,31 +96,30 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     '--survey-bg': themeConfig.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
     '--survey-shadow': isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     '--survey-shadow-lg': isDarkMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  } as React.CSSProperties;
+  } as React.CSSProperties), [themeConfig, isDarkMode]);
 
   useEffect(() => {
     applyDynamicColors(themeConfig);
   }, [themeConfig]);
 
-  // Force re-render when themeMode changes
-  useEffect(() => {
-    // This effect ensures the component re-renders when themeMode changes
-  }, [themeMode]);
-
-  // Determine theme class based on mode
-  const getThemeClass = () => {
+  // Determine theme class based on mode - memoize to prevent recreation
+  const themeClass = React.useMemo(() => {
     switch (themeMode) {
       case 'light': return 'survey-theme-light';
       case 'dark': return 'survey-theme-dark';
       case 'system': return 'survey-theme-system';
       default: return 'survey-theme-light';
     }
-  };
+  }, [themeMode]);
 
-  // Enhanced container class with better mobile responsiveness
-  const containerClass = `survey-form-container ${themeConfig.containerLayout} antialiased ${className}`;
+  // Enhanced container class with better mobile responsiveness - memoize to prevent recreation
+  const containerClass = React.useMemo(() =>
+    `survey-form-container ${themeConfig.containerLayout} antialiased ${className}`,
+    [themeConfig.containerLayout, className]
+  );
 
-  const layoutProps = {
+  // Memoize layout props to prevent recreation
+  const layoutProps = React.useMemo(() => ({
     enableDebug,
     progressBar,
     navigationButtons,
@@ -112,20 +128,23 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     showSummary,
     submitText,
     logo
-  };
+  }), [enableDebug, progressBar, navigationButtons, autoScroll, autoFocus, showSummary, submitText, logo]);
 
-  // Prepare analytics configuration
-  const analyticsConfig: AnalyticsConfig = analytics ? {
+  // Prepare analytics configuration - memoize to prevent recreation
+  const analyticsConfig: AnalyticsConfig = React.useMemo(() => analytics ? {
     sessionId: analytics.sessionId,
     userId: analytics.userId,
     customDimensions: analytics.customDimensions,
     googleAnalytics: analytics.googleAnalytics,
     googleTagManager: analytics.googleTagManager
-  } : {};
+  } : {}, [analytics]);
 
   // Determine if analytics should be enabled
-  const isAnalyticsEnabled = analytics?.enabled !== false && 
-    (analytics?.googleAnalytics || analytics?.googleTagManager);
+  const isAnalyticsEnabled = React.useMemo(() =>
+    analytics?.enabled !== false &&
+    (analytics?.googleAnalytics || analytics?.googleTagManager),
+    [analytics]
+  );
 
   if (enableDebug) {
     console.log('[SurveyForm] Analytics config:', {
@@ -136,8 +155,8 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   }
 
   const surveyContent = (
-    <div 
-      className={`survey-theme-container ${getThemeClass()} min-h-screen`}
+    <div
+      className={`survey-theme-container ${themeClass} min-h-screen`}
       style={surveyThemeStyle}
     >
       <div className="survey-isolated-content">
@@ -147,9 +166,11 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
             defaultValues={defaultValues}
             initialValues={initialValues}
             startPage={startPage}
+            initialNavigationHistory={initialNavigationHistory}
             onSubmit={onSubmit}
             onChange={onChange}
             onPageChange={onPageChange}
+            onNavigationHistoryChange={onNavigationHistoryChange}
             enableDebug={enableDebug}
             language={language}
             theme={themeConfig}

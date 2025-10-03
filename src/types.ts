@@ -175,6 +175,13 @@ export interface SurveyBuilderAction {
   payload?: any;
 }
 
+export interface NavigationHistoryEntry {
+  pageUuid: string;
+  blockUuid?: string;
+  timestamp: number;
+  trigger: 'forward' | 'back' | 'jump' | 'initial';
+}
+
 export interface SurveyFormRendererProps {
   survey: {
     rootNode: NodeData;
@@ -184,9 +191,11 @@ export interface SurveyFormRendererProps {
   onSubmit?: (data: Record<string, any>) => void;
   onChange?: (data: Record<string, any>) => void;
   onPageChange?: (pageIndex: number, totalPages: number) => void;
+  onNavigationHistoryChange?: (history: NavigationHistoryEntry[]) => void; // New callback for history changes
   defaultValues?: Record<string, any>;
   initialValues?: Record<string, any>; // For loading saved answers
   startPage?: number; // For resuming from specific page
+  initialNavigationHistory?: NavigationHistoryEntry[]; // For restoring navigation history on resume
   language?: string;
   theme?: SurveyTheme;
   themeMode?: 'light' | 'dark' | 'system';
