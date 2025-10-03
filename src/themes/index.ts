@@ -514,8 +514,82 @@ export const himsTheme: ThemeDefinition = {
   }
 };
 
+// Hims theme - medical-friendly subtle version
+export const uniloop: ThemeDefinition = {
+  name: "uniloop",
+  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
+  header: "mb-8",
+  title: "text-3xl font-semibold text-slate-800 mb-4 text-left",
+  description: "text-lg text-slate-600 mb-6 text-left",
+  background: "bg-slate-50",
+  card: "bg-white shadow-sm rounded-lg p-6 mb-6 border border-slate-100",
+  container: {
+    card: "bg-white border border-slate-100 rounded-lg shadow-sm",
+    border: "border-slate-200",
+    activeBorder: "border-emerald-400",
+    activeBg: "bg-emerald-50",
+    header: "bg-slate-50"
+  },
+  field: {
+    label: "block text-base font-medium text-slate-700 mb-4",
+    input: "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
+    description: "mt-2 text-sm text-slate-500",
+    error: "mt-2 text-sm text-red-500 font-medium",
+    radio: "focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-slate-300",
+    checkbox: "focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-slate-300 rounded",
+    select: "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
+    textarea: "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
+    file: "w-full text-base text-slate-700 border border-slate-200 rounded-lg cursor-pointer bg-white py-3 px-4",
+    matrix: "border-collapse w-full text-base rounded-lg overflow-hidden",
+    range: "accent-emerald-600",
+    text: "text-slate-700",
+    activeText: "text-slate-800",
+    placeholder: "text-slate-400",
+    boxBorder: "border-slate-200",
+    selectableBox: "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+    selectableBoxDefault: "border border-slate-200 bg-white hover:bg-emerald-50",
+    selectableBoxSelected: "border-2 border-emerald-500 bg-emerald-50",
+    selectableBoxHover: "hover:border-emerald-400",
+    selectableBoxFocus: "focus-within:ring-2 focus-within:ring-emerald-500 focus-within:ring-offset-2",
+    selectableBoxDisabled: "opacity-50 cursor-not-allowed",
+    selectableBoxContainer: "space-y-3",
+    selectableBoxText: "text-slate-700 text-base font-normal",
+    selectableBoxTextSelected: "text-slate-800 font-medium",
+    selectableBoxIndicator: "bg-emerald-600 text-white",
+    selectableBoxIndicatorIcon: "text-white",
+    agreementContainer: "p-5 space-y-4",
+    agreementPanel: "rounded-lg border border-slate-200 p-4 text-base whitespace-pre-wrap bg-slate-50",
+    signatureCanvas: "w-full h-40 border border-slate-200 rounded-lg overflow-hidden bg-white",
+    signatureColor: "#334155", // slate-700
+  },
+  progress: {
+    bar: "h-2 bg-emerald-600 rounded-full overflow-hidden",
+    dots: "flex space-x-2 justify-center",
+    numbers: "flex space-x-2 justify-center",
+    percentage: "text-right text-base text-slate-600 font-medium mb-2",
+    label: "text-base text-slate-700 mb-2 font-medium"
+  },
+  button: {
+    primary: "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm",
+    secondary: "inline-flex justify-center py-3 px-6 border border-slate-200 text-base font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-sm",
+    text: "text-base font-medium text-emerald-700 hover:text-emerald-800",
+    navigation: "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm"
+  },
+  colors: {
+    primary: "#047857",
+    secondary: "#64748B",
+    accent: "#10B981",
+    background: "#F8FAFC",
+    text: "#334155",
+    border: "#E2E8F0",
+    error: "#EF4444",
+    success: "#10B981"
+  }
+};
+
 // Map of all themes
 export const themes: Record<SurveyTheme, ThemeDefinition> = {
+  uniloop: uniloop,
   default: defaultTheme,
   minimal: minimalTheme,
   colorful: colorfulTheme,

@@ -65,6 +65,7 @@ export type SurveyTheme =
   | "corporate"
   | "dark"
   | "hims"
+  | "uniloop"
   | "custom";
 
 export interface ThemeDefinition {
