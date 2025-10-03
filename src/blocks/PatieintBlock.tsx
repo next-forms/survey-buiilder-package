@@ -1395,13 +1395,21 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
               setCurrentStep('collect');
               setLoading(false);
             } else {
+              const authResults = {
+                patient: stored.patient,
+                token: stored[tokenField],
+                ...stored.patient,
+                isAuthenticated: true,
+                timestamp: new Date().toISOString()
+              };
+
+              setValue(fieldName, authResults);
               // Profile complete, skip to next block
               setTimeout(() => {
-                setValue(fieldName, stored);
                 setCurrentStep('welcome');
                 setLoading(false);
-                goToNextBlock();
-              }, 200);
+                goToNextBlock({ [fieldName]: authResults });
+              }, 500);
             }
             return;
           }
@@ -1442,10 +1450,17 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 setCurrentStep('collect');
                 setLoading(false);
               } else {
-                // Profile complete, skip to next block
-                setValue(fieldName, data);
+                const authResults = {
+                  patient: stored.patient,
+                  token: stored[tokenField],
+                  ...stored.patient,
+                  isAuthenticated: true,
+                  timestamp: new Date().toISOString()
+                };
+
+                setValue(fieldName, authResults);
                 setLoading(false);
-                goToNextBlock();
+                goToNextBlock({ [fieldName]: authResults });
               }
             })
             .catch(() => {
@@ -1538,8 +1553,16 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             setCollectStep(0); // Start with first step of collection
             setSuccess('Welcome! Please complete your profile.');
           } else {
+            const authResults = {
+              patient: data.patient,
+              token: data.token,
+              ...data.patient,
+              isAuthenticated: true,
+              timestamp: new Date().toISOString()
+            };
+
             // All data complete, move to next block
-            goToNextBlock();
+            goToNextBlock({ [fieldName]: authResults });
           }
         } else {
           // Returning user - OTP sent
@@ -1586,16 +1609,13 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
       if (res.ok) {
         // Store token if present
-        console.log("Here")
         if (data[tokenField]) {
-          console.log("Here1")
           localStorage.setItem(storageKey, JSON.stringify({ [tokenField]: data[tokenField], patient: data.patient }));
         }
 
         setPatientData(data.patient || data);
 
         // Check for missing fields
-        console.log("Here 3")
         const missing = [];
         if ((block as any).requireFirstName && !data.patient?.firstName) missing.push('firstName');
         if ((block as any).requireLastName && !data.patient?.lastName) missing.push('lastName');
@@ -1607,21 +1627,20 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         if ((block as any).requireWeight && !data.patient?.weight) missing.push('weight');
 
         if (missing.length > 0) {
-        console.log("Here 4")
           setMissingFields(missing);
           setCurrentStep('collect');
         } else {
-        console.log("Here 5")
           // All data present, go to next block
           const authResults = {
-            ...data,
+            patient: data.patient,
+            token: data[tokenField],
+            ...data.patient,
             isAuthenticated: true,
             timestamp: new Date().toISOString()
           };
           setValue(fieldName, authResults);
           await new Promise(f => setTimeout(f, 1000));
-          console.log("Here 6")
-          goToNextBlock();
+          goToNextBlock({ [fieldName]: authResults });
         }
       } else {
         throw new Error(data.error || 'Authentication failed');
@@ -1664,30 +1683,25 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       const data = await res.json();
 
       if (res.ok) {
+        // Update localStorage with complete patient data
+        const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        const storageData = {
+          [tokenField]: stored[tokenField],
+          patient: data.patient || {}
+        };
+        localStorage.setItem(storageKey, JSON.stringify(storageData));
+
         const authResults = {
-          ...patientData,
+          patient: data.patient,
+          token: stored[tokenField],
           ...data.patient,
-          ...formData,
           isAuthenticated: true,
           timestamp: new Date().toISOString()
         };
 
-        // Update localStorage with complete patient data
-        const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-        const updatedStorage = {
-          ...stored,
-          ...authResults,
-          patient: {
-            ...(stored.patient || {}),
-            ...(data.patient || {}),
-            ...formData
-          }
-        };
-        localStorage.setItem(storageKey, JSON.stringify(updatedStorage));
-
         setValue(fieldName, authResults);
         await new Promise(f => setTimeout(f, 1000));
-        goToNextBlock();
+        goToNextBlock({ [fieldName]: authResults });
       } else {
         throw new Error(data.error || 'Failed to update patient information');
       }
@@ -1974,7 +1988,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="MM" />
                     </SelectTrigger>
-                    <SelectContent className='max-h-[200px]'>
+                    <SelectContent avoidCollisions={false} className="max-h-[200px] overflow-y-auto">
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                         <SelectItem key={month} value={month.toString().padStart(2, '0')}>
                           {month.toString().padStart(2, '0')}
@@ -1997,7 +2011,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="DD" />
                     </SelectTrigger>
-                    <SelectContent className='max-h-[200px]'>
+                    <SelectContent avoidCollisions={false} className="max-h-[200px] overflow-y-auto">
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                         <SelectItem key={day} value={day.toString().padStart(2, '0')}>
                           {day.toString().padStart(2, '0')}
@@ -2020,7 +2034,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     <SelectTrigger className={theme?.field.select || "h-12"}>
                       <SelectValue placeholder="YYYY" />
                     </SelectTrigger>
-                    <SelectContent className='max-h-[200px]'>
+                    <SelectContent avoidCollisions={false} className="max-h-[200px] overflow-y-auto">
                       {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
@@ -2051,7 +2065,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                   {(block as any).heightLabel || 'Height'}
                 </Label>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-1 items-center gap-2">
                     <Input
                       type="number"
                       value={feet || ''}
@@ -2061,13 +2075,13 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                         setFormData(prev => ({ ...prev, height: totalInches.toString() }));
                       }}
                       placeholder="5"
-                      className={cn(theme?.field.input || "text-lg h-12", "w-20")}
+                      className={cn("w-full", theme?.field.input || "text-lg h-12", "w-full")}
                       min="0"
                       max="8"
                     />
                     <span className={theme?.field.text || "text-muted-foreground"}>ft</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-1 items-center gap-2">
                     <Input
                       type="number"
                       value={inches || ''}
@@ -2077,7 +2091,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                         setFormData(prev => ({ ...prev, height: totalInches.toString() }));
                       }}
                       placeholder="10"
-                      className={cn(theme?.field.input || "text-lg h-12", "w-20")}
+                      className={cn("w-full", theme?.field.input || "text-lg h-12", "w-full")}
                       min="0"
                       max="11"
                     />
@@ -2116,7 +2130,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     switch (currentStep) {
       case 'auth': return `Enter your ${authField === 'email' ? 'email' : 'phone number'}`;
       case 'verify': return authMethod === 'otp' ? 'Enter verification code' : 'Enter your password';
-      case 'collect': return "Let's Complete your profile";
+      case 'collect': return 'Complete your profile';
       case 'welcome': return 'Welcome back!';
       default: return 'Authentication';
     }
@@ -2151,7 +2165,6 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
     if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
 
-    console.log(missing)
     if (missing.length > 0) {
       // Profile incomplete, show collection form
       setPatientData(patientInfo);
@@ -2165,9 +2178,16 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       setCurrentStep('collect');
     } else {
       // Profile complete, skip to next block
+      const authResults = {
+        patient: stored.patient,
+        token: stored[tokenField],
+        ...stored.patient,
+        isAuthenticated: true,
+        timestamp: new Date().toISOString()
+      };
       setTimeout(() => {
         setValue(fieldName, stored);
-        goToNextBlock();
+        goToNextBlock({ [fieldName]: authResults });
       }, 200);
     }
   }
@@ -2464,18 +2484,6 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
           {currentStep === 'collect' && (
             <>
-                {collectStep > 0 && (
-                  <div className="flex gap-3">                  
-                  <Button
-                    onClick={() => setCollectStep(collectStep - 1)}
-                    variant="outline"
-                    className="w-full"
-                    size="lg"
-                  >
-                    Back
-                  </Button>
-                  </div>
-                )}
                 {collectStep < collectionSteps.length - 1 ? (
                 <div className="flex gap-3">
                   <Button
@@ -2532,6 +2540,18 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     )}
                   </Button>
                 </div>
+                )}
+                {collectStep > 0 && (
+                  <div className="flex gap-3">                  
+                  <Button
+                    onClick={() => setCollectStep(collectStep - 1)}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    Back
+                  </Button>
+                  </div>
                 )}
                 {collectStep == 0 && (
                   <div className="flex gap-3">
