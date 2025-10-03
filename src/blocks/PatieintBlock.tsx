@@ -8,125 +8,13 @@ import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight, Lock, Calendar, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from '../components/ui/badge';
-import { AlertCircle, Loader2, ArrowRight, KeyRound } from 'lucide-react';
+import { AlertCircle, Loader2, ArrowRight, KeyRound, Calendar } from 'lucide-react';
 import { useSurveyForm } from '../context/SurveyFormContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { Progress } from "../components/ui/progress";
-import { cn } from "../lib/utils";
-
-// DatePicker Component (simplified version)
-const DatePicker: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  theme?: any;
-}> = ({ value, onChange, placeholder, className, theme }) => {
-  const [day, setDay] = useState('');
-  const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
-
-  useEffect(() => {
-    if (value) {
-      const parts = value.split('-');
-      if (parts.length === 3) {
-        setMonth(parts[0]);
-        setDay(parts[1]);
-        setYear(parts[2]);
-      }
-    }
-  }, [value]);
-
-  const handleDateChange = (d: string, m: string, y: string) => {
-    if (d && m && y && d.length === 2 && m.length === 2 && y.length === 4) {
-      onChange(`${m}-${d}-${y}`);
-    }
-  };
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
-  const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
-  ];
-
-  const getDaysInMonth = (m: string, y: string) => {
-    if (!m || !y) return 31;
-    return new Date(parseInt(y), parseInt(m), 0).getDate();
-  };
-
-  const days = Array.from({ length: getDaysInMonth(month, year) }, (_, i) => i + 1);
-
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      <Select
-        value={month}
-        onValueChange={(m) => {
-          setMonth(m);
-          handleDateChange(day, m, year);
-        }}
-      >
-        <SelectTrigger className={className}>
-          <SelectValue placeholder="Month" />
-        </SelectTrigger>
-        <SelectContent>
-          {months.map(m => (
-            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={day}
-        onValueChange={(d) => {
-          const paddedDay = d.padStart(2, '0');
-          setDay(paddedDay);
-          handleDateChange(paddedDay, month, year);
-        }}
-      >
-        <SelectTrigger className={className}>
-          <SelectValue placeholder="Day" />
-        </SelectTrigger>
-        <SelectContent>
-          {days.map(d => (
-            <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={year}
-        onValueChange={(y) => {
-          setYear(y);
-          handleDateChange(day, month, y);
-        }}
-      >
-        <SelectTrigger className={className}>
-          <SelectValue placeholder="Year" />
-        </SelectTrigger>
-        <SelectContent>
-          {years.map(y => (
-            <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
 
 const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemove }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
@@ -482,81 +370,41 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                     </p>
                   </div>
 
-                  <Card className="border-2">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">Authentication Method</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup 
-                        value={data.authMethod || "otp"} 
-                        onValueChange={(value) => handleChange("authMethod", value)}
-                        className="space-y-3"
-                      >
-                        <div className="flex items-start space-x-3 p-3 rounded-lg border-2 hover:bg-muted/50 transition-colors">
-                          <RadioGroupItem value="otp" id="otp" className="mt-0.5" />
-                          <div className="space-y-1">
-                            <Label htmlFor="otp" className="font-medium cursor-pointer">
-                              OTP (One-Time Password)
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Send a verification code via email or SMS
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start space-x-3 p-3 rounded-lg border-2 hover:bg-muted/50 transition-colors">
-                          <RadioGroupItem value="password" id="password" className="mt-0.5" />
-                          <div className="space-y-1">
-                            <Label htmlFor="password" className="font-medium cursor-pointer">
-                              Password
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Traditional password authentication
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-3">
+                    <Label className="text-sm">Authentication Method</Label>
+                    <RadioGroup 
+                      value={data.authMethod || "otp"} 
+                      onValueChange={(value) => handleChange("authMethod", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="otp" id="otp" />
+                        <Label htmlFor="otp">OTP (One-Time Password)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="password" id="password" />
+                        <Label htmlFor="password">Password</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
 
-                  <Card className="border-2">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">Authentication Field</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup 
-                        value={data.authField || "email"} 
-                        onValueChange={(value) => handleChange("authField", value)}
-                        className="space-y-3"
-                      >
-                        <div className="flex items-start space-x-3 p-3 rounded-lg border-2 hover:bg-muted/50 transition-colors">
-                          <RadioGroupItem value="email" id="email" className="mt-0.5" />
-                          <div className="space-y-1">
-                            <Label htmlFor="email" className="font-medium cursor-pointer flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              Email Address
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Use email for authentication
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start space-x-3 p-3 rounded-lg border-2 hover:bg-muted/50 transition-colors">
-                          <RadioGroupItem value="phone" id="phone" className="mt-0.5" />
-                          <div className="space-y-1">
-                            <Label htmlFor="phone" className="font-medium cursor-pointer flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              Mobile/Phone Number
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Use phone number for authentication
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-3">
+                    <Label className="text-sm">Authentication Field</Label>
+                    <RadioGroup 
+                      value={data.authField || "email"} 
+                      onValueChange={(value) => handleChange("authField", value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="email" id="email" />
+                        <Label htmlFor="email">Email</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="phone" id="phone" />
+                        <Label htmlFor="phone">Mobile/Phone</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
 
-                  <Card className="p-4 border-blue-200 bg-blue-50/50">
+                  <Card className="p-4 border-blue-200">
                     <div className="flex items-center space-x-2 mb-3">
                       <Checkbox
                         id="skipIfLoggedIn"
@@ -1155,12 +1003,12 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
-                    API Documentation - Authentication Flow
+                    API Documentation - New Authentication Flow
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="prose prose-sm max-w-none">
-                    <h3>Authentication Flow Overview</h3>
+                    <h3>New Authentication Flow Overview</h3>
                     
                     <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <h4 className="text-blue-800 dark:text-white font-medium">User Flow:</h4>
@@ -1171,12 +1019,201 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                         <li>System validates and returns patient data</li>
                         <li>If patient data is incomplete:
                           <ul className="ml-6 list-disc">
-                            <li>User fills missing information (multi-step form)</li>
+                            <li>User fills missing information</li>
                             <li>System updates patient profile</li>
                           </ul>
                         </li>
                         <li>If patient data is complete: Skip to next block</li>
                       </ol>
+                    </div>
+
+                    <h4>API Endpoints</h4>
+
+                    {data.authMethod === 'otp' && (
+                      <>
+                        <h5>1. Send OTP</h5>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                          <strong>Request:</strong>
+                          <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.sendOtpUrl || '/api/send-otp'}
+Content-Type: application/json
+
+{
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}"${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
+}`}
+                          </pre>
+                          <strong>Success Response:</strong>
+                          <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "success": true,
+  "message": "OTP sent successfully",
+  "expiresIn": 300
+}`}
+                          </pre>
+                        </div>
+                      </>
+                    )}
+
+                    <h5>{data.authMethod === 'otp' ? '2' : '1'}. Validate {data.authMethod === 'otp' ? 'OTP' : 'Password'}</h5>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                      <strong>Request:</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.validateAuthUrl || `/api/validate-${data.authMethod}`}
+Content-Type: application/json
+
+{
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}",
+  "${data.authMethod === 'otp' ? 'otp' : 'password'}": "${data.authMethod === 'otp' ? '123456' : 'password123'}"${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
+}`}
+                      </pre>
+                      <strong>Success Response (Complete Patient Data):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "token": "jwt_token_here",
+  "patient": {
+    "id": "patient123",
+    "firstName": "John",      // If present, skip collection
+    "lastName": "Doe",        // If present, skip collection
+    "middleName": "Q",
+    "email": "john@example.com",
+    "phone": "8888888888",
+    "gender": "male",         // If present, skip collection
+    "genderBiological": "male",
+    "dateOfBirth": "01-15-1990", // If present, skip collection
+    "height": 72,             // If present, skip collection
+    "weight": 200             // If present, skip collection
+  },
+  "success": true
+}`}
+                      </pre>
+                      <strong>Success Response (Incomplete Patient Data):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "token": "jwt_token_here",
+  "patient": {
+    "id": "patient123",
+    "email": "john@example.com",
+    "phone": "8888888888"
+    // Missing fields will be collected from user
+  },
+  "success": true
+}`}
+                      </pre>
+                    </div>
+
+                    <h5>{data.authMethod === 'otp' ? '3' : '2'}. Update Patient Information</h5>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                      <strong>Request (only sent if patient data is incomplete):</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`POST ${data.updatePatientUrl || '/api/update-patient'}
+Content-Type: application/json
+Authorization: Bearer {token}
+
+{
+  "${data.authField === 'email' ? 'email' : 'phone'}": "${data.authField === 'email' ? 'john@example.com' : '8888888888'}",
+  "firstName": "John",           // Only if missing
+  "lastName": "Doe",            // Only if missing
+  "middleName": "Q",            // Optional
+  "gender": "male",             // Only if missing
+  "genderBiological": "male",   // Only if missing
+  "dateOfBirth": "01-15-1990",  // Only if missing
+  "height": 72,                 // Only if missing
+  "weight": 200                 // Only if missing${Object.entries(data.additionalBodyParams || {}).length > 0 ? ',' : ''}
+${Object.entries(data.additionalBodyParams || {})
+  .filter(([k, v]) => k && v)
+  .map(([k, v]) => `  "${k}": "${v}"`)
+  .join(',\n')}
+}`}
+                      </pre>
+                      <strong>Success Response:</strong>
+                      <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "success": true,
+  "patient": {
+    "id": "patient123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "middleName": "Q",
+    "email": "john@example.com",
+    "phone": "8888888888",
+    "gender": "male",
+    "genderBiological": "male",
+    "dateOfBirth": "01-15-1990",
+    "height": 72,
+    "weight": 200
+  },
+  "message": "Patient information updated successfully"
+}`}
+                      </pre>
+                    </div>
+
+                    <h4>Field Validation Rules</h4>
+                    <div className="p-3 bg-yellow-50 rounded text-sm">
+                      <ul className="space-y-2 text-yellow-800">
+                        <li><strong>Email:</strong> Must be a valid email format</li>
+                        <li><strong>Phone:</strong> 10-digit number without special characters</li>
+                        <li><strong>OTP:</strong> Typically 4-6 digits</li>
+                        <li><strong>Password:</strong> Based on your system requirements</li>
+                        <li><strong>Date of Birth:</strong> Format: mm-dd-yyyy</li>
+                        <li><strong>Height:</strong> Numeric value in inches</li>
+                        <li><strong>Weight:</strong> Numeric value in pounds</li>
+                        <li><strong>Gender:</strong> male/female/other</li>
+                        <li><strong>Biological Gender:</strong> male/female</li>
+                      </ul>
+                    </div>
+
+                    <h4>Skip Logic</h4>
+                    <div className="p-3 bg-green-50 rounded text-sm">
+                      <p className="text-green-800">
+                        <strong>Automatic Field Skipping:</strong> If the validation API returns patient data with any of the configured fields already populated, those fields will be automatically skipped in the UI. Only missing fields will be presented to the user for collection.
+                      </p>
+                      <div className="mt-3 p-2 bg-green-100 rounded">
+                        <strong className="text-green-900">Example:</strong>
+                        <ul className="mt-2 space-y-1 text-green-800">
+                          <li>• If patient.firstName exists → Skip name collection</li>
+                          <li>• If patient.dateOfBirth exists → Skip DOB collection</li>
+                          <li>• If all required fields exist → Direct navigation to next block</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {data.skipIfLoggedIn && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm">
+                        <h4 className="text-blue-800 dark:text-blue-80 font-medium">Skip if Logged In:</h4>
+                        <p className="text-blue-700 dark:text-blue-70 mt-2">
+                          When enabled, the system checks for an existing valid token. If found and validated successfully, the entire authentication block is skipped, and the user proceeds directly to the next block.
+                        </p>
+                      </div>
+                    )}
+
+                    <h4>Error Handling</h4>
+                    <div className="p-3 bg-red-50 dark:bg-red-500 rounded text-sm">
+                      <strong>Standard Error Response:</strong>
+                      <pre className="mt-2 bg-gray-800 dark:bg-gray-80 text-red-400 dark:text-red-40 p-2 rounded overflow-x-auto">
+{`{
+  "success": false,
+  "error": "Invalid OTP",
+  "code": "AUTH_FAILED"
+}`}
+                      </pre>
+                    </div>
+
+                    <h4>Custom Headers & Parameters</h4>
+                    <div className="p-3 bg-purple-50 dark:bg-purple-800 rounded text-sm">
+                      <p className="text-purple-800 dark:text-white">
+                        <strong>Custom Headers:</strong> All configured headers are sent with every API request. Common uses: API keys, merchant IDs, version tracking.
+                      </p>
+                      <p className="text-purple-800 dark:text-white mt-2">
+                        <strong>Additional Body Parameters:</strong> These are automatically included in all request bodies for context like merchant_id, source tracking, etc.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -1230,7 +1267,6 @@ const PatientBlockPreview: React.FC = () => {
 };
 
 type AuthStep = 'auth' | 'verify' | 'collect' | 'welcome';
-type CollectSubStep = 'name' | 'gender' | 'dob' | 'physical';
 
 const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const { goToNextBlock, setValue, navigationHistory, theme } = useSurveyForm();
@@ -1243,7 +1279,6 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const skipIfLoggedIn = (block as any).skipIfLoggedIn || false;
 
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth');
-  const [collectSubStep, setCollectSubStep] = useState<CollectSubStep>('name');
   const [patientData, setPatientData] = useState<any>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -1265,30 +1300,8 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
-  const [collectSteps, setCollectSteps] = useState<CollectSubStep[]>([]);
 
   const hasCheckedToken = useRef(false);
-
-  // Determine which collection steps are needed
-  useEffect(() => {
-    const steps: CollectSubStep[] = [];
-    if ((block as any).requireFirstName || (block as any).requireLastName || (block as any).requireMiddleName) {
-      steps.push('name');
-    }
-    if ((block as any).requireGender || (block as any).requireGenderBiological) {
-      steps.push('gender');
-    }
-    if ((block as any).requireDateOfBirth) {
-      steps.push('dob');
-    }
-    if ((block as any).requireHeight || (block as any).requireWeight) {
-      steps.push('physical');
-    }
-    setCollectSteps(steps);
-    if (steps.length > 0) {
-      setCollectSubStep(steps[0]);
-    }
-  }, [block]);
 
   useEffect(() => {
     // Only run token check once per mount
@@ -1532,15 +1545,15 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         ? { email: formData.email }
         : { phone: formData.phone };
 
-      // Add all collected fields
-      if (formData.firstName) body.firstName = formData.firstName;
-      if (formData.lastName) body.lastName = formData.lastName;
-      if (formData.middleName) body.middleName = formData.middleName;
-      if (formData.gender) body.gender = formData.gender;
-      if (formData.genderBiological) body.genderBiological = formData.genderBiological;
-      if (formData.dateOfBirth) body.dateOfBirth = formData.dateOfBirth;
-      if (formData.height) body.height = parseInt(formData.height);
-      if (formData.weight) body.weight = parseInt(formData.weight);
+      // Add missing fields
+      if (missingFields.includes('firstName')) body.firstName = formData.firstName;
+      if (missingFields.includes('lastName')) body.lastName = formData.lastName;
+      if (missingFields.includes('middleName')) body.middleName = formData.middleName;
+      if (missingFields.includes('gender')) body.gender = formData.gender;
+      if (missingFields.includes('genderBiological')) body.genderBiological = formData.genderBiological;
+      if (missingFields.includes('dateOfBirth')) body.dateOfBirth = formData.dateOfBirth;
+      if (missingFields.includes('height')) body.height = parseInt(formData.height);
+      if (missingFields.includes('weight')) body.weight = parseInt(formData.weight);
 
       const headers = buildRequestHeaders();
       const requestBody = buildRequestBody(body);
@@ -1604,101 +1617,43 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     }
   };
 
-  const canSubmitCollectStep = () => {
-    switch (collectSubStep) {
-      case 'name':
-        const hasRequiredName = (
-          (!(block as any).requireFirstName || formData.firstName.trim()) &&
-          (!(block as any).requireLastName || formData.lastName.trim())
-        );
-        return hasRequiredName;
-      case 'gender':
-        const hasRequiredGender = (
-          (!(block as any).requireGender || formData.gender) &&
-          (!(block as any).requireGenderBiological || formData.genderBiological)
-        );
-        return hasRequiredGender;
-      case 'dob':
-        return !!(block as any).requireDateOfBirth ? !!formData.dateOfBirth : true;
-      case 'physical':
-        const hasRequiredPhysical = (
-          (!(block as any).requireHeight || formData.height) &&
-          (!(block as any).requireWeight || formData.weight)
-        );
-        return hasRequiredPhysical;
-      default:
-        return true;
+  const canSubmitCollect = () => {
+    for (const field of missingFields) {
+      if (field === 'firstName' && !formData.firstName.trim()) return false;
+      if (field === 'lastName' && !formData.lastName.trim()) return false;
+      // Other fields are optional or have defaults
     }
+    return true;
   };
 
-  const handleCollectNext = () => {
-    const currentIndex = collectSteps.indexOf(collectSubStep);
-    if (currentIndex < collectSteps.length - 1) {
-      setCollectSubStep(collectSteps[currentIndex + 1]);
-    } else {
-      // Last step, submit the data
-      handleUpdatePatient();
-    }
-  };
-
-  const handleCollectBack = () => {
-    const currentIndex = collectSteps.indexOf(collectSubStep);
-    if (currentIndex > 0) {
-      setCollectSubStep(collectSteps[currentIndex - 1]);
-    }
-  };
-
-  const handleSkipField = () => {
-    handleCollectNext();
-  };
-
-  const isFieldRequired = (field: string) => {
-    switch (field) {
-      case 'firstName': return (block as any).requireFirstName;
-      case 'middleName': return (block as any).requireMiddleName;
-      case 'lastName': return (block as any).requireLastName;
-      case 'gender': return (block as any).requireGender;
-      case 'genderBiological': return (block as any).requireGenderBiological;
-      case 'dateOfBirth': return (block as any).requireDateOfBirth;
-      case 'height': return (block as any).requireHeight;
-      case 'weight': return (block as any).requireWeight;
-      default: return false;
-    }
-  };
-
-  const canSkipCurrentStep = () => {
-    switch (collectSubStep) {
-      case 'name':
-        return !(block as any).requireFirstName && !(block as any).requireLastName;
-      case 'gender':
-        return !(block as any).requireGender && !(block as any).requireGenderBiological;
-      case 'dob':
-        return !(block as any).requireDateOfBirth;
-      case 'physical':
-        return !(block as any).requireHeight && !(block as any).requireWeight;
-      default:
-        return false;
-    }
-  };
-
-  const getProgressPercentage = () => {
-    if (currentStep !== 'collect') return 0;
-    const currentIndex = collectSteps.indexOf(collectSubStep);
-    return ((currentIndex + 1) / collectSteps.length) * 100;
+  const handleLogout = () => {
+    localStorage.removeItem(storageKey);
+    setPatientData(null);
+    setFormData({
+      email: '',
+      phone: '',
+      password: '',
+      otp: '',
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      gender: '',
+      genderBiological: '',
+      dateOfBirth: '',
+      height: '',
+      weight: ''
+    });
+    setMissingFields([]);
+    setCurrentStep('auth');
+    setError(null);
+    setSuccess(null);
   };
 
   const getStepIcon = () => {
     switch (currentStep) {
       case 'auth': return authField === 'email' ? <Mail className="w-6 h-6" /> : <Phone className="w-6 h-6" />;
       case 'verify': return authMethod === 'otp' ? <KeyRound className="w-6 h-6" /> : <Lock className="w-6 h-6" />;
-      case 'collect': 
-        switch (collectSubStep) {
-          case 'name': return <User className="w-6 h-6" />;
-          case 'gender': return <User className="w-6 h-6" />;
-          case 'dob': return <Calendar className="w-6 h-6" />;
-          case 'physical': return <Ruler className="w-6 h-6" />;
-          default: return <User className="w-6 h-6" />;
-        }
+      case 'collect': return <User className="w-6 h-6" />;
       case 'welcome': return <CheckCircle2 className="w-6 h-6" />;
       default: return <User className="w-6 h-6" />;
     }
@@ -1708,14 +1663,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     switch (currentStep) {
       case 'auth': return `Enter your ${authField === 'email' ? 'email' : 'phone number'}`;
       case 'verify': return authMethod === 'otp' ? 'Enter verification code' : 'Enter your password';
-      case 'collect':
-        switch (collectSubStep) {
-          case 'name': return 'What is your name?';
-          case 'gender': return 'Select your gender';
-          case 'dob': return 'When were you born?';
-          case 'physical': return 'Physical measurements';
-          default: return 'Complete your profile';
-        }
+      case 'collect': return 'Complete your profile';
       case 'welcome': return 'Welcome back!';
       default: return 'Authentication';
     }
@@ -1727,337 +1675,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       case 'verify': return authMethod === 'otp'
         ? `Enter the code sent to ${authField === 'email' ? formData.email : formData.phone}`
         : `Enter your password to continue`;
-      case 'collect':
-        switch (collectSubStep) {
-          case 'name': return 'We need this information to personalize your experience';
-          case 'gender': return 'This helps us provide appropriate health recommendations';
-          case 'dob': return 'Your age helps us customize your health assessments';
-          case 'physical': return 'These measurements help track your health progress';
-          default: return 'Please provide the following information';
-        }
+      case 'collect': {
+        const identifier = authField === 'email' ? formData.email : formData.phone;
+        return identifier ? `Completing profile for ${identifier}` : 'Please provide the following information';
+      }
       case 'welcome': return "You're already authenticated";
       default: return '';
-    }
-  };
-
-  const renderCollectStepInput = () => {
-    switch (collectSubStep) {
-      case 'name':
-        return (
-          <div className="space-y-4">
-            {(block as any).requireFirstName && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).firstNameLabel || 'First Name'}
-                  {isFieldRequired('firstName') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="Enter your first name"
-                  className={theme?.field.input || "text-lg h-12"}
-                  autoFocus
-                />
-              </div>
-            )}
-
-            {(block as any).requireMiddleName && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).middleNameLabel || 'Middle Name'}
-                  {!isFieldRequired('middleName') && <span className="text-muted-foreground ml-1">(Optional)</span>}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.middleName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
-                  placeholder="Enter your middle name"
-                  className={theme?.field.input || "text-lg h-12"}
-                />
-              </div>
-            )}
-
-            {(block as any).requireLastName && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).lastNameLabel || 'Last Name'}
-                  {isFieldRequired('lastName') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Enter your last name"
-                  className={theme?.field.input || "text-lg h-12"}
-                />
-              </div>
-            )}
-          </div>
-        );
-
-      case 'gender':
-        return (
-          <div className="space-y-6">
-            {(block as any).requireGender && (
-              <div className="space-y-3">
-                <Label className={theme?.field.label}>
-                  {(block as any).genderLabel || 'Gender'}
-                  {isFieldRequired('gender') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <RadioGroup
-                  value={formData.gender}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                  className="space-y-3"
-                >
-                  <div className="relative">
-                    <RadioGroupItem value="male" id="gender-male" className="sr-only" />
-                    <Label htmlFor="gender-male" className="block w-full cursor-pointer">
-                      <div className={cn(
-                        theme?.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-                        formData.gender === 'male'
-                          ? theme?.field.selectableBoxSelected || "border border-gray-400 bg-gray-50"
-                          : theme?.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
-                        theme?.field.selectableBoxHover || "hover:border-gray-400",
-                        theme?.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            theme?.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                            formData.gender === 'male' && (theme?.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                          )}>
-                            Male
-                          </span>
-                          {formData.gender === 'male' && (
-                            <div className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full",
-                              theme?.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                            )}>
-                              <Check className={cn("h-3 w-3", theme?.field.selectableBoxIndicatorIcon || "text-white")} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="relative">
-                    <RadioGroupItem value="female" id="gender-female" className="sr-only" />
-                    <Label htmlFor="gender-female" className="block w-full cursor-pointer">
-                      <div className={cn(
-                        theme?.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-                        formData.gender === 'female'
-                          ? theme?.field.selectableBoxSelected || "border border-gray-400 bg-gray-50"
-                          : theme?.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
-                        theme?.field.selectableBoxHover || "hover:border-gray-400",
-                        theme?.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            theme?.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                            formData.gender === 'female' && (theme?.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                          )}>
-                            Female
-                          </span>
-                          {formData.gender === 'female' && (
-                            <div className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full",
-                              theme?.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                            )}>
-                              <Check className={cn("h-3 w-3", theme?.field.selectableBoxIndicatorIcon || "text-white")} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="relative">
-                    <RadioGroupItem value="other" id="gender-other" className="sr-only" />
-                    <Label htmlFor="gender-other" className="block w-full cursor-pointer">
-                      <div className={cn(
-                        theme?.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-                        formData.gender === 'other'
-                          ? theme?.field.selectableBoxSelected || "border border-gray-400 bg-gray-50"
-                          : theme?.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
-                        theme?.field.selectableBoxHover || "hover:border-gray-400",
-                        theme?.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            theme?.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                            formData.gender === 'other' && (theme?.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                          )}>
-                            Other
-                          </span>
-                          {formData.gender === 'other' && (
-                            <div className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full",
-                              theme?.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                            )}>
-                              <Check className={cn("h-3 w-3", theme?.field.selectableBoxIndicatorIcon || "text-white")} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-
-            {(block as any).requireGenderBiological && (
-              <div className="space-y-3">
-                <Label className={theme?.field.label}>
-                  {(block as any).genderBiologicalLabel || 'Biological Gender'}
-                  {isFieldRequired('genderBiological') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <RadioGroup
-                  value={formData.genderBiological}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, genderBiological: value }))}
-                  className="space-y-3"
-                >
-                  <div className="relative">
-                    <RadioGroupItem value="male" id="bio-male" className="sr-only" />
-                    <Label htmlFor="bio-male" className="block w-full cursor-pointer">
-                      <div className={cn(
-                        theme?.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-                        formData.genderBiological === 'male'
-                          ? theme?.field.selectableBoxSelected || "border border-gray-400 bg-gray-50"
-                          : theme?.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
-                        theme?.field.selectableBoxHover || "hover:border-gray-400",
-                        theme?.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            theme?.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                            formData.genderBiological === 'male' && (theme?.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                          )}>
-                            Male
-                          </span>
-                          {formData.genderBiological === 'male' && (
-                            <div className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full",
-                              theme?.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                            )}>
-                              <Check className={cn("h-3 w-3", theme?.field.selectableBoxIndicatorIcon || "text-white")} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="relative">
-                    <RadioGroupItem value="female" id="bio-female" className="sr-only" />
-                    <Label htmlFor="bio-female" className="block w-full cursor-pointer">
-                      <div className={cn(
-                        theme?.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-                        formData.genderBiological === 'female'
-                          ? theme?.field.selectableBoxSelected || "border border-gray-400 bg-gray-50"
-                          : theme?.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
-                        theme?.field.selectableBoxHover || "hover:border-gray-400",
-                        theme?.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2"
-                      )}>
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            theme?.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                            formData.genderBiological === 'female' && (theme?.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                          )}>
-                            Female
-                          </span>
-                          {formData.genderBiological === 'female' && (
-                            <div className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full",
-                              theme?.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                            )}>
-                              <Check className={cn("h-3 w-3", theme?.field.selectableBoxIndicatorIcon || "text-white")} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-          </div>
-        );
-
-      case 'dob':
-        return (
-          <div className="space-y-3">
-            <Label className={theme?.field.label}>
-              {(block as any).dateOfBirthLabel || 'Date of Birth'}
-              {isFieldRequired('dateOfBirth') && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <DatePicker
-              value={formData.dateOfBirth}
-              onChange={(value) => setFormData(prev => ({ ...prev, dateOfBirth: value }))}
-              className={theme?.field.select || "h-12"}
-              theme={theme}
-            />
-            <p className={theme?.field.description || "text-xs text-muted-foreground"}>
-              Select your birth month, day, and year
-            </p>
-          </div>
-        );
-
-      case 'physical':
-        return (
-          <div className="space-y-6">
-            {(block as any).requireHeight && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).heightLabel || 'Height'}
-                  {isFieldRequired('height') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number"
-                    value={formData.height}
-                    onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="Enter height"
-                    className={cn(theme?.field.input || "text-lg h-12", "text-center")}
-                    min="1"
-                    max="300"
-                  />
-                  <span className={theme?.field.text || "text-muted-foreground font-medium"}>inches</span>
-                </div>
-                <p className={theme?.field.description || "text-xs text-muted-foreground"}>
-                  Your height in inches (e.g., 72 for 6 feet)
-                </p>
-              </div>
-            )}
-
-            {(block as any).requireWeight && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).weightLabel || 'Weight'}
-                  {isFieldRequired('weight') && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number"
-                    value={formData.weight}
-                    onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
-                    placeholder="Enter weight"
-                    className={cn(theme?.field.input || "text-lg h-12", "text-center")}
-                    min="1"
-                    max="1000"
-                  />
-                  <span className={theme?.field.text || "text-muted-foreground font-medium"}>pounds</span>
-                </div>
-                <p className={theme?.field.description || "text-xs text-muted-foreground"}>
-                  Your weight in pounds
-                </p>
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
     }
   };
 
@@ -2149,7 +1772,148 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         );
 
       case 'collect':
-        return renderCollectStepInput();
+        return (
+          <div className="space-y-4">
+            {missingFields.includes('firstName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).firstNameLabel || 'First Name'}
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter your first name"
+                  className={theme?.field.input || "text-lg h-12"}
+                  autoFocus={missingFields[0] === 'firstName'}
+                />
+              </div>
+            )}
+
+            {missingFields.includes('middleName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).middleNameLabel || 'Middle Name'} <span className="text-muted-foreground">(Optional)</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.middleName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
+                  placeholder="Enter your middle name"
+                  className={theme?.field.input || "text-lg h-12"}
+                />
+              </div>
+            )}
+
+            {missingFields.includes('lastName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).lastNameLabel || 'Last Name'}
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter your last name"
+                  className={theme?.field.input || "text-lg h-12"}
+                />
+              </div>
+            )}
+
+            {missingFields.includes('gender') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).genderLabel || 'Gender'}
+                </Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+                >
+                  <SelectTrigger className={theme?.field.select || "h-12"}>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {missingFields.includes('genderBiological') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).genderBiologicalLabel || 'Biological Gender'}
+                </Label>
+                <Select
+                  value={formData.genderBiological}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, genderBiological: value }))}
+                >
+                  <SelectTrigger className={theme?.field.select || "h-12"}>
+                    <SelectValue placeholder="Select biological gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {missingFields.includes('dateOfBirth') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).dateOfBirthLabel || 'Date of Birth'}
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                  placeholder="mm-dd-yyyy"
+                  className={theme?.field.input || "text-lg h-12"}
+                />
+                <p className={theme?.field.description || "text-xs text-muted-foreground"}>Format: mm-dd-yyyy</p>
+              </div>
+            )}
+
+            {missingFields.includes('height') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).heightLabel || 'Height'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.height}
+                    onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
+                    placeholder="72"
+                    className={theme?.field.input || "text-lg h-12"}
+                  />
+                  <span className={theme?.field.text || "text-muted-foreground"}>inches</span>
+                </div>
+              </div>
+            )}
+
+            {missingFields.includes('weight') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).weightLabel || 'Weight'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.weight}
+                    onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                    placeholder="200"
+                    className={theme?.field.input || "text-lg h-12"}
+                  />
+                  <span className={theme?.field.text || "text-muted-foreground"}>pounds</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
 
       default:
         return null;
@@ -2214,6 +1978,18 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     >
       <Card className={`${theme?.card || ""} w-full min-w-0 mx-auto`}>
         <CardHeader className="text-center">
+          <motion.div
+            className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: `${theme?.colors.primary}20` }}
+            key={currentStep}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          >
+            <div style={{ color: theme?.colors.primary }}>
+              {getStepIcon()}
+            </div>
+          </motion.div>
           <CardTitle className={`${theme?.title || ""} text-xl`}>{getStepTitle()}</CardTitle>
           <CardDescription className={theme?.description}>{getStepDescription()}</CardDescription>
         </CardHeader>
@@ -2248,7 +2024,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           </AnimatePresence>
 
           <motion.div
-            key={`${currentStep}-${collectSubStep}`}
+            key={currentStep}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
@@ -2287,22 +2063,64 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             </Button>
           )}
 
-          {currentStep === 'verify' && (
+          {currentStep === 'verify' && authMethod === 'otp' && (
+            <Button
+              onClick={handleValidateAuth}
+              disabled={!canSubmitVerify() || loading}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  Verify Code
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep === 'verify' && authMethod === 'password' && (
+            <Button
+              onClick={handleValidateAuth}
+              disabled={!canSubmitVerify() || loading}
+              className={`${theme?.button.primary || ""} w-full`}
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep === 'collect' && (
             <>
               <Button
-                onClick={handleValidateAuth}
-                disabled={!canSubmitVerify() || loading}
+                onClick={handleUpdatePatient}
+                disabled={!canSubmitCollect() || loading}
                 className={`${theme?.button.primary || ""} w-full`}
                 size="lg"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Verifying...
+                    Saving...
                   </>
                 ) : (
                   <>
-                    Verify {authMethod === 'otp' ? 'Code' : 'Password'}
+                    Complete Profile
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </>
                 )}
@@ -2310,64 +2128,41 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
               <Button
                 variant="outline"
-                onClick={() => {
-                  setCurrentStep('auth');
-                  setOtpSent(false);
-                  setError(null);
-                  setSuccess(null);
-                }}
+                onClick={handleLogout}
                 className={`${theme?.button.secondary || ""} w-full`}
               >
-                {authMethod === 'otp' ? `Change ${authField === 'email' ? 'Email' : 'Phone'}` : 'Back'}
+                Use Different Account
               </Button>
             </>
           )}
 
-          {currentStep === 'collect' && (
-            <>
-              <div className="flex gap-3">
-                {collectSteps.indexOf(collectSubStep) > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={handleCollectBack}
-                    className={theme?.button.secondary || ""}
-                    size="lg"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Button>
-                )}
+          {currentStep === 'verify' && authMethod === 'otp' && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentStep('auth');
+                setOtpSent(false);
+                setError(null);
+                setSuccess(null);
+              }}
+              className={`${theme?.button.secondary || ""} w-full`}
+            >
+              Change {authField === 'email' ? 'Email' : 'Phone'}
+            </Button>
+          )}
 
-                <Button
-                  onClick={handleCollectNext}
-                  disabled={!canSubmitCollectStep() && !canSkipCurrentStep()}
-                  className={`${theme?.button.primary || ""} flex-1`}
-                  size="lg"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      {collectSteps.indexOf(collectSubStep) === collectSteps.length - 1 ? 'Complete' : 'Continue'}
-                      <ChevronRight className="ml-2 w-4 h-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {canSkipCurrentStep() && (
-                <Button
-                  variant="ghost"
-                  onClick={handleSkipField}
-                  className={`${theme?.button.secondary || ""} w-full`}
-                >
-                  Skip this step
-                </Button>
-              )}
-            </>
+          {currentStep === 'verify' && authMethod === 'password' && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentStep('auth');
+                setError(null);
+                setSuccess(null);
+              }}
+              className={`${theme?.button.secondary || ""} w-full`}
+            >
+              Back
+            </Button>
           )}
         </CardContent>
       </Card>
