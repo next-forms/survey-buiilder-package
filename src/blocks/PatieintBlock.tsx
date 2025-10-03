@@ -2464,8 +2464,8 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
           {currentStep === 'collect' && (
             <>
-              <div className="flex gap-3">
                 {collectStep > 0 && (
+                  <div className="flex gap-3">                  
                   <Button
                     onClick={() => setCollectStep(collectStep - 1)}
                     variant="outline"
@@ -2474,8 +2474,10 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                   >
                     Back
                   </Button>
+                  </div>
                 )}
                 {collectStep < collectionSteps.length - 1 ? (
+                <div className="flex gap-3">
                   <Button
                     onClick={() => {
                       // Validate current step before proceeding
@@ -2508,7 +2510,9 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                     Next
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
+                  </div>
                 ) : (
+                <div className="flex gap-3">
                   <Button
                     onClick={handleUpdatePatient}
                     disabled={!canSubmitCollect() || loading}
@@ -2527,8 +2531,8 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                       </>
                     )}
                   </Button>
+                </div>
                 )}
-              </div>
                 {collectStep == 0 && (
                   <div className="flex gap-3">
                       <Button
