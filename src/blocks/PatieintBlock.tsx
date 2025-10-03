@@ -8,13 +8,14 @@ import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight, Lock } from "lucide-react";
+import { UserCheck, TestTube, Settings, MapPin, BookOpen, Plus, Trash2, Phone, Mail, AlertTriangle, CheckCircle2, Shield, SkipForward, User, Ruler, Weight, Lock, Check } from "lucide-react";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from '../components/ui/badge';
 import { AlertCircle, Loader2, ArrowRight, KeyRound, Calendar } from 'lucide-react';
 import { useSurveyForm } from '../context/SurveyFormContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { cn } from "../lib/utils";
 
 const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onRemove }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
@@ -184,8 +185,17 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
 
           if (otpRes.ok) {
             const otpData = await otpRes.json();
-            results.push(`✅ OTP sent successfully`);
-            results.push(`Response: ${JSON.stringify(otpData, null, 2)}\n`);
+
+            // Check if first-time user (token returned directly)
+            if (otpData.isFirstTimeUser && otpData.token) {
+              results.push(`✅ First-time user detected - Token received directly`);
+              results.push(`Token: ${otpData.token}`);
+              authToken = otpData.token;
+              results.push(`Patient data: ${JSON.stringify(otpData.patient, null, 2)}\n`);
+            } else {
+              results.push(`✅ Returning user - OTP sent successfully`);
+              results.push(`Response: ${JSON.stringify(otpData, null, 2)}\n`);
+            }
           } else {
             const errorData = await otpRes.text();
             results.push(`❌ OTP sending failed: ${otpRes.status}`);
@@ -196,8 +206,9 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
         }
       }
 
-      // Step 2: Validate Authentication
-      results.push(`🔐 Step 2: Validating ${data.authMethod === 'otp' ? 'OTP' : 'Password'}...`);
+      // Step 2: Validate Authentication (only if not already authenticated)
+      if (!authToken) {
+        results.push(`🔐 Step 2: Validating ${data.authMethod === 'otp' ? 'OTP' : 'Password'}...`);
       const validateBody: any = data.authField === 'email'
         ? { email: testData.email }
         : { phone: testData.phone };
@@ -303,6 +314,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
       } catch (error: any) {
         results.push(`❌ Validation error: ${error.message}\n`);
       }
+      } // End of if (!authToken)
 
       results.push("\n🎉 Flow testing completed!");
     } catch (error: any) {
@@ -1009,17 +1021,28 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                 <CardContent className="space-y-4">
                   <div className="prose prose-sm max-w-none">
                     <h3>New Authentication Flow Overview</h3>
-                    
+
                     <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <h4 className="text-blue-800 dark:text-white font-medium">User Flow:</h4>
                       <ol className="text-blue-700 dark:text-white mt-2 space-y-1 list-decimal list-inside">
                         <li>User enters email or mobile number</li>
-                        <li>{data.authMethod === 'otp' ? 'System sends OTP to the provided contact' : 'User enters password'}</li>
-                        <li>User enters {data.authMethod === 'otp' ? 'OTP' : 'password'} for validation</li>
-                        <li>System validates and returns patient data</li>
+                        {data.authMethod === 'otp' ? (
+                          <>
+                            <li>System checks if user is first-time or returning:
+                              <ul className="ml-6 list-disc">
+                                <li><strong>First-time user:</strong> Returns token directly without OTP</li>
+                                <li><strong>Returning user:</strong> Sends OTP for verification</li>
+                              </ul>
+                            </li>
+                            <li>For returning users: User enters OTP for validation</li>
+                          </>
+                        ) : (
+                          <li>User enters password for validation</li>
+                        )}
+                        <li>System validates and returns patient data with token</li>
                         <li>If patient data is incomplete:
                           <ul className="ml-6 list-disc">
-                            <li>User fills missing information</li>
+                            <li>User fills missing information in a stepped form</li>
                             <li>System updates patient profile</li>
                           </ul>
                         </li>
@@ -1031,7 +1054,7 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
 
                     {data.authMethod === 'otp' && (
                       <>
-                        <h5>1. Send OTP</h5>
+                        <h5>1. Send OTP / Initial Authentication</h5>
                         <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm">
                           <strong>Request:</strong>
                           <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
@@ -1046,10 +1069,25 @@ ${Object.entries(data.additionalBodyParams || {})
   .join(',\n')}
 }`}
                           </pre>
-                          <strong>Success Response:</strong>
+                          <strong>Success Response (First-time User - Direct Token):</strong>
                           <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
 {`{
   "success": true,
+  "isFirstTimeUser": true,
+  "token": "jwt_token_here",
+  "patient": {
+    "id": "patient123",
+    "email": "john@example.com"
+    // Minimal data - will require collection
+  }
+}`}
+                          </pre>
+                          <strong>Success Response (Returning User - OTP Sent):</strong>
+                          <pre className="mt-2 bg-gray-800 text-green-400 p-2 rounded overflow-x-auto">
+{`{
+  "success": true,
+  "isFirstTimeUser": false,
+  "otpSent": true,
   "message": "OTP sent successfully",
   "expiresIn": 300
 }`}
@@ -1300,8 +1338,23 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [collectStep, setCollectStep] = useState(0);
 
   const hasCheckedToken = useRef(false);
+
+  // Helper function to determine missing fields
+  const getMissingFields = (patientInfo: any = {}) => {
+    const missing = [];
+    if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
+    if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
+    if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
+    if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
+    if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
+    if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
+    if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
+    if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+    return missing;
+  };
 
   useEffect(() => {
     // Only run token check once per mount
@@ -1345,6 +1398,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
               // Profile complete, skip to next block
               setTimeout(() => {
                 setValue(fieldName, stored);
+                setCurrentStep('welcome');
                 setLoading(false);
                 goToNextBlock();
               }, 200);
@@ -1453,9 +1507,46 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       });
 
       if (res.ok) {
-        setOtpSent(true);
-        setSuccess('Verification code sent successfully');
-        setCurrentStep('verify');
+        const data = await res.json();
+
+        // Check if first-time user (token returned directly)
+        if (data.isFirstTimeUser && data.token) {
+          // Store token and patient data
+          const tokenField = (block as any).tokenField || 'token';
+          setValue(fieldName, {
+            [tokenField]: data.token,
+            patientData: data.patient || {}
+          });
+
+          // Store in localStorage
+          const storageData = {
+            [tokenField]: data.token,
+            patient: data.patient || {}
+          };
+          localStorage.setItem(storageKey, JSON.stringify(storageData));
+
+          // Check what data needs to be collected
+          const missing = getMissingFields(data.patient || {});
+
+          if (missing.length > 0) {
+            setMissingFields(missing);
+            setFormData(prev => ({
+              ...prev,
+              ...(data.patient || {})
+            }));
+            setCurrentStep('collect');
+            setCollectStep(0); // Start with first step of collection
+            setSuccess('Welcome! Please complete your profile.');
+          } else {
+            // All data complete, move to next block
+            goToNextBlock();
+          }
+        } else {
+          // Returning user - OTP sent
+          setOtpSent(true);
+          setSuccess('Verification code sent successfully');
+          setCurrentStep('verify');
+        }
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send OTP' }));
         throw new Error(errorData.error || 'Failed to send OTP');
@@ -1495,13 +1586,16 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
       if (res.ok) {
         // Store token if present
+        console.log("Here")
         if (data[tokenField]) {
-          localStorage.setItem(storageKey, JSON.stringify({ [tokenField]: data[tokenField] }));
+          console.log("Here1")
+          localStorage.setItem(storageKey, JSON.stringify({ [tokenField]: data[tokenField], patient: data.patient }));
         }
 
         setPatientData(data.patient || data);
 
         // Check for missing fields
+        console.log("Here 3")
         const missing = [];
         if ((block as any).requireFirstName && !data.patient?.firstName) missing.push('firstName');
         if ((block as any).requireLastName && !data.patient?.lastName) missing.push('lastName');
@@ -1513,9 +1607,11 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         if ((block as any).requireWeight && !data.patient?.weight) missing.push('weight');
 
         if (missing.length > 0) {
+        console.log("Here 4")
           setMissingFields(missing);
           setCurrentStep('collect');
         } else {
+        console.log("Here 5")
           // All data present, go to next block
           const authResults = {
             ...data,
@@ -1524,6 +1620,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           };
           setValue(fieldName, authResults);
           await new Promise(f => setTimeout(f, 1000));
+          console.log("Here 6")
           goToNextBlock();
         }
       } else {
@@ -1659,6 +1756,362 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     }
   };
 
+  // Helper functions for height conversion
+  const inchesToFeetInches = (totalInches: number | string) => {
+    const inches = typeof totalInches === 'string' ? parseInt(totalInches) || 0 : totalInches;
+    const feet = Math.floor(inches / 12);
+    const remainingInches = inches % 12;
+    return { feet, inches: remainingInches };
+  };
+
+  const feetInchesToInches = (feet: number, inches: number) => {
+    return feet * 12 + inches;
+  };
+
+  // Determine which collection steps are needed based on missing fields
+  const getCollectionSteps = () => {
+    const steps: string[] = [];
+
+    // Step 1: Name
+    if (missingFields.includes('firstName') || missingFields.includes('lastName') || missingFields.includes('middleName')) {
+      steps.push('name');
+    }
+
+    // Step 2: Gender
+    if (missingFields.includes('gender') || missingFields.includes('genderBiological')) {
+      steps.push('gender');
+    }
+
+    // Step 3: Date of Birth
+    if (missingFields.includes('dateOfBirth')) {
+      steps.push('dob');
+    }
+
+    // Step 4: Physical
+    if (missingFields.includes('height') || missingFields.includes('weight')) {
+      steps.push('physical');
+    }
+
+    return steps;
+  };
+
+  const collectionSteps = getCollectionSteps();
+  const currentCollectionStep = collectionSteps[collectStep];
+
+  const renderCollectionStep = () => {
+    const stepName = collectionSteps[collectStep];
+
+    switch (stepName) {
+      case 'name':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">What's your name?</h3>
+
+            {missingFields.includes('firstName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).firstNameLabel || 'First Name'}
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter your first name"
+                  className={theme?.field.input || "text-lg h-12"}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            {missingFields.includes('middleName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).middleNameLabel || 'Middle Name'} <span className="text-muted-foreground">(Optional)</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.middleName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
+                  placeholder="Enter your middle name"
+                  className={theme?.field.input || "text-lg h-12"}
+                />
+              </div>
+            )}
+
+            {missingFields.includes('lastName') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).lastNameLabel || 'Last Name'}
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter your last name"
+                  className={theme?.field.input || "text-lg h-12"}
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      case 'gender':
+        return (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Gender Information</h3>
+
+            {missingFields.includes('gender') && (
+              <div className="space-y-3">
+                <Label className={theme?.field.label}>
+                  {(block as any).genderLabel || 'How do you identify?'}
+                </Label>
+                <RadioGroup
+                  value={formData.gender}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+                  className="space-y-2"
+                >
+                  {['male', 'female', 'other'].map((option) => (
+                    <div key={option} className="relative">
+                      <RadioGroupItem
+                        value={option}
+                        id={`gender-${option}`}
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor={`gender-${option}`}
+                        className="block w-full cursor-pointer"
+                      >
+                        <Card
+                          className={`p-4 transition-colors ${
+                            formData.gender === option
+                              ? "border-primary bg-primary/5 dark:bg-primary/20"
+                              : "hover:bg-accent dark:hover:bg-accent/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-foreground capitalize">{option}</span>
+                            {formData.gender === option && (
+                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+
+            {missingFields.includes('genderBiological') && (
+              <div className="space-y-3">
+                <Label className={theme?.field.label}>
+                  {(block as any).genderBiologicalLabel || 'Biological sex at birth'}
+                </Label>
+                <RadioGroup
+                  value={formData.genderBiological}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, genderBiological: value }))}
+                  className="space-y-2"
+                >
+                  {['male', 'female'].map((option) => (
+                    <div key={option} className="relative">
+                      <RadioGroupItem
+                        value={option}
+                        id={`biological-${option}`}
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor={`biological-${option}`}
+                        className="block w-full cursor-pointer"
+                      >
+                        <Card
+                          className={`p-4 transition-colors ${
+                            formData.genderBiological === option
+                              ? "border-primary bg-primary/5 dark:bg-primary/20"
+                              : "hover:bg-accent dark:hover:bg-accent/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-foreground capitalize">{option}</span>
+                            {formData.genderBiological === option && (
+                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'dob':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">When were you born?</h3>
+
+            <div className="space-y-2">
+              <Label className={theme?.field.label}>
+                {(block as any).dateOfBirthLabel || 'Date of Birth'}
+              </Label>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1">Month</Label>
+                  <Select
+                    value={formData.dateOfBirth.split('-')[0] || ''}
+                    onValueChange={(value) => {
+                      const parts = formData.dateOfBirth.split('-');
+                      const newDate = `${value}-${parts[1] || ''}-${parts[2] || ''}`;
+                      setFormData(prev => ({ ...prev, dateOfBirth: newDate }));
+                    }}
+                  >
+                    <SelectTrigger className={theme?.field.select || "h-12"}>
+                      <SelectValue placeholder="MM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                        <SelectItem key={month} value={month.toString().padStart(2, '0')}>
+                          {month.toString().padStart(2, '0')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1">Day</Label>
+                  <Select
+                    value={formData.dateOfBirth.split('-')[1] || ''}
+                    onValueChange={(value) => {
+                      const parts = formData.dateOfBirth.split('-');
+                      const newDate = `${parts[0] || ''}-${value}-${parts[2] || ''}`;
+                      setFormData(prev => ({ ...prev, dateOfBirth: newDate }));
+                    }}
+                  >
+                    <SelectTrigger className={theme?.field.select || "h-12"}>
+                      <SelectValue placeholder="DD" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                        <SelectItem key={day} value={day.toString().padStart(2, '0')}>
+                          {day.toString().padStart(2, '0')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1">Year</Label>
+                  <Select
+                    value={formData.dateOfBirth.split('-')[2] || ''}
+                    onValueChange={(value) => {
+                      const parts = formData.dateOfBirth.split('-');
+                      const newDate = `${parts[0] || ''}-${parts[1] || ''}-${value}`;
+                      setFormData(prev => ({ ...prev, dateOfBirth: newDate }));
+                    }}
+                  >
+                    <SelectTrigger className={theme?.field.select || "h-12"}>
+                      <SelectValue placeholder="YYYY" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <p className={theme?.field.description || "text-xs text-muted-foreground"}>
+                Format: MM-DD-YYYY
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'physical':
+        const { feet, inches } = inchesToFeetInches(formData.height);
+
+        return (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Physical Information</h3>
+
+            {missingFields.includes('height') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).heightLabel || 'Height'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={feet || ''}
+                      onChange={(e) => {
+                        const newFeet = parseInt(e.target.value) || 0;
+                        const totalInches = feetInchesToInches(newFeet, inches);
+                        setFormData(prev => ({ ...prev, height: totalInches.toString() }));
+                      }}
+                      placeholder="5"
+                      className={cn(theme?.field.input || "text-lg h-12", "w-20")}
+                      min="0"
+                      max="8"
+                    />
+                    <span className={theme?.field.text || "text-muted-foreground"}>ft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={inches || ''}
+                      onChange={(e) => {
+                        const newInches = parseInt(e.target.value) || 0;
+                        const totalInches = feetInchesToInches(feet, newInches);
+                        setFormData(prev => ({ ...prev, height: totalInches.toString() }));
+                      }}
+                      placeholder="10"
+                      className={cn(theme?.field.input || "text-lg h-12", "w-20")}
+                      min="0"
+                      max="11"
+                    />
+                    <span className={theme?.field.text || "text-muted-foreground"}>in</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {missingFields.includes('weight') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).weightLabel || 'Weight'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.weight}
+                    onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                    placeholder="150"
+                    className={theme?.field.input || "text-lg h-12"}
+                  />
+                  <span className={theme?.field.text || "text-muted-foreground"}>lbs</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const getStepTitle = () => {
     switch (currentStep) {
       case 'auth': return `Enter your ${authField === 'email' ? 'email' : 'phone number'}`;
@@ -1683,6 +2136,41 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       default: return '';
     }
   };
+
+  const nextAuthStep = () => {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    const patientInfo = stored.patient || stored;
+
+    const missing = [];
+    if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
+    if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
+    if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
+    if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
+    if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
+    if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
+    if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
+    if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+
+    console.log(missing)
+    if (missing.length > 0) {
+      // Profile incomplete, show collection form
+      setPatientData(patientInfo);
+      if (patientInfo.email) {
+        setFormData(prev => ({ ...prev, email: patientInfo.email }));
+      }
+      if (patientInfo.phone) {
+        setFormData(prev => ({ ...prev, phone: patientInfo.phone }));
+      }
+      setMissingFields(missing);
+      setCurrentStep('collect');
+    } else {
+      // Profile complete, skip to next block
+      setTimeout(() => {
+        setValue(fieldName, stored);
+        goToNextBlock();
+      }, 200);
+    }
+  }
 
   const renderInput = () => {
     switch (currentStep) {
@@ -1772,148 +2260,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         );
 
       case 'collect':
-        return (
-          <div className="space-y-4">
-            {missingFields.includes('firstName') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).firstNameLabel || 'First Name'}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="Enter your first name"
-                  className={theme?.field.input || "text-lg h-12"}
-                  autoFocus={missingFields[0] === 'firstName'}
-                />
-              </div>
-            )}
-
-            {missingFields.includes('middleName') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).middleNameLabel || 'Middle Name'} <span className="text-muted-foreground">(Optional)</span>
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.middleName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
-                  placeholder="Enter your middle name"
-                  className={theme?.field.input || "text-lg h-12"}
-                />
-              </div>
-            )}
-
-            {missingFields.includes('lastName') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).lastNameLabel || 'Last Name'}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Enter your last name"
-                  className={theme?.field.input || "text-lg h-12"}
-                />
-              </div>
-            )}
-
-            {missingFields.includes('gender') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).genderLabel || 'Gender'}
-                </Label>
-                <Select
-                  value={formData.gender}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                >
-                  <SelectTrigger className={theme?.field.select || "h-12"}>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {missingFields.includes('genderBiological') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).genderBiologicalLabel || 'Biological Gender'}
-                </Label>
-                <Select
-                  value={formData.genderBiological}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, genderBiological: value }))}
-                >
-                  <SelectTrigger className={theme?.field.select || "h-12"}>
-                    <SelectValue placeholder="Select biological gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {missingFields.includes('dateOfBirth') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).dateOfBirthLabel || 'Date of Birth'}
-                </Label>
-                <Input
-                  type="text"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                  placeholder="mm-dd-yyyy"
-                  className={theme?.field.input || "text-lg h-12"}
-                />
-                <p className={theme?.field.description || "text-xs text-muted-foreground"}>Format: mm-dd-yyyy</p>
-              </div>
-            )}
-
-            {missingFields.includes('height') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).heightLabel || 'Height'}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.height}
-                    onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="72"
-                    className={theme?.field.input || "text-lg h-12"}
-                  />
-                  <span className={theme?.field.text || "text-muted-foreground"}>inches</span>
-                </div>
-              </div>
-            )}
-
-            {missingFields.includes('weight') && (
-              <div className="space-y-2">
-                <Label className={theme?.field.label}>
-                  {(block as any).weightLabel || 'Weight'}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.weight}
-                    onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
-                    placeholder="200"
-                    className={theme?.field.input || "text-lg h-12"}
-                  />
-                  <span className={theme?.field.text || "text-muted-foreground"}>pounds</span>
-                </div>
-              </div>
-            )}
-          </div>
-        );
+        return renderCollectionStep();
 
       default:
         return null;
@@ -1957,17 +2304,37 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
-              onClick={() => goToNextBlock()}
+              onClick={nextAuthStep}
               className={`${theme?.button.primary || ""} w-full`}
               size="lg"
             >
               Continue
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className={`${theme?.button.secondary || ""} w-full mt-2`}
+            >
+              Use Different Account
+            </Button>
+
           </CardContent>
         </Card>
       </motion.div>
     );
+  }
+
+  const authHandler = () => {
+    if (authMethod === 'otp') {
+      handleSendOtp();
+    } else if (authMethod === 'password' && canSubmitAuth()) {
+      if (canSubmitVerify()) {
+        handleValidateAuth();
+      } else {
+        setCurrentStep('verify');
+      }
+    }
   }
 
   return (
@@ -2034,17 +2401,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
           {currentStep === 'auth' && (
             <Button
-              onClick={() => {
-                if (authMethod === 'otp') {
-                  handleSendOtp();
-                } else if (authMethod === 'password' && canSubmitAuth()) {
-                  if (canSubmitVerify()) {
-                    handleValidateAuth();
-                  } else {
-                    setCurrentStep('verify');
-                  }
-                }
-              }}
+              onClick={authHandler}
               disabled={!canSubmitAuth() || loading || (authMethod === 'password' && !canSubmitVerify())}
               className={`${theme?.button.primary || ""} w-full`}
               size="lg"
@@ -2107,32 +2464,99 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
           {currentStep === 'collect' && (
             <>
-              <Button
-                onClick={handleUpdatePatient}
-                disabled={!canSubmitCollect() || loading}
-                className={`${theme?.button.primary || ""} w-full`}
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    Complete Profile
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </>
+              <div className="flex gap-3">
+                {collectStep > 0 && (
+                  <Button
+                    onClick={() => setCollectStep(collectStep - 1)}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    Back
+                  </Button>
                 )}
-              </Button>
+                {collectStep < collectionSteps.length - 1 ? (
+                  <Button
+                    onClick={() => {
+                      // Validate current step before proceeding
+                      const stepName = collectionSteps[collectStep];
+                      let canProceed = true;
 
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-                className={`${theme?.button.secondary || ""} w-full`}
-              >
-                Use Different Account
-              </Button>
+                      if (stepName === 'name') {
+                        if (missingFields.includes('firstName') && !formData.firstName) canProceed = false;
+                        if (missingFields.includes('lastName') && !formData.lastName) canProceed = false;
+                      } else if (stepName === 'gender') {
+                        if (missingFields.includes('gender') && !formData.gender) canProceed = false;
+                        if (missingFields.includes('genderBiological') && !formData.genderBiological) canProceed = false;
+                      } else if (stepName === 'dob') {
+                        if (missingFields.includes('dateOfBirth') && !formData.dateOfBirth.match(/^\d{2}-\d{2}-\d{4}$/)) canProceed = false;
+                      } else if (stepName === 'physical') {
+                        if (missingFields.includes('height') && !formData.height) canProceed = false;
+                        if (missingFields.includes('weight') && !formData.weight) canProceed = false;
+                      }
+
+                      if (canProceed) {
+                        setCollectStep(collectStep + 1);
+                        setError(null);
+                      } else {
+                        setError('Please fill in all required fields');
+                      }
+                    }}
+                    className={`${theme?.button.primary || ""} w-full`}
+                    size="lg"
+                  >
+                    Next
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleUpdatePatient}
+                    disabled={!canSubmitCollect() || loading}
+                    className={`${theme?.button.primary || ""} w-full`}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        Complete Profile
+                        <ArrowRight className="ml-2 w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+                {collectStep == 0 && (
+                  <div className="flex gap-3">
+                      <Button
+                        onClick={() => setCurrentStep('welcome')}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                      >
+                        Back
+                      </Button>
+                  </div>
+                )}
+
+              {collectionSteps.length > 1 && (
+                <div className="flex justify-center gap-2 mt-4">
+                  {collectionSteps.map((_, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-colors",
+                        index === collectStep
+                          ? "bg-primary"
+                          : "bg-gray-300 dark:bg-gray-600"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
 
