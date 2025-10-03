@@ -2600,12 +2600,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
 export const PatientBlock: BlockDefinition = {
   type: "patientAuth",
-  name: "PatientAuthentication",
+  name: "Patient Authentication",
   description: "Patient authentication with conditional data collection",
   icon: <UserCheck className="w-4 h-4" />,
   defaultData: {
     type: "patientAuth",
-    fieldName: "patientAuthResults",
+    fieldName: "authResults",
     authMethod: "otp", // 'otp' or 'password'
     authField: "email", // 'email' or 'phone'
     sendOtpUrl: "/api/v2/patient/send-otp",
