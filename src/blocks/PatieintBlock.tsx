@@ -255,6 +255,12 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
           if (data.requireHeight && !patientData.height) missingFields.push('height');
           if (data.requireWeight && !patientData.weight) missingFields.push('weight');
 
+          // Check for alternate contact
+          if (data.collectAlternateContact && data.alternateContactRequired) {
+            if (data.authField === 'email' && !patientData.phone) missingFields.push('phone');
+            if (data.authField === 'phone' && !patientData.email) missingFields.push('email');
+          }
+
           if (missingFields.length > 0) {
             results.push(`📝 Step 3: Missing fields detected: ${missingFields.join(', ')}`);
             results.push("Testing update patient info API...");
@@ -447,6 +453,46 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Optional Contact Collection Section */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                      Additional Contact Collection
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-3">
+                      Optionally collect additional contact information alongside the primary authentication method
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="collectAlternateContact"
+                        checked={!!data.collectAlternateContact}
+                        onCheckedChange={(checked) => handleChange("collectAlternateContact", !!checked)}
+                      />
+                      <Label className="text-sm font-medium" htmlFor="collectAlternateContact">
+                        Collect {data.authField === 'email' ? 'phone number' : 'email address'} as well
+                      </Label>
+                    </div>
+                    {data.collectAlternateContact && (
+                      <div className="mt-3 space-y-3">
+                        <Input
+                          value={data.alternateContactLabel || (data.authField === 'email' ? 'Phone Number (Optional)' : 'Email Address (Optional)')}
+                          onChange={(e) => handleChange("alternateContactLabel", e.target.value)}
+                          placeholder={data.authField === 'email' ? 'Enter phone label...' : 'Enter email label...'}
+                          className="text-sm"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="alternateContactRequired"
+                            checked={!!data.alternateContactRequired}
+                            onCheckedChange={(checked) => handleChange("alternateContactRequired", !!checked)}
+                          />
+                          <Label className="text-sm" htmlFor="alternateContactRequired">
+                            Make this field required
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -1353,8 +1399,62 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
     if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
     if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+
+    // Check for alternate contact field (email or phone)
+    if ((block as any).collectAlternateContact && (block as any).alternateContactRequired) {
+      if ((block as any).authField === 'email' && !patientInfo.phone) {
+        missing.push('phone');
+      } else if ((block as any).authField === 'phone' && !patientInfo.email) {
+        missing.push('email');
+      }
+    }
+
     return missing;
   };
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (stored[tokenField]) {
+      hasCheckedToken.current = true;
+      setLoading(true);
+
+      if (!(block as any).validateTokenUrl) {
+        // No validation URL, need to check stored patient data for completeness
+        const patientInfo = stored.patient || stored;
+
+        const missing = getMissingFields(patientInfo);
+
+        if (missing.length > 0) {
+          // Profile incomplete, show collection form
+          setPatientData(patientInfo);
+          if (patientInfo.email) {
+            setFormData(prev => ({ ...prev, email: patientInfo.email }));
+          }
+          if (patientInfo.phone) {
+            setFormData(prev => ({ ...prev, phone: patientInfo.phone }));
+          }
+          setMissingFields(missing);
+          setCurrentStep('collect');
+          setLoading(false);
+        } else {
+          const authResults = {
+            patient: stored.patient,
+            token: stored[tokenField],
+            ...stored.patient,
+            isAuthenticated: true,
+            timestamp: new Date().toISOString()
+          };
+
+          setValue(fieldName, authResults);
+          setTimeout(() => {
+            setCurrentStep('welcome');
+            setLoading(false);
+          }, 500);
+        }
+        return;
+      }
+    }    
+  }, [])
 
   useEffect(() => {
     // Only run token check once per mount
@@ -1372,15 +1472,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
             // No validation URL, need to check stored patient data for completeness
             const patientInfo = stored.patient || stored;
 
-            const missing = [];
-            if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
-            if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
-            if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
-            if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
-            if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
-            if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
-            if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
-            if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+            const missing = getMissingFields(patientInfo);
 
             if (missing.length > 0) {
               // Profile incomplete, show collection form
@@ -1427,15 +1519,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
               const patientInfo = data.patient || data;
               setPatientData(patientInfo);
 
-              const missing = [];
-              if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
-              if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
-              if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
-              if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
-              if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
-              if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
-              if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
-              if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+              const missing = getMissingFields(patientInfo);
 
               if (missing.length > 0) {
                 // Profile incomplete, show collection form
@@ -1616,15 +1700,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         setPatientData(data.patient || data);
 
         // Check for missing fields
-        const missing = [];
-        if ((block as any).requireFirstName && !data.patient?.firstName) missing.push('firstName');
-        if ((block as any).requireLastName && !data.patient?.lastName) missing.push('lastName');
-        if ((block as any).requireMiddleName && !data.patient?.middleName) missing.push('middleName');
-        if ((block as any).requireGender && !data.patient?.gender) missing.push('gender');
-        if ((block as any).requireGenderBiological && !data.patient?.genderBiological) missing.push('genderBiological');
-        if ((block as any).requireDateOfBirth && !data.patient?.dateOfBirth) missing.push('dateOfBirth');
-        if ((block as any).requireHeight && !data.patient?.height) missing.push('height');
-        if ((block as any).requireWeight && !data.patient?.weight) missing.push('weight');
+        const missing = getMissingFields(data.patient || data);
 
         if (missing.length > 0) {
           setMissingFields(missing);
@@ -1670,6 +1746,10 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       if (missingFields.includes('dateOfBirth')) body.dateOfBirth = formData.dateOfBirth;
       if (missingFields.includes('height')) body.height = parseInt(formData.height);
       if (missingFields.includes('weight')) body.weight = parseInt(formData.weight);
+
+      // Add alternate contact if required
+      if (missingFields.includes('email')) body.email = formData.email;
+      if (missingFields.includes('phone')) body.phone = formData.phone;
 
       const headers = buildRequestHeaders();
       const requestBody = buildRequestBody(body);
@@ -1732,6 +1812,9 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     for (const field of missingFields) {
       if (field === 'firstName' && !formData.firstName.trim()) return false;
       if (field === 'lastName' && !formData.lastName.trim()) return false;
+      // Check if alternate contact is required
+      if (field === 'email' && (block as any).alternateContactRequired && !formData.email.trim()) return false;
+      if (field === 'phone' && (block as any).alternateContactRequired && !formData.phone.trim()) return false;
       // Other fields are optional or have defaults
     }
     return true;
@@ -1786,22 +1869,27 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const getCollectionSteps = () => {
     const steps: string[] = [];
 
-    // Step 1: Name
+    // Step 1: Alternate Contact (if required)
+    if (missingFields.includes('email') || missingFields.includes('phone')) {
+      steps.push('contact');
+    }
+
+    // Step 2: Name
     if (missingFields.includes('firstName') || missingFields.includes('lastName') || missingFields.includes('middleName')) {
       steps.push('name');
     }
 
-    // Step 2: Gender
+    // Step 3: Gender
     if (missingFields.includes('gender') || missingFields.includes('genderBiological')) {
       steps.push('gender');
     }
 
-    // Step 3: Date of Birth
+    // Step 4: Date of Birth
     if (missingFields.includes('dateOfBirth')) {
       steps.push('dob');
     }
 
-    // Step 4: Physical
+    // Step 5: Physical
     if (missingFields.includes('height') || missingFields.includes('weight')) {
       steps.push('physical');
     }
@@ -1816,6 +1904,49 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     const stepName = collectionSteps[collectStep];
 
     switch (stepName) {
+      case 'contact':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">
+              {missingFields.includes('email') ? 'What\'s your email address?' : 'What\'s your phone number?'}
+            </h3>
+
+            {missingFields.includes('email') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).alternateContactLabel || 'Email Address'}
+                  {!(block as any).alternateContactRequired && <span className="text-muted-foreground"> (Optional)</span>}
+                </Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter your email address"
+                  className={theme?.field.input || "text-lg h-12"}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            {missingFields.includes('phone') && (
+              <div className="space-y-2">
+                <Label className={theme?.field.label}>
+                  {(block as any).alternateContactLabel || 'Phone Number'}
+                  {!(block as any).alternateContactRequired && <span className="text-muted-foreground"> (Optional)</span>}
+                </Label>
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(888) 888-8888"
+                  className={theme?.field.input || "text-lg h-12"}
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+        );
+
       case 'name':
         return (
           <div className="space-y-4">
@@ -2155,15 +2286,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
     const patientInfo = stored.patient || stored;
 
-    const missing = [];
-    if ((block as any).requireFirstName && !patientInfo.firstName) missing.push('firstName');
-    if ((block as any).requireLastName && !patientInfo.lastName) missing.push('lastName');
-    if ((block as any).requireMiddleName && !patientInfo.middleName) missing.push('middleName');
-    if ((block as any).requireGender && !patientInfo.gender) missing.push('gender');
-    if ((block as any).requireGenderBiological && !patientInfo.genderBiological) missing.push('genderBiological');
-    if ((block as any).requireDateOfBirth && !patientInfo.dateOfBirth) missing.push('dateOfBirth');
-    if ((block as any).requireHeight && !patientInfo.height) missing.push('height');
-    if ((block as any).requireWeight && !patientInfo.weight) missing.push('weight');
+    const missing = getMissingFields(patientInfo);
 
     if (missing.length > 0) {
       // Profile incomplete, show collection form
@@ -2363,7 +2486,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className={`${theme?.card || ""} w-full min-w-0 mx-auto`}>
+      <Card className={`${theme?.card || ""} w-full min-w-0 mx-auto shadow-none`}>
         <CardHeader className="text-center">
           <motion.div
             className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center"
