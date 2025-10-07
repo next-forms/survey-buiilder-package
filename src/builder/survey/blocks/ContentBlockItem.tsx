@@ -67,7 +67,7 @@ export const ContentBlockItem: React.FC<ContentBlockItemProps> = ({
                 Edit
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl overflow-y-scroll max-h-screen">
+            <DialogContent className="max-w-4xl w-4xl overflow-y-scroll max-h-screen">
               <DialogHeader>
                 <DialogTitle>Edit {blockDefinition.name}</DialogTitle>
               </DialogHeader>

@@ -15,7 +15,7 @@ interface Props {
 export function ValidationRulesEditorDialog({ open, onOpenChange, data, onUpdate }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-4xl w-4xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
           <DialogTitle>Validation Rules</DialogTitle>
           <DialogDescription>

@@ -224,7 +224,7 @@ export const NavigationRulesEditorDialog = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-scroll">
+      <DialogContent className="max-w-4xl w-4xl max-h-[80vh] overflow-y-scroll">
         <DialogHeader>
           <DialogTitle>Edit Navigation Rules <Badge variant="outline">{nodeName}</Badge></DialogTitle>
         </DialogHeader>
