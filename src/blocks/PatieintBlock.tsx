@@ -2517,6 +2517,12 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           <CardDescription className={theme?.description}>{getStepDescription()}</CardDescription>
         </CardHeader> }
 
+        {!showLabel && currentStep == "auth" &&
+        <CardHeader className="text-center">
+          <CardTitle className={`${theme?.title || ""} text-xl`}>{getStepTitle()}</CardTitle>
+          <CardDescription className={theme?.description}>{getStepDescription()}</CardDescription>
+        </CardHeader> }
+
         <CardContent className="space-y-6 p-2">
           <AnimatePresence mode="wait">
             {error && (
