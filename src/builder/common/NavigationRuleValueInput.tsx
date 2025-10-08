@@ -27,20 +27,22 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
   availableVariables,
   fieldType = 'text'
 }) => {
-  const [inputMode, setInputMode] = React.useState<'literal' | 'variable'>('literal');
-  
-  // Handle array values for operators that support them
-  const isArrayOperator = operator.valueType === 'array' || operator.value === 'between' || operator.value === 'notBetween';
-  const isBetweenOperator = operator.value === 'between' || operator.value === 'notBetween' || 
-                           operator.value === 'dateBetween' || operator.value === 'dateNotBetween' ||
-                           operator.value === 'ageBetween';
+  // Check for logical operators first, before any hooks
   const isLogicalOperator = operator.value === 'isEmpty' || operator.value === 'isNotEmpty' ||
                            ['isToday', 'isPastDate', 'isFutureDate', 'isWeekday', 'isWeekend'].includes(operator.value);
-  
+
   // Don't show input for logical operators that don't need values
   if (isLogicalOperator) {
     return null;
   }
+
+  const [inputMode, setInputMode] = React.useState<'literal' | 'variable'>('literal');
+
+  // Handle array values for operators that support them
+  const isArrayOperator = operator.valueType === 'array' || operator.value === 'between' || operator.value === 'notBetween';
+  const isBetweenOperator = operator.value === 'between' || operator.value === 'notBetween' ||
+                           operator.value === 'dateBetween' || operator.value === 'dateNotBetween' ||
+                           operator.value === 'ageBetween';
   
   // Convert value to array format if needed
   const arrayValue = React.useMemo(() => {
