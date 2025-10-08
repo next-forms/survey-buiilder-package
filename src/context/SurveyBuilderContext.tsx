@@ -13,7 +13,7 @@ import {
   type ThemeDefinition,
   type UUID
 } from "../types";
-import { defaultTheme } from "../themes";
+import { uniloop as uniTheme } from "../themes";
 
 // Custom hook
 export const useSurveyBuilder = () => {
@@ -34,7 +34,7 @@ const initialState: SurveyBuilderState = {
   localizations: {
     en: {},
   },
-  theme: defaultTheme,
+  theme: uniTheme,
   selectedNode: null,
   displayMode: "list",
   enableDebug: false,
@@ -68,7 +68,7 @@ const surveyBuilderReducer = (
         ...state,
         rootNode: action.payload.rootNode || null,
         localizations: action.payload.localizations || { en: {} },
-        theme: action.payload.theme || defaultTheme,
+        theme: action.payload.theme || uniTheme,
       };
     case ActionTypes.SET_ROOT_NODE:
       return {
@@ -313,7 +313,7 @@ const surveyBuilderReducer = (
         ...state,
         rootNode: action.payload.rootNode || null,
         localizations: action.payload.localizations || { en: {} },
-        theme: action.payload.theme || defaultTheme,
+        theme: action.payload.theme || uniTheme,
       };
 
     case ActionTypes.SET_GLOBAL_CUSTOM_FIELDS:
@@ -374,7 +374,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
       ...initialState,
       rootNode: initialData?.rootNode || null,
       localizations: initialData?.localizations || { en: {} },
-      theme: initialData?.theme || defaultTheme,
+      theme: initialData?.theme || uniTheme,
       enableDebug,
     }
   );
@@ -412,7 +412,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
       localizations: {
         en: {}
       },
-      theme: defaultTheme
+      theme: uniTheme
     };
     dispatch({
       type: ActionTypes.INIT_SURVEY,

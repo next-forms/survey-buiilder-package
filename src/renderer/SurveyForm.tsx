@@ -69,7 +69,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   }
 
   // Get the selected theme - memoize to prevent recreation
-  const themeConfig = React.useMemo(() => survey?.theme ?? themes.modern, [survey?.theme]);
+  const themeConfig = React.useMemo(() => survey?.theme ?? themes.uniloop, [survey?.theme]);
 
   // Determine if we should use dark theme based on the themeMode prop
   const isDarkMode = React.useMemo(() =>
