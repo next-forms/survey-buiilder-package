@@ -589,7 +589,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4 border rounded-md p-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-medium">Navigation Rules</h3>
@@ -597,10 +597,6 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
           Define conditions to control survey flow
           </p>
         </div>
-        <Button type="button" onClick={addRule} size="sm" variant="outline">
-          <Plus className="h-3 w-3 mr-1" />
-          Add Rule
-        </Button>
       </div>
 
       {navigationCycles.length > 0 && (
@@ -632,6 +628,13 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
           {rules.map((rule, index) => renderRuleEditor(rule, index))}
         </div>
       )}
+      <div className="flex items-center justify-between">
+        <Button type="button" onClick={addRule} size="sm" variant="outline">
+          <Plus className="h-3 w-3 mr-1" />
+          Add Rule
+        </Button>
+      </div>
+
     </div>
   );
 };

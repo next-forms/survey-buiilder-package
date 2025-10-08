@@ -313,7 +313,7 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4 border rounded-md p-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-medium">Validation Rules</h3>
@@ -321,10 +321,6 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
             Add custom validation rules for this field
           </p>
         </div>
-        <Button type="button" onClick={addRule} size="sm" variant="outline">
-          <Plus className="h-3 w-3 mr-1" />
-          Add Rule
-        </Button>
       </div>
 
       {rules.length === 0 ? (
@@ -337,6 +333,12 @@ export function ValidationRulesEditor({ data, onUpdate }: Props) {
           {rules.map((rule, index) => renderRuleEditor(rule, index))}
         </div>
       )}
+      <div className="flex items-center justify-between">
+        <Button type="button" onClick={addRule} size="sm" variant="outline">
+          <Plus className="h-3 w-3 mr-1" />
+          Add Rule
+        </Button>
+      </div>
     </div>
   );
 }
