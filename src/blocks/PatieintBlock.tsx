@@ -388,6 +388,17 @@ const PatientBlockForm: React.FC<ContentBlockItemProps> = ({ data, onUpdate, onR
                     </p>
                   </div>
 
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Checkbox
+                      id="showLabel"
+                      checked={!!data.showLabel}
+                      onCheckedChange={(checked) => handleChange("showLabel", !!checked)}
+                    />
+                    <Label htmlFor="showLabel" className="text-sm flex items-center gap-2">
+                      Show Top Label?
+                    </Label>
+                  </div>
+
                   <div className="space-y-3">
                     <Label className="text-sm">Authentication Method</Label>
                     <RadioGroup 
@@ -1361,6 +1372,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
   const authMethod = (block as any).authMethod || 'otp';
   const authField = (block as any).authField || 'email';
   const skipIfLoggedIn = (block as any).skipIfLoggedIn || false;
+  const showLabel = (block as any).showLabel || false;
 
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth');
   const [patientData, setPatientData] = useState<any>(null);
@@ -2487,7 +2499,8 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
       transition={{ duration: 0.5 }}
     >
       <Card className={`${theme?.card || ""} w-full min-w-0 mx-auto shadow-none`}>
-        <CardHeader className="text-center">
+        {showLabel &&
+        <CardHeader className="text-center p-2">
           <motion.div
             className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center"
             style={{ backgroundColor: `${theme?.colors.primary}20` }}
@@ -2502,9 +2515,9 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
           </motion.div>
           <CardTitle className={`${theme?.title || ""} text-xl`}>{getStepTitle()}</CardTitle>
           <CardDescription className={theme?.description}>{getStepDescription()}</CardDescription>
-        </CardHeader>
+        </CardHeader> }
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-2">
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
