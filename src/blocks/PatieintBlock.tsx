@@ -1702,7 +1702,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     try {
       const body: any = authField === 'email'
         ? { email: formData.email }
-        : { phone: formData.phone };
+        : { phone: getRawPhoneDigits(formData.phone) };
 
       if (authMethod === 'otp') {
         body.otp = formData.otp;
@@ -1765,7 +1765,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     try {
       const body: any = authField === 'email'
         ? { email: formData.email }
-        : { phone: formData.phone };
+        : { phone: getRawPhoneDigits(formData.phone) };
 
       // Add missing fields
       if (missingFields.includes('firstName')) body.firstName = formData.firstName;
@@ -1779,7 +1779,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
       // Add alternate contact if required
       if (missingFields.includes('email')) body.email = formData.email;
-      if (missingFields.includes('phone')) body.phone = formData.phone;
+      if (missingFields.includes('phone')) body.phone = getRawPhoneDigits(formData.phone);;
 
       const headers = buildRequestHeaders();
       const requestBody = buildRequestBody(body);
@@ -2304,10 +2304,10 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     switch (currentStep) {
       case 'auth': return `We'll use this to ${authMethod === 'otp' ? 'send you a verification code' : 'authenticate you'}`;
       case 'verify': return authMethod === 'otp'
-        ? `Enter the code sent to ${authField === 'email' ? formData.email : formData.phone}`
+        ? `Enter the code sent to ${authField === 'email' ? formData.email : formatPhoneNumber(formData.phone)}`
         : `Enter your password to continue`;
       case 'collect': {
-        const identifier = authField === 'email' ? formData.email : formData.phone;
+        const identifier = authField === 'email' ? formData.email : formatPhoneNumber(formData.phone);
         return identifier ? `Completing profile for ${identifier}` : 'Please provide the following information';
       }
       case 'welcome': return "You're already authenticated";
