@@ -52,7 +52,7 @@ export const defaultTheme: ThemeDefinition = {
     header: "bg-gray-50"
   },
   progress: {
-    bar: "h-1.5 bg-blue-500 rounded-full overflow-hidden",
+    bar: "h-2 bg-blue-500 rounded-full overflow-hidden",
     dots: "flex space-x-2",
     numbers: "flex space-x-2",
     percentage: "text-right text-xs text-gray-500 mb-1",
@@ -125,7 +125,7 @@ export const minimalTheme: ThemeDefinition = {
     signatureColor: "#1F2937"
   },
   progress: {
-    bar: "h-1.5 bg-gray-800 rounded-full overflow-hidden",
+    bar: "h-2 bg-gray-800 rounded-full overflow-hidden",
     dots: "flex space-x-2 justify-center",
     numbers: "flex space-x-2 justify-center",
     percentage: "text-right text-sm text-gray-600 font-normal mb-2",
@@ -198,7 +198,7 @@ export const colorfulTheme: ThemeDefinition = {
     signatureColor: "#8B5CF6",
   },
   progress: {
-    bar: "h-1.5 bg-purple-100 rounded-full overflow-hidden",
+    bar: "h-2 bg-purple-100 rounded-full overflow-hidden",
     dots: "flex space-x-2",
     numbers: "flex space-x-2",
     percentage: "text-right text-sm text-purple-600 font-medium mb-1",
@@ -271,7 +271,7 @@ export const modernTheme: ThemeDefinition = {
     signatureColor: "#E67E4D",
   },
   progress: {
-    bar: "h-1.5 bg-[#E67E4D] rounded-full overflow-hidden",
+    bar: "h-2 bg-[#E67E4D] rounded-full overflow-hidden",
     dots: "flex space-x-2 justify-center",
     numbers: "flex space-x-2 justify-center",
     percentage: "text-right text-sm text-gray-700 font-medium mb-1",
@@ -344,7 +344,7 @@ export const corporateTheme: ThemeDefinition = {
     signatureColor: "#1D4ED8",
   },
   progress: {
-    bar: "h-1.5 bg-gray-200 overflow-hidden",
+    bar: "h-2 bg-gray-900 overflow-hidden",
     dots: "flex space-x-1",
     numbers: "flex space-x-1",
     percentage: "text-right text-xs text-gray-600 mb-1",
@@ -417,7 +417,7 @@ export const darkTheme: ThemeDefinition = {
     header: "bg-gray-700",
   },
   progress: {
-    bar: "h-1.5 bg-gray-700 rounded-full overflow-hidden",
+    bar: "h-2 bg-gray-700 rounded-full overflow-hidden",
     dots: "flex space-x-2",
     numbers: "flex space-x-2",
     percentage: "text-right text-xs text-gray-400 mb-1",
@@ -490,7 +490,7 @@ export const himsTheme: ThemeDefinition = {
     signatureColor: "#E67E4D",
   },
   progress: {
-    bar: "h-1 bg-[#E67E4D] rounded-full overflow-hidden",
+    bar: "h-2 bg-[#E67E4D] rounded-full overflow-hidden",
     dots: "flex space-x-2 justify-center",
     numbers: "flex space-x-2 justify-center",
     percentage: "text-right text-sm text-gray-600 mb-2",

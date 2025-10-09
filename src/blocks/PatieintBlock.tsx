@@ -2688,7 +2688,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                   <Button
                     onClick={() => setCollectStep(collectStep - 1)}
                     variant="outline"
-                    className="w-full"
+                    className={`${theme?.button.secondary || ""} w-full`}
                     size="lg"
                   >
                     Back
@@ -2700,7 +2700,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                       <Button
                         onClick={() => setCurrentStep('welcome')}
                         variant="outline"
-                        className="w-full"
+                        className={`${theme?.button.secondary || ""} w-full`}
                         size="lg"
                       >
                         Back
