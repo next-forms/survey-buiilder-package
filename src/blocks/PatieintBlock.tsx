@@ -2816,6 +2816,7 @@ export const PatientBlock: BlockDefinition = {
     dateOfBirthLabel: "Date of Birth",
     heightLabel: "Height",
     weightLabel: "Weight",
+    collectAlternateContact: true,
     alternateContactRequired: true,
     fieldMappings: {},
     customHeaders: {},
