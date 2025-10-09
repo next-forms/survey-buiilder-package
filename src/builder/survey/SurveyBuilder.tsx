@@ -7,7 +7,7 @@ import { LocalizationEditor } from "./helpers/LocalizationEditor";
 import { v4 as uuidv4 } from "uuid";
 import { BlockLibrary } from "./panels/BlockLibrary";
 import { JsonEditor } from "./helpers/JsonEditor";
-import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition } from "../../types";
+import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition } from "../../types";
 import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
@@ -25,6 +25,7 @@ interface SurveyBuilderProps {
   blockDefinitions?: BlockDefinition[];
   nodeDefinitions?: NodeDefinition[];
   globalCustomFields?: GlobalCustomField[];
+  customThemes?: Record<string, ThemeDefinition>;
 }
 
 // The main component wrapped with provider
@@ -34,6 +35,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   blockDefinitions = [],
   nodeDefinitions = [],
   globalCustomFields = [],
+  customThemes = {},
 }) => {
   return (
     <SurveyBuilderProvider initialData={initialData}>
@@ -42,6 +44,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
         blockDefinitions={blockDefinitions}
         nodeDefinitions={nodeDefinitions}
         globalCustomFields={globalCustomFields}
+        customThemes={customThemes}
       />
     </SurveyBuilderProvider>
   );
@@ -53,6 +56,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   blockDefinitions = [],
   nodeDefinitions = [],
   globalCustomFields = [],
+  customThemes = {},
 }) => {
   const {
     state,
@@ -181,7 +185,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-scroll">
         <SheetHeader><SheetTitle>Theme Builder</SheetTitle></SheetHeader>
-        <ThemeBuilder onDataChange={onDataChange} />
+        <ThemeBuilder onDataChange={onDataChange} customThemes={customThemes} />
       </SheetContent>
     </Sheet>
 
