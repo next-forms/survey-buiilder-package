@@ -407,7 +407,7 @@ const ColorPicker: React.FC<{
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={`${prefix}-gray-900`}
+          placeholder={`${prefix}-<tailwind-color>`}
           className="flex-1"
         />
       </div>
@@ -496,7 +496,13 @@ const VisualStyleBuilder: React.FC<{
   presetType: keyof typeof FIELD_PRESETS;
 }> = ({ value, onChange, presetType }) => {
   const parsed = parseTailwindClasses(value);
-  
+  const [customClassesInput, setCustomClassesInput] = useState(parsed.custom.join(' '));
+
+  // Update local state when parsed.custom changes from external updates
+  React.useEffect(() => {
+    setCustomClassesInput(parsed.custom.join(' '));
+  }, [value]); // Re-sync when the full value changes
+
   const updateClasses = (updates: Partial<typeof parsed>) => {
     const newParsed = { ...parsed, ...updates };
     
@@ -522,10 +528,10 @@ const VisualStyleBuilder: React.FC<{
     Object.entries(newParsed.margin).forEach(([key, val]) => {
       classes.push(`${key}-${val}`);
     });
-    
-    // Add custom classes
-    classes.push(...newParsed.custom);
-    
+
+    // Add custom classes (filter empty strings to prevent double spaces)
+    classes.push(...newParsed.custom.filter(Boolean));
+
     onChange(classes.join(' '));
   };
 
@@ -716,8 +722,13 @@ const VisualStyleBuilder: React.FC<{
       <div className="space-y-2">
         <Label>Custom Classes</Label>
         <Textarea
-          value={parsed.custom.join(' ')}
-          onChange={(e) => updateClasses({ custom: e.target.value.split(' ').filter(Boolean) })}
+          value={customClassesInput}
+          onChange={(e) => setCustomClassesInput(e.target.value)}
+          onBlur={(e) => {
+            const filtered = e.target.value.split(' ').filter(Boolean);
+            setCustomClassesInput(filtered.join(' '));
+            updateClasses({ custom: filtered });
+          }}
           placeholder="Add any additional Tailwind classes here..."
           rows={2}
         />
