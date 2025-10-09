@@ -1,12 +1,11 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { Input } from "../../../components/ui/input";
 import { Textarea } from "../../../components/ui/textarea";
 import { Label } from "../../../components/ui/label";
-import { ContentBlockPage } from "../blocks/ContentBlockPage";
 import { v4 as uuidv4 } from "uuid";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { NodeData } from "../../../types";
@@ -17,7 +16,10 @@ import {
   ItemHandle as SortableItemHandle,
 } from "../../../components/ui/sortable";
 import { arrayMove } from "@dnd-kit/sortable";
-import { GripVertical } from "lucide-react";interface SectionNodeProps {
+import { GripVertical } from "lucide-react";
+
+// Lazy load ContentBlockPage - only used in tabs
+const ContentBlockPage = lazy(() => import("../blocks/ContentBlockPage").then(m => ({ default: m.ContentBlockPage })));interface SectionNodeProps {
   data: NodeData;
   onUpdate: (data: NodeData) => void;
   onRemove: () => void;
@@ -120,31 +122,33 @@ import { GripVertical } from "lucide-react";interface SectionNodeProps {
               <TabsTrigger value="children">Child Nodes</TabsTrigger>
             </TabsList>            <TabsContent value="pages">
               <div className="space-y-4">
-                <Sortable<NodeData>
-                  value={data.items || []}
-                  onMove={({ activeIndex, overIndex }) =>
-                    handlePageMove(activeIndex, overIndex)
-                  }
-                  getItemValue={(item) => item.uuid as string}
-                >
-                  <SortableContent className="space-y-4">
-                    {(data.items || []).map((page, index) => (
-                      <SortableItem key={page.uuid || index} value={page.uuid as string}>
-                        <div className="relative">
-                          <SortableItemHandle className="absolute -left-5 top-2 cursor-grab text-muted-foreground">
-                            <GripVertical className="h-4 w-4" />
-                          </SortableItemHandle>
-                          <ContentBlockPage
-                            key={page.uuid || index}
-                            data={page}
-                            onUpdate={(updatedPage) => handleUpdatePage(index, updatedPage)}
-                            onRemove={() => handleRemovePage(index)}
-                          />
-                        </div>
-                      </SortableItem>
-                    ))}
-                  </SortableContent>
-                </Sortable>                
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading pages...</div>}>
+                  <Sortable<NodeData>
+                    value={data.items || []}
+                    onMove={({ activeIndex, overIndex }) =>
+                      handlePageMove(activeIndex, overIndex)
+                    }
+                    getItemValue={(item) => item.uuid as string}
+                  >
+                    <SortableContent className="space-y-4">
+                      {(data.items || []).map((page, index) => (
+                        <SortableItem key={page.uuid || index} value={page.uuid as string}>
+                          <div className="relative">
+                            <SortableItemHandle className="absolute -left-5 top-2 cursor-grab text-muted-foreground">
+                              <GripVertical className="h-4 w-4" />
+                            </SortableItemHandle>
+                            <ContentBlockPage
+                              key={page.uuid || index}
+                              data={page}
+                              onUpdate={(updatedPage) => handleUpdatePage(index, updatedPage)}
+                              onRemove={() => handleRemovePage(index)}
+                            />
+                          </div>
+                        </SortableItem>
+                      ))}
+                    </SortableContent>
+                  </Sortable>
+                </Suspense>
                 <Button type="button" onClick={handleAddPage}>Add Page</Button>
               </div>
             </TabsContent>

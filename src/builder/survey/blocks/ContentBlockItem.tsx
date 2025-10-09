@@ -1,13 +1,15 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "../../../components/ui/card";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { BlockData } from "../../../types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
 import {CommonBlockRules} from "../../common/CommonBlockRules";
-import { NavigationRulesEditor } from "../../common/NavigationRulesEditor";
-import { ValidationRulesEditor } from "../../common/ValidationRulesEditor";
+
+// Lazy load heavy rule editors - they're only used when dialog is open
+const NavigationRulesEditor = lazy(() => import("../../common/NavigationRulesEditor").then(m => ({ default: m.NavigationRulesEditor })));
+const ValidationRulesEditor = lazy(() => import("../../common/ValidationRulesEditor").then(m => ({ default: m.ValidationRulesEditor })));
 
 interface ContentBlockItemProps {
   data: BlockData;
@@ -81,8 +83,10 @@ export const ContentBlockItem: React.FC<ContentBlockItemProps> = ({
                     onRemove();
                   },
                 })}
-                <NavigationRulesEditor data={data} onUpdate={onUpdate} />
-                <ValidationRulesEditor data={data} onUpdate={onUpdate} />
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading editors...</div>}>
+                  <NavigationRulesEditor data={data} onUpdate={onUpdate} />
+                  <ValidationRulesEditor data={data} onUpdate={onUpdate} />
+                </Suspense>
               </div>
             </DialogContent>
           </Dialog>

@@ -1,9 +1,11 @@
 // src/lib/survey/nodes/SectionNodeDefinition.tsx
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import type { NodeDefinition } from "../../types";
 import { LayoutGrid } from 'lucide-react';
 import { v4 as uuidv4 } from "uuid";
-import { SectionNode } from "../../builder/survey/nodes/SectionNode";
+
+// Lazy load the heavy SectionNode component
+const SectionNode = lazy(() => import("../../builder/survey/nodes/SectionNode").then(m => ({ default: m.SectionNode })));
 
 export const SectionNodeDefinition: NodeDefinition = {
   type: "section",
@@ -29,5 +31,9 @@ export const SectionNodeDefinition: NodeDefinition = {
     backLogic: "",
   },
   // GOOD: returns JSX, so React treats it as its own component
-  renderNode: (props) => <SectionNode {...props} />,
+  renderNode: (props) => (
+    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading section...</div>}>
+      <SectionNode {...props} />
+    </Suspense>
+  ),
 };
