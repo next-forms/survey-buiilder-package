@@ -913,10 +913,11 @@ const ResizeHandle: React.FC = () => {
 
 // Define the props
 interface ThemeBuilderProps {
-  onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap }) => void;
+  onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap; theme?: ThemeDefinition }) => void;
+  customThemes?: Record<string, ThemeDefinition>;
 }
 
-export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
+export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customThemes = {}}) => {
   const { state, updateTheme, exportSurvey } = useSurveyBuilder();
   const [currentTheme, setCurrentTheme] = useState<ThemeDefinition>(state.theme);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -1295,38 +1296,91 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange}) => {
                     Select a professional theme as your starting point
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {Object.entries(themes)
-                      .filter(([_, preset]) => preset !== undefined)
-                      .map(([key, preset]) => (
-                        <button
-                          key={key}
-                          onClick={() => handlePresetChange(key as SurveyTheme)}
-                          className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                            selectedPreset === key 
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                              : 'border-border hover:border-muted-foreground'                        
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-start capitalize text-foreground">{preset.name}</div>
-                          <div className="mt-2 flex gap-1">
-                            <div 
-                              className="w-3 h-3 rounded-full border"
-                              style={{ backgroundColor: preset.colors.primary }}
-                            />
-                            <div 
-                              className="w-3 h-3 rounded-full border"
-                              style={{ backgroundColor: preset.colors.secondary }}
-                            />
-                            <div 
-                              className="w-3 h-3 rounded-full border"
-                              style={{ backgroundColor: preset.colors.accent }}
-                            />
-                          </div>
-                        </button>
-                      ))}
+                <CardContent className="space-y-6">
+                  {/* Default Themes */}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Default Themes</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                      {Object.entries(themes)
+                        .filter(([_, preset]) => preset !== undefined)
+                        .map(([key, preset]) => (
+                          <button
+                            key={key}
+                            onClick={() => handlePresetChange(key as SurveyTheme)}
+                            className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                              selectedPreset === key
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                : 'border-border hover:border-muted-foreground'
+                            }`}
+                          >
+                            <div className="text-sm font-medium text-start capitalize text-foreground">{preset.name}</div>
+                            <div className="mt-2 flex gap-1">
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.primary }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.secondary }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.accent }}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                    </div>
                   </div>
+
+                  {/* Custom Themes */}
+                  {Object.keys(customThemes).length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block flex items-center gap-2">
+                        <Brush className="w-4 h-4" />
+                        Saved Custom Themes
+                      </Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {Object.entries(customThemes).map(([key, preset]) => (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              setSelectedPreset('custom' as SurveyTheme);
+                              setCurrentTheme(preset);
+                              updateTheme(preset);
+                            }}
+                            className={`p-4 rounded-lg border-2 transition-all hover:scale-105 relative ${
+                              currentTheme === preset
+                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-950'
+                                : 'border-border hover:border-muted-foreground'
+                            }`}
+                          >
+                            <Badge
+                              variant="secondary"
+                              className="absolute -top-2 -right-2 text-xs bg-purple-600 text-white hover:bg-purple-600"
+                            >
+                              Custom
+                            </Badge>
+                            <div className="text-sm font-medium text-start text-foreground truncate">{key}</div>
+                            <div className="mt-2 flex gap-1">
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.primary }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.secondary }}
+                              />
+                              <div
+                                className="w-3 h-3 rounded-full border"
+                                style={{ backgroundColor: preset.colors.accent }}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
