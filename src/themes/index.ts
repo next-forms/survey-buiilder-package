@@ -60,7 +60,7 @@ export const defaultTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors",
-    secondary: "inline-flex justify-center py-2 px-4 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors",
+    secondary: "inline-flex justify-center py-2 px-4 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors",
     text: "text-sm font-medium text-blue-600 hover:text-blue-700",
     navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors",
   },
@@ -133,7 +133,7 @@ export const minimalTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-2.5 px-5 text-base font-normal rounded-md text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors duration-200 shadow-sm",
-    secondary: "inline-flex justify-center py-2.5 px-5 border border-gray-200 text-base font-normal rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors shadow-sm",
+    secondary: "inline-flex justify-center py-2.5 px-5 border border-gray-200 text-base font-normal rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors shadow-sm",
     text: "text-base font-normal text-gray-700 hover:text-gray-900 transition-colors",
     navigation: "inline-flex items-center px-5 py-2.5 text-base font-normal rounded-md text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors duration-200 shadow-sm"
   },
@@ -206,7 +206,7 @@ export const colorfulTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-2 px-5 text-sm font-medium rounded-full text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-500 transition-all",
-    secondary: "inline-flex justify-center py-2 px-5 border border-purple-200 text-sm font-medium rounded-full text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-500 transition-all",
+    secondary: "inline-flex justify-center py-2 px-5 border border-purple-200 text-sm font-medium rounded-full text-purple-700 bg-white hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-500 transition-all",
     text: "text-sm font-medium text-purple-600 hover:text-purple-800",
     navigation: "inline-flex items-center px-5 py-2 text-sm font-medium rounded-full text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-500 transition-all",
   },
@@ -279,7 +279,7 @@ export const modernTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-3 px-8 text-sm font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-900 transition-all",
-    secondary: "inline-flex justify-center py-2.5 px-6 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#E67E4D] transition-all",
+    secondary: "inline-flex justify-center py-2.5 px-6 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#E67E4D] transition-all",
     text: "text-sm font-medium text-[#E67E4D] hover:text-[#D86B3C]",
     navigation: "inline-flex items-center px-6 py-3 text-sm font-medium rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-900 transition-all",
   },
@@ -352,7 +352,7 @@ export const corporateTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-2 px-4 text-sm font-medium rounded-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-700 transition-colors",
-    secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-700 transition-colors",
+    secondary: "inline-flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-sm text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-700 transition-colors",
     text: "text-sm font-medium text-blue-700 hover:text-blue-800",
     navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-700 transition-colors",
   },
@@ -425,7 +425,7 @@ export const darkTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-2 px-4 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors",
-    secondary: "inline-flex justify-center py-2 px-4 border border-gray-600 text-sm font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-800 focus:ring-gray-500 transition-colors",
+    secondary: "inline-flex justify-center py-2 px-4 border border-gray-600 text-sm font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-800 focus:ring-gray-500 transition-colors",
     text: "text-sm font-medium text-blue-400 hover:text-blue-300",
     navigation: "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors",
   },
@@ -498,7 +498,7 @@ export const himsTheme: ThemeDefinition = {
   },
   button: {
     primary: "inline-flex justify-center py-3 px-8 text-base font-medium rounded-full text-white bg-[#E67E4D] hover:bg-[#D86B3C] focus:outline-none focus:ring-0 transition-colors",
-    secondary: "inline-flex justify-center py-3 px-8 border border-gray-300 text-base font-medium rounded-full text-gray-900 bg-white hover:bg-gray-50 hover:border-[#E67E4D]/50 focus:outline-none focus:ring-0 transition-colors",
+    secondary: "inline-flex justify-center py-3 px-8 border border-gray-300 text-base font-medium rounded-full text-gray-900 bg-white hover:bg-gray-50 hover:text-gray-900 hover:border-[#E67E4D]/50 focus:outline-none focus:ring-0 transition-colors",
     text: "text-base font-medium text-[#E67E4D] hover:text-[#D86B3C]",
     navigation: "inline-flex items-center px-8 py-3 text-base font-medium rounded-full text-white bg-[#E67E4D] hover:bg-[#D86B3C] focus:outline-none focus:ring-0 transition-colors"
   },
@@ -571,7 +571,7 @@ export const uniloop: ThemeDefinition = {
   },
   "button": {
     "primary": "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm",
-    "secondary": "inline-flex justify-center py-3 px-6 border border-slate-200 text-base font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-sm",
+    "secondary": "inline-flex justify-center py-3 px-6 border border-slate-200 text-base font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-sm",
     "text": "text-base font-medium text-emerald-700 hover:text-emerald-800",
     "navigation": "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm"
   },
