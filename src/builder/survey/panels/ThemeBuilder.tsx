@@ -921,9 +921,10 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
   const { state, updateTheme, exportSurvey } = useSurveyBuilder();
   const [currentTheme, setCurrentTheme] = useState<ThemeDefinition>(state.theme);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<SurveyTheme>(state.theme.name);
+  const [selectedPreset, setSelectedPreset] = useState<string>(state.theme.name as string);
   const [showPreview, setShowPreview] = useState(true);
   const [editMode, setEditMode] = useState<'visual' | 'code'>('visual');
+
   
   // Step-based navigation state
   const [currentStep, setCurrentStep] = useState<ThemeStep>(state.theme.name === 'custom' ? 'basics' : 'selection');
@@ -1052,8 +1053,8 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
 
   // Reset to preset
   const handleResetToPreset = () => {
-    if (selectedPreset !== "custom") {
-      handlePresetChange(selectedPreset);
+    if (selectedPreset !== "custom" && selectedPreset in themes) {
+      handlePresetChange(selectedPreset as SurveyTheme);
     }
   };
 
@@ -1345,12 +1346,13 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                           <button
                             key={key}
                             onClick={() => {
-                              setSelectedPreset('custom' as SurveyTheme);
-                              setCurrentTheme(preset);
-                              updateTheme(preset);
+                              setSelectedPreset(key);
+                              const themeWithName = { ...preset, name: key as any };
+                              setCurrentTheme(themeWithName);
+                              updateTheme(themeWithName);
                             }}
                             className={`p-4 rounded-lg border-2 transition-all hover:scale-105 relative ${
-                              currentTheme === preset
+                              selectedPreset === key
                                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-950'
                                 : 'border-border hover:border-muted-foreground'
                             }`}
