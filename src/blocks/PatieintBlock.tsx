@@ -1599,6 +1599,24 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     return requestBody;
   };
 
+  // Phone number formatter function
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    const limitedDigits = digits.slice(0, 10);
+    
+    if (limitedDigits.length <= 3) {
+      return limitedDigits;
+    } else if (limitedDigits.length <= 6) {
+      return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3)}`;
+    } else {
+      return `(${limitedDigits.slice(0, 3)}) ${limitedDigits.slice(3, 6)}-${limitedDigits.slice(6)}`;
+    }
+  };
+
+  const getRawPhoneDigits = (formattedPhone: string) => {
+    return formattedPhone.replace(/\D/g, '');
+  };
+
   const handleSendOtp = async () => {
     setLoading(true);
     setError(null);
@@ -1606,7 +1624,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     try {
       const body = authField === 'email'
         ? { email: formData.email }
-        : { phone: formData.phone };
+        : { phone: getRawPhoneDigits(formData.phone) };
 
       const headers = buildRequestHeaders();
       const requestBody = buildRequestBody(body);
@@ -1808,7 +1826,7 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
     if (authField === 'email') {
       return formData.email.includes('@') && formData.email.length > 3;
     } else {
-      return formData.phone.replace(/\D/g, '').length === 10;
+      return getRawPhoneDigits(formData.phone).length === 10;
     }
   };
 
@@ -1949,8 +1967,11 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
                 <Input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="(888) 888-8888"
+                  onChange={(e) => {
+                    const formatted = formatPhoneNumber(e.target.value);
+                    setFormData(prev => ({ ...prev, phone: formatted }));
+                  }}
+                  placeholder="(555) 555-5555"
                   className={theme?.field.input || "text-lg h-12"}
                   autoFocus
                 />
@@ -2354,8 +2375,11 @@ const PatientRenderer: React.FC<BlockRendererProps> = ({ block }) => {
               <Input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }))}
-                placeholder="8888888888"
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  setFormData(prev => ({ ...prev, phone: formatted }));
+                }}
+                placeholder="(555) 555-5555"
                 className={theme?.field.input || "text-lg h-12"}
                 maxLength={10}
                 autoFocus
