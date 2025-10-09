@@ -63,116 +63,116 @@
 /* Tailwind Class Overrides within Survey Scope */
 .survey-isolated-content .bg-background,
 .survey-isolated-content .bg-white {
-  background-color: var(--survey-bg) !important;
+  background-color: var(--survey-bg);
 }
 
 .survey-isolated-content .bg-card,
 .survey-isolated-content .bg-popover {
-  background-color: var(--survey-surface) !important;
+  background-color: var(--survey-surface);
 }
 
 .survey-isolated-content .bg-muted,
 .survey-isolated-content .bg-secondary,
 .survey-isolated-content .bg-accent {
-  background-color: var(--survey-input) !important;
+  background-color: var(--survey-input);
 }
 
 .survey-isolated-content .text-foreground,
 .survey-isolated-content .text-card-foreground,
 .survey-isolated-content .text-popover-foreground {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 
 .survey-isolated-content .text-muted-foreground,
 .survey-isolated-content .text-secondary-foreground,
 .survey-isolated-content .text-accent-foreground {
-  color: var(--survey-text-muted) !important;
+  color: var(--survey-text-muted);
 }
 
 .survey-isolated-content .border,
 .survey-isolated-content .border-border,
 .survey-isolated-content .border-input {
-  border-color: var(--survey-border) !important;
+  border-color: var(--survey-border);
 }
 
 /* Form Elements */
 .survey-isolated-content input,
 .survey-isolated-content textarea,
 .survey-isolated-content select {
-  background-color: var(--survey-surface) !important;
-  color: var(--survey-text) !important;
-  border-color: var(--survey-border) !important;
+  background-color: var(--survey-surface);
+  color: var(--survey-text);
+  border-color: var(--survey-border);
 }
 
 .survey-isolated-content input:focus,
 .survey-isolated-content textarea:focus,
 .survey-isolated-content select:focus {
-  border-color: var(--survey-primary) !important;
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent) !important;
-  outline: none !important;
+  border-color: var(--survey-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent);
+  outline: none;
 }
 
 .survey-isolated-content input::placeholder,
 .survey-isolated-content textarea::placeholder {
-  color: var(--survey-text-muted) !important;
+  color: var(--survey-text-muted);
 }
 
 /* Button Styling with Theme Colors */
 .survey-isolated-content .bg-primary:not(button):not([data-slot="button"]) {
-  background-color: var(--survey-primary) !important;
+  background-color: var(--survey-primary);
 }
 
 .survey-isolated-content button[class*="primary"],
 .survey-isolated-content .btn-primary {
-  background-color: var(--survey-primary) !important;
-  border-color: var(--survey-primary) !important;
+  background-color: var(--survey-primary);
+  border-color: var(--survey-primary);
   /* Don't force color on buttons - let theme classes handle it */
 }
 
 .survey-isolated-content .bg-secondary,
 .survey-isolated-content button[class*="secondary"],
 .survey-isolated-content .btn-secondary {
-  background-color: var(--survey-secondary) !important;
-  border-color: var(--survey-secondary) !important;
+  background-color: var(--survey-secondary);
+  border-color: var(--survey-secondary);
 }
 
 .survey-isolated-content button[variant="outline"],
 .survey-isolated-content .btn-outline {
-  background-color: transparent !important;
-  border-color: var(--survey-border) !important;
-  color: var(--survey-text) !important;
+  background-color: transparent;
+  border-color: var(--survey-border);
+  color: var(--survey-text);
 }
 
 .survey-isolated-content button[variant="outline"]:hover,
 .survey-isolated-content .btn-outline:hover {
-  background-color: var(--survey-input) !important;
+  background-color: var(--survey-input);
 }
 
 .survey-isolated-content button[variant="ghost"],
 .survey-isolated-content .btn-ghost {
-  background-color: transparent !important;
-  color: var(--survey-text) !important;
+  background-color: transparent;
+  color: var(--survey-text);
 }
 
 .survey-isolated-content button[variant="ghost"]:hover,
 .survey-isolated-content .btn-ghost:hover {
-  background-color: var(--survey-input) !important;
+  background-color: var(--survey-input);
 }
 
 /* Card and Surface Elements */
 .survey-isolated-content .card,
 .survey-isolated-content [data-card],
 .survey-isolated-content .gumroad-card {
-  background-color: var(--survey-surface) !important;
-  border-color: var(--survey-border) !important;
-  color: var(--survey-text) !important;
-  box-shadow: var(--survey-shadow) !important;
+  background-color: var(--survey-surface);
+  border-color: var(--survey-border);
+  color: var(--survey-text);
+  box-shadow: var(--survey-shadow);
 }
 
 .survey-isolated-content .card:hover,
 .survey-isolated-content [data-card]:hover,
 .survey-isolated-content .gumroad-card:hover {
-  box-shadow: var(--survey-shadow-lg) !important;
+  box-shadow: var(--survey-shadow-lg);
 }
 
 /* Typography Elements */
@@ -182,7 +182,7 @@
 .survey-isolated-content h4,
 .survey-isolated-content h5,
 .survey-isolated-content h6 {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 
 /* Commenting out aggressive text color overrides that affect buttons
@@ -190,7 +190,7 @@
 .survey-isolated-content span:not(button span):not([data-slot="button"] span),
 .survey-isolated-content div:not(button):not([data-slot="button"]),
 .survey-isolated-content label {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 */
 
@@ -202,18 +202,18 @@
 .survey-isolated-content :not(button):not([data-slot="button"]).text-gray-900,
 .survey-isolated-content :not(button):not([data-slot="button"]).text-gray-800,
 .survey-isolated-content :not(button):not([data-slot="button"]).text-gray-700 {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 
 /* Preserve button text colors with explicit values */
 .survey-isolated-content button.text-white,
 .survey-isolated-content [data-slot="button"].text-white {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .survey-isolated-content button.text-black,
 .survey-isolated-content [data-slot="button"].text-black {
-  color: #000000 !important;
+  color: #000000;
 }
 
 /* Don't override inline styles or custom color classes on buttons */
@@ -225,108 +225,108 @@
 /* Form Controls */
 .survey-isolated-content input[type="checkbox"],
 .survey-isolated-content input[type="radio"] {
-  accent-color: var(--survey-primary) !important;
+  accent-color: var(--survey-primary);
 }
 
 /* Progress Indicators */
 .survey-isolated-content .bg-primary,
 .survey-isolated-content [class*="progress-bar"] {
-  background-color: var(--survey-primary) !important;
+  background-color: var(--survey-primary);
 }
 
 .survey-isolated-content [class*="progress-track"] {
-  background-color: var(--survey-border) !important;
+  background-color: var(--survey-border);
 }
 
 /* Selectable Boxes */
 .survey-isolated-content .selectable-box {
-  background-color: var(--survey-surface) !important;
-  border-color: var(--survey-border) !important;
-  color: var(--survey-text) !important;
+  background-color: var(--survey-surface);
+  border-color: var(--survey-border);
+  color: var(--survey-text);
   transition: all 0.2s ease;
 }
 
 .survey-isolated-content .selectable-box:hover {
-  border-color: var(--survey-primary) !important;
-  box-shadow: var(--survey-shadow) !important;
+  border-color: var(--survey-primary);
+  box-shadow: var(--survey-shadow);
   transform: translateY(-1px);
 }
 
 .survey-isolated-content .selectable-box.selected {
-  border-color: var(--survey-primary) !important;
-  background-color: var(--survey-primary) !important;
-  color: white !important;
+  border-color: var(--survey-primary);
+  background-color: var(--survey-primary);
+  color: white;
 }
 
 .survey-isolated-content .selectable-box.selected * {
-  color: white !important;
+  color: white;
 }
 
 /* State Colors */
 .survey-isolated-content .text-destructive,
 .survey-isolated-content .error {
-  color: var(--survey-error) !important;
+  color: var(--survey-error);
 }
 
 .survey-isolated-content .border-destructive {
-  border-color: var(--survey-error) !important;
+  border-color: var(--survey-error);
 }
 
 .survey-isolated-content .text-green-600,
 .survey-isolated-content .success {
-  color: var(--survey-success) !important;
+  color: var(--survey-success);
 }
 
 .survey-isolated-content .border-green-600 {
-  border-color: var(--survey-success) !important;
+  border-color: var(--survey-success);
 }
 
 /* Dropdown and Popover Menus */
 .survey-isolated-content .bg-popover,
 .survey-isolated-content [role="menu"],
 .survey-isolated-content [role="listbox"] {
-  background-color: var(--survey-surface) !important;
-  border-color: var(--survey-border) !important;
-  box-shadow: var(--survey-shadow-lg) !important;
+  background-color: var(--survey-surface);
+  border-color: var(--survey-border);
+  box-shadow: var(--survey-shadow-lg);
 }
 
 .survey-isolated-content [role="menuitem"],
 .survey-isolated-content [role="option"] {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 
 .survey-isolated-content [role="menuitem"]:hover,
 .survey-isolated-content [role="option"]:hover {
-  background-color: var(--survey-input) !important;
+  background-color: var(--survey-input);
 }
 
 /* Tab Controls */
 .survey-isolated-content [role="tablist"] {
-  border-color: var(--survey-border) !important;
+  border-color: var(--survey-border);
 }
 
 .survey-isolated-content [role="tab"] {
-  color: var(--survey-text-muted) !important;
-  border-color: transparent !important;
+  color: var(--survey-text-muted);
+  border-color: transparent;
 }
 
 .survey-isolated-content [role="tab"][aria-selected="true"] {
-  color: var(--survey-text) !important;
-  border-color: var(--survey-primary) !important;
+  color: var(--survey-text);
+  border-color: var(--survey-primary);
 }
 
 /* Focus States */
 .survey-isolated-content *:focus-visible {
-  outline: 2px solid var(--survey-ring) !important;
+  outline: 2px solid var(--survey-ring);
   outline-offset: 2px;
 }
 
 .survey-isolated-content input:focus-visible,
 .survey-isolated-content textarea:focus-visible,
 .survey-isolated-content select:focus-visible {
-  outline: none !important;
-  border-color: var(--survey-primary) !important;
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent) !important;
+  outline: none;
+  border-color: var(--survey-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--survey-primary) 20%, transparent);
 }
 
 /* Scrollbar Styling */
@@ -350,17 +350,17 @@
 
 /* Shadow Utilities for Survey Scope */
 .survey-isolated-content .shadow-sm {
-  box-shadow: var(--survey-shadow) !important;
+  box-shadow: var(--survey-shadow);
 }
 
 .survey-isolated-content .shadow,
 .survey-isolated-content .shadow-md {
-  box-shadow: var(--survey-shadow) !important;
+  box-shadow: var(--survey-shadow);
 }
 
 .survey-isolated-content .shadow-lg,
 .survey-isolated-content .shadow-xl {
-  box-shadow: var(--survey-shadow-lg) !important;
+  box-shadow: var(--survey-shadow-lg);
 }
 
 /* Empty State Styling */
@@ -393,7 +393,7 @@
 .survey-isolated-content .bg-soft-gradient {
   background: linear-gradient(135deg, 
     var(--survey-bg) 0%, 
-    var(--survey-surface) 100%) !important;
+    var(--survey-surface) 100%);
 }
 
 /* Ensure proper contrast for all text elements except buttons - commented out to fix button text colors
@@ -404,13 +404,13 @@
 
 /* Override any conflicting Tailwind utilities - but not for buttons */
 .survey-isolated-content :not(button):not([data-slot="button"]).text-current {
-  color: var(--survey-text) !important;
+  color: var(--survey-text);
 }
 
 .survey-isolated-content .bg-current {
-  background-color: var(--survey-surface) !important;
+  background-color: var(--survey-surface);
 }
 
 .survey-isolated-content .border-current {
-  border-color: var(--survey-border) !important;
+  border-color: var(--survey-border);
 }

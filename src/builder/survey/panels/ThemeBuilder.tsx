@@ -15,13 +15,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/
 import { 
   ClipboardCopy, Palette, Type, Layout, MousePointer, BarChart3, Package, 
   RefreshCw, Download, Upload, Plus, X, Info, Eye, EyeOff, Sparkles,
-  Square, Sliders, Paintbrush, Grid3X3, CheckSquare,
+  Sliders, Paintbrush, Grid3X3, CheckSquare,
   ArrowLeft, ArrowRight, Settings, Brush, Wrench, Check, ChevronRight, Zap,
   PenLine
 } from "lucide-react";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
-import { ThemeDefinition, SurveyTheme, SurveyBuilderState, NodeData, LocalizationMap } from "../../../types";
-import { SurveyForm } from "../../../renderer/SurveyForm";
+import { ThemeDefinition, SurveyTheme, NodeData, LocalizationMap } from "../../../types";
 import { themes } from "../../../themes";
 import ThemePreview from "./ThemePreview";
 
@@ -150,6 +149,8 @@ const parseTailwindClasses = (classString: string) => {
     borderRadius: '',
     borderWidth: '',
     borderColor: '',
+    hoverTextColor: '',
+    hoverBackgoundColor: '',
     shadow: '',
     padding: {},
     margin: {},
@@ -176,6 +177,14 @@ const parseTailwindClasses = (classString: string) => {
     // Background color
     else if (cls.startsWith('bg-')) {
       parsed.bgColor = cls;
+    }
+    // Hover Text color
+    else if (cls.startsWith('hover:text-')) {
+      parsed.hoverTextColor = cls;
+    }
+    // Hover Background color
+    else if (cls.startsWith('hover:bg-')) {
+      parsed.hoverBackgoundColor = cls;
     }
     // Border radius
     else if (cls.startsWith('rounded')) {
@@ -503,6 +512,8 @@ const VisualStyleBuilder: React.FC<{
     if (newParsed.borderWidth) classes.push(newParsed.borderWidth);
     if (newParsed.borderColor) classes.push(newParsed.borderColor);
     if (newParsed.shadow) classes.push(newParsed.shadow);
+    if (newParsed.hoverTextColor) classes.push(newParsed.hoverTextColor);
+    if (newParsed.hoverBackgoundColor) classes.push(newParsed.hoverBackgoundColor);
     
     // Add spacing classes
     Object.entries(newParsed.padding).forEach(([key, val]) => {
@@ -623,18 +634,16 @@ const VisualStyleBuilder: React.FC<{
             </SelectContent>
           </Select>
 
-          {parsed.borderWidth && (
-            <Select value={parsed.borderWidth} onValueChange={(val) => updateClasses({ borderWidth: val })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Border Width" />
-              </SelectTrigger>
-              <SelectContent>
-                {PRESET_OPTIONS.borderWidth.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={parsed.borderWidth} onValueChange={(val) => updateClasses({ borderWidth: val })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Border Width" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRESET_OPTIONS.borderWidth.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -652,14 +661,24 @@ const VisualStyleBuilder: React.FC<{
           label="Background Color"
           prefix="bg"
         />
-        {parsed.borderWidth && (
-          <ColorPicker 
+        <ColorPicker 
             value={parsed.borderColor} 
             onChange={(val) => updateClasses({ borderColor: val })}
             label="Border Color"
             prefix="border"
-          />
-        )}
+        />
+        <ColorPicker 
+          value={parsed.hoverTextColor} 
+          onChange={(val) => updateClasses({ hoverTextColor: val })}
+          label="Hover Text Color"
+          prefix="hover:text"
+        />
+        <ColorPicker 
+          value={parsed.hoverBackgoundColor} 
+          onChange={(val) => updateClasses({ hoverBackgoundColor: val })}
+          label="Hover Background Color"
+          prefix="hover:bg"
+        />
       </div>
 
       {/* Advanced spacing */}
@@ -854,62 +873,6 @@ const ResizeHandle: React.FC = () => {
     </div>
   );
 };
-
-// // Preview Component with Resizable functionality
-// const ThemePreview: React.FC<{ theme: ThemeDefinition; state: SurveyBuilderState }> = ({ theme, state }) => {
-//   const [previewWidth, setPreviewWidth] = useState(400);
-//   const [previewScale, setPreviewScale] = useState(1);
-
-//   // Predefined viewport sizes
-//   const viewportPresets = [
-//     { name: "Mobile", width: 375, icon: "📱" },
-//     { name: "Tablet", width: 768, icon: "📱" },
-//     { name: "Desktop", width: 1024, icon: "💻" },
-//     { name: "Large", width: 1440, icon: "🖥️" },
-//   ];
-
-//   const handlePresetSelect = (width: number) => {
-//     setPreviewWidth(width);
-//   };
-
-//   const handleScaleChange = (newScale: number[]) => {
-//     setPreviewScale(newScale[0]);
-//   };
-
-//   return (
-//     <Card className="h-full">
-//       <CardHeader>
-//         <div className="flex items-center justify-between">
-//           <div>
-//             <CardTitle className="text-lg">Live Preview</CardTitle>
-//           </div>
-//         </div>        
-//       </CardHeader>
-
-//       <CardContent className="p-0 relative">
-//       {state.rootNode ? (
-//               <SurveyForm
-//                 survey={state}
-//                 layout="fullpage"
-//                 enableDebug={false}
-//                 progressBar={{
-//                   type: 'percentage',
-//                   showPercentage: true,
-//                   showStepInfo: true,
-//                   position: 'top',
-//                 }}
-//               />
-//             ) : (
-//               <div className="p-8 text-center text-gray-500">
-//                 <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-//                 <p>Add some blocks to see survey in action</p>
-//               </div>
-//             )}
-
-//       </CardContent>
-//     </Card>
-//   );
-// };
 
 // Define the props
 interface ThemeBuilderProps {
