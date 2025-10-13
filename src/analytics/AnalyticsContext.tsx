@@ -140,9 +140,9 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
     if (!enabled || !isInitialized) return;
 
     // Call custom event handler if provided
-    if (config.onEvent) {
+    if (config.trackEvent) {
       try {
-        config.onEvent(event);
+        config.trackEvent(event);
         if (debug) {
           console.log('[Analytics:CustomHandler] Event sent to custom handler:', event);
         }
@@ -167,6 +167,18 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
   const trackPageView = useCallback((url: string, title?: string, additionalData?: Record<string, any>) => {
     if (!enabled || !isInitialized) return;
 
+    // Call custom event handler if provided
+    if (config.trackPageView) {
+      try {
+        config.trackPageView(url, title, additionalData);
+        if (debug) {
+          console.log('[Analytics:CustomHandler] Page View sent to custom handler:', event);
+        }
+      } catch (error) {
+        console.error('[Analytics:CustomHandler] Failed to call custom page view handler:', error);
+      }
+    }
+
     providers.forEach(provider => {
       try {
         provider.trackPageView(url, title, additionalData);
@@ -183,6 +195,18 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
   const trackTiming = useCallback((category: string, variable: string, value: number, label?: string) => {
     if (!enabled || !isInitialized) return;
 
+    // Call custom event handler if provided
+    if (config.trackTiming) {
+      try {
+        config.trackTiming(category, variable, value, label);
+        if (debug) {
+          console.log('[Analytics:CustomHandler] Time Tracked sent to custom handler:', { category, variable, value, label });
+        }
+      } catch (error) {
+        console.error('[Analytics:CustomHandler] Failed to call custom time tracker handler:', error);
+      }
+    }
+
     providers.forEach(provider => {
       try {
         provider.trackTiming(category, variable, value, label);
@@ -198,6 +222,18 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
   // Set user properties across all providers
   const setUserProperties = useCallback((properties: Record<string, any>) => {
     if (!enabled || !isInitialized) return;
+
+    // Call custom event handler if provided
+    if (config.setUserProperties) {
+      try {
+        config.setUserProperties(properties);
+        if (debug) {
+          console.log('[Analytics:CustomHandler] User Properties sent to custom handler:', { properties });
+        }
+      } catch (error) {
+        console.error('[Analytics:CustomHandler] Failed to call custom user properties handler:', error);
+      }
+    }
 
     providers.forEach(provider => {
       try {

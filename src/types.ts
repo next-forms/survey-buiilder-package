@@ -235,7 +235,10 @@ export interface SurveyFormRendererProps {
       testEventCode?: string;
       debug?: boolean;
     };
-    onEvent?: (event: any) => void;
+    trackEvent?: (event: any) => void;
+    trackPageView?: (url: string, title?: string, additionalData?: Record<string, any>) => void;
+    trackTiming?: (category: string, variable: string, value: number, label?: string) => void;
+    setUserProperties?: (properties: Record<string, any>) => void;
     trackFieldInteractions?: boolean;
     trackValidationErrors?: boolean;
     trackTimings?: boolean;

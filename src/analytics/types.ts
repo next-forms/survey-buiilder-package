@@ -26,7 +26,11 @@ export interface AnalyticsConfig {
     debug?: boolean;
   };
   // Custom event handler function
-  onEvent?: (event: SurveyAnalyticsEvent) => void;
+  trackEvent?: (event: any) => void;
+  trackPageView?: (url: string, title?: string, additionalData?: Record<string, any>) => void;
+  trackTiming?: (category: string, variable: string, value: number, label?: string) => void;
+  setUserProperties?: (properties: Record<string, any>) => void;
+
   // Custom analytics provider
   custom?: {
     name: string;

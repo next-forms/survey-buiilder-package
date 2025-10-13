@@ -174,7 +174,7 @@ export function DynamicUserIdSurveyExample() {
           },
 
           // Custom event handler - send all events to your backend
-          onEvent: (event) => {
+          trackEvent: (event) => {
             fetch('/api/analytics/track', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

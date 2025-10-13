@@ -107,7 +107,7 @@ import { SurveyForm } from '@your-package/survey-form';
     enabled: true,
     sessionId: 'unique-session-id-123',
     userId: 'user-123',
-    onEvent: (event) => {
+    trackEvent: (event) => {
       // Receive all analytics events in your custom handler
       console.log('Survey event:', event);
       // Send to your own analytics service
@@ -115,8 +115,37 @@ import { SurveyForm } from '@your-package/survey-form';
         method: 'POST',
         body: JSON.stringify(event)
       });
+    },
+    trackPageView: (url: string, title?: string, additionalData?: Record<string, any>) => {
+      // Receive all analytics events in your custom handler
+      console.log('Survey page update:', additionalData);
+      // Send to your own analytics service
+      data = [url, title, additionalData];
+      fetch('/api/analytics', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    trackTiming: (category: string, variable: string, value: number, label?: string) => {
+      // Receive all analytics events in your custom handler
+      console.log('Survey page update:', value);
+      // Send to your own analytics service
+      data = [category, variable, value];
+      fetch('/api/analytics', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    setUserProperties: (properties: Record<string, any>) => {
+      // Receive all analytics events in your custom handler
+      console.log('Survey page update:', properties);
+      // Send to your own analytics service
+      fetch('/api/analytics', {
+        method: 'POST',
+        body: JSON.stringify(properties)
+      });
     }
-  }}
+  }},
   onSubmit={handleSubmit}
 />
 
@@ -138,7 +167,7 @@ import { SurveyForm } from '@your-package/survey-form';
       pixelId: '1234567890',
       accessToken: 'YOUR_ACCESS_TOKEN'
     },
-    onEvent: (event) => {
+    trackEvent: (event) => {
       // Custom handler receives all events
       myAnalytics.track(event);
     },
