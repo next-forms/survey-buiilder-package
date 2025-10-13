@@ -136,13 +136,15 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     userId: analytics.userId,
     customDimensions: analytics.customDimensions,
     googleAnalytics: analytics.googleAnalytics,
-    googleTagManager: analytics.googleTagManager
+    googleTagManager: analytics.googleTagManager,
+    meta: analytics.meta,
+    onEvent: analytics.onEvent
   } : {}, [analytics]);
 
   // Determine if analytics should be enabled
   const isAnalyticsEnabled = React.useMemo(() =>
     analytics?.enabled !== false &&
-    (analytics?.googleAnalytics || analytics?.googleTagManager),
+    (analytics?.googleAnalytics || analytics?.googleTagManager || analytics?.meta || analytics?.onEvent),
     [analytics]
   );
 

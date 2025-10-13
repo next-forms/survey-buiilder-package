@@ -18,13 +18,15 @@ export interface AnalyticsConfig {
     preview?: string;
     debug?: boolean;
   };
-  // Future providers can be added here
+  // Meta (Facebook) Pixel and Conversion API configuration
   meta?: {
     pixelId: string;
+    accessToken?: string; // For Conversion API
+    testEventCode?: string; // For testing events
+    debug?: boolean;
   };
-  twitter?: {
-    pixelId: string;
-  };
+  // Custom event handler function
+  onEvent?: (event: SurveyAnalyticsEvent) => void;
   // Custom analytics provider
   custom?: {
     name: string;
@@ -47,6 +49,7 @@ export interface SurveyAnalyticsEvent {
 }
 
 export type SurveyAction = 
+  | 'user_authenticated'
   | 'survey_start'
   | 'survey_complete'
   | 'survey_abandon'

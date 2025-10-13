@@ -24,7 +24,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
     totalPages,
     values,
     errors,
-    isValid,
+    isSubmitting,
     surveyData
   } = useSurveyForm();
 
@@ -198,7 +198,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
 
   // Track survey completion/abandonment
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handleBeforeUnload = () => {
       if (isEnabled && hasStartedRef.current) {
         const completionRate = Math.round((currentPage / totalPages) * 100);
         trackSurveyAbandon('page_unload', {
@@ -218,13 +218,33 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
     };
   }, [currentPage, totalPages, values, isEnabled, trackSurveyAbandon]);
 
-  // Mark survey as completed when on last page and valid
+  // Track survey completion
+  const hasCompletedRef = useRef(false);
+
   useEffect(() => {
-    if (isEnabled && currentPage === totalPages - 1 && isValid && Object.keys(values).length > 0) {
+    if (isEnabled && isSubmitting && !hasCompletedRef.current && Object.keys(values).length > 0) {
+      hasCompletedRef.current = true;
+
+      // Calculate completion metrics
+      const completionTime = Date.now() - (hasStartedRef.current ? 0 : Date.now());
+      const completedPages = currentPage + 1;
+      const completionRate = Math.round((completedPages / totalPages) * 100);
+
+      // Track survey completion
+      trackSurveyComplete({
+        completionTime,
+        completedPages,
+        totalPages,
+        completionRate,
+        responsesCollected: Object.keys(values).length,
+        responses: values,
+        timestamp: new Date().toISOString()
+      });
+
       // Set a flag to prevent abandon tracking
       (window as any).surveyCompleted = true;
     }
-  }, [currentPage, totalPages, isValid, values, isEnabled]);
+  }, [isSubmitting, isEnabled, trackSurveyComplete, values, currentPage, totalPages]);
 
   return <>{children}</>;
 };

@@ -229,6 +229,13 @@ export interface SurveyFormRendererProps {
       preview?: string;
       debug?: boolean;
     };
+    meta?: {
+      pixelId: string;
+      accessToken?: string;
+      testEventCode?: string;
+      debug?: boolean;
+    };
+    onEvent?: (event: any) => void;
     trackFieldInteractions?: boolean;
     trackValidationErrors?: boolean;
     trackTimings?: boolean;

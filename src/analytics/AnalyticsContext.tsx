@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import type { 
-  AnalyticsConfig, 
-  AnalyticsContextValue, 
-  AnalyticsProvider, 
-  SurveyAnalyticsEvent 
+import type {
+  AnalyticsConfig,
+  AnalyticsContextValue,
+  AnalyticsProvider,
+  SurveyAnalyticsEvent
 } from './types';
 import { GoogleAnalyticsProvider } from './providers/GoogleAnalyticsProvider';
 import { GoogleTagManagerProvider } from './providers/GoogleTagManagerProvider';
+import { MetaPixelProvider } from './providers/MetaPixelProvider';
 import './utils/debugHelpers'; // Import debug helpers to make them available
 
 const AnalyticsContext = createContext<AnalyticsContextValue | undefined>(undefined);
@@ -86,6 +87,24 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
           }
         }
 
+        // Initialize Meta Pixel
+        if (config.meta?.pixelId) {
+          if (debug) {
+            console.log('[Analytics] Initializing Meta Pixel with pixel ID:', config.meta.pixelId);
+          }
+          const metaProvider = new MetaPixelProvider();
+          await metaProvider.initialize({
+            ...config.meta,
+            debug: debug || config.meta.debug,
+            sessionId: config.sessionId,
+            userId: config.userId
+          });
+          activeProviders.push(metaProvider);
+          if (debug) {
+            console.log('[Analytics] Meta Pixel initialized successfully');
+          }
+        }
+
         // Initialize custom provider if provided
         if (config.custom?.handler) {
           await config.custom.handler.initialize(config.custom.config);
@@ -120,6 +139,18 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
   const trackEvent = useCallback((event: SurveyAnalyticsEvent) => {
     if (!enabled || !isInitialized) return;
 
+    // Call custom event handler if provided
+    if (config.onEvent) {
+      try {
+        config.onEvent(event);
+        if (debug) {
+          console.log('[Analytics:CustomHandler] Event sent to custom handler:', event);
+        }
+      } catch (error) {
+        console.error('[Analytics:CustomHandler] Failed to call custom event handler:', error);
+      }
+    }
+
     providers.forEach(provider => {
       try {
         provider.trackEvent(event);
@@ -130,7 +161,7 @@ export const SurveyAnalyticsProvider: React.FC<SurveyAnalyticsProviderProps> = (
         console.error(`[Analytics:${provider.name}] Failed to track event:`, error);
       }
     });
-  }, [providers, enabled, isInitialized, debug]);
+  }, [providers, enabled, isInitialized, debug, config]);
 
   // Track page view across all providers
   const trackPageView = useCallback((url: string, title?: string, additionalData?: Record<string, any>) => {
