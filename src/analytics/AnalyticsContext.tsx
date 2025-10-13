@@ -8,7 +8,7 @@ import type {
 import { GoogleAnalyticsProvider } from './providers/GoogleAnalyticsProvider';
 import { GoogleTagManagerProvider } from './providers/GoogleTagManagerProvider';
 import { MetaPixelProvider } from './providers/MetaPixelProvider';
-import './utils/debugHelpers'; // Import debug helpers to make them available
+// import './utils/debugHelpers'; // Import debug helpers to make them available
 
 const AnalyticsContext = createContext<AnalyticsContextValue | undefined>(undefined);
 

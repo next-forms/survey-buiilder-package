@@ -50,19 +50,23 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
 
   // Track mount/unmount
   React.useEffect(() => {
-    console.log(`[SurveyForm] MOUNTED (instance: ${mountIdRef.current})`);
+    if(enableDebug)
+      console.log(`[SurveyForm] MOUNTED (instance: ${mountIdRef.current})`);
     return () => {
-      console.log(`[SurveyForm] UNMOUNTED (instance: ${mountIdRef.current})`);
+      if(enableDebug)
+        console.log(`[SurveyForm] UNMOUNTED (instance: ${mountIdRef.current})`);
     };
   }, []);
 
   // Debug log - helps diagnose issues with the survey data and resume functionality
-  console.log(`[SurveyForm] Render #${renderCountRef.current} (instance: ${mountIdRef.current}) - Props received:`, {
-    initialValues,
-    startPage,
-    enableDebug,
-    hasDefaultValues: !!defaultValues && Object.keys(defaultValues).length > 0
-  });
+  if(enableDebug) {
+    console.log(`[SurveyForm] Render #${renderCountRef.current} (instance: ${mountIdRef.current}) - Props received:`, {
+      initialValues,
+      startPage,
+      enableDebug,
+      hasDefaultValues: !!defaultValues && Object.keys(defaultValues).length > 0
+    });
+  }
 
   if (enableDebug) {
     console.log('SurveyForm rendering with survey data:', survey?.rootNode?.type || 'No survey data');
