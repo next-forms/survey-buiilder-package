@@ -116,17 +116,34 @@ export const useSurveyAnalytics = (options: SurveyAnalyticsOptions = {}) => {
     }
   }, [analytics, options]);
 
+
+  const toSlug = (text: string): string => {
+    return text
+      .toLowerCase() // convert to lowercase
+      .trim() // remove leading/trailing spaces
+      .replace(/[^\w\s-]/g, "") // remove non-word characters (except spaces and hyphens)
+      .replace(/\s+/g, "-") // replace spaces with hyphens
+      .replace(/-+/g, "-"); // collapse multiple hyphens
+  }
+
   // Track page view
-  const trackPageView = useCallback((pageIndex: number, pageId: string, pageTitle?: string, totalPages?: number) => {
+  const trackPageView = useCallback((
+    pageIndex: number,
+    pageId: string,
+    pageTitle?: string,
+    totalPages?: number,
+    blockLabel?: string,
+    surveyName?: string
+  ) => {
     // Track time spent on previous page
     if (currentPageRef.current !== pageIndex && options.trackTimings) {
       const timeOnPreviousPage = Date.now() - pageStartTimeRef.current;
       analytics.trackTiming('survey', `page_${currentPageRef.current}_time`, timeOnPreviousPage, options.surveyId);
     }
-    
+
     currentPageRef.current = pageIndex;
     pageStartTimeRef.current = Date.now();
-    
+
     const event: SurveyAnalyticsEvent = {
       category: 'survey',
       action: 'page_view',
@@ -139,13 +156,15 @@ export const useSurveyAnalytics = (options: SurveyAnalyticsOptions = {}) => {
         pageIndex,
         pageId,
         pageTitle,
+        blockLabel,
+        surveyName,
         totalPages: totalPages || 0
       }
     };
-    
-    analytics.trackEvent(event);
-    analytics.trackPageView(`/survey/${options.surveyId || 'unknown'}/page/${pageIndex}`, pageTitle);
-    
+
+    // analytics.trackEvent(event);
+    analytics.trackPageView(`/survey/${toSlug(pageTitle)}/${toSlug(blockLabel)}`, pageTitle);
+
     if (options.debug) {
       console.log('[SurveyAnalytics] Page viewed', event);
     }

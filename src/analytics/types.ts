@@ -52,7 +52,7 @@ export interface SurveyAnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
-export type SurveyAction = 
+export type SurveyAction =
   | 'user_authenticated'
   | 'survey_start'
   | 'survey_complete'
@@ -69,7 +69,8 @@ export type SurveyAction =
   | 'conditional_show'
   | 'conditional_hide'
   | 'file_upload'
-  | 'time_spent';
+  | 'time_spent'
+  | 'block_value_selected';
 
 export interface PageViewEvent extends SurveyAnalyticsEvent {
   action: 'page_view';

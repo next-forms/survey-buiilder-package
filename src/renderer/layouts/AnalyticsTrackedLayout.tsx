@@ -37,6 +37,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
     trackValidationError,
     trackFieldInteraction,
     trackFieldComplete,
+    trackCustomEvent,
     isEnabled
   } = useSurveyAnalytics({
     surveyId: analytics?.surveyId,
@@ -54,7 +55,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
   const fieldValuesRef = useRef<Record<string, any>>({});
   const lastErrorsRef = useRef<Record<string, string>>({});
 
-  // Track survey start
+  // Track survey start and initial page view
   useEffect(() => {
     if (!hasStartedRef.current && isEnabled) {
       hasStartedRef.current = true;
@@ -63,8 +64,26 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
         surveyTitle: surveyData?.rootNode?.label || 'Survey',
         startTime: new Date().toISOString()
       });
+
+      // Track initial page view
+      const pages = surveyData?.rootNode?.items || [];
+      const currentPageData = pages[currentPage];
+      const blocks = currentPageData?.items || [];
+      const currentBlock = blocks[currentBlockIndex];
+      const surveyName = surveyData?.rootNode?.label || 'Survey';
+      const blockLabel = currentBlock?.label || currentPageData?.label || `Page ${currentPage + 1}`;
+      const pageTitle = `${surveyName} - ${blockLabel}`;
+
+      trackPageView(
+        currentPage,
+        currentPageData?.uuid || `page-${currentPage}`,
+        pageTitle,
+        totalPages,
+        blockLabel,
+        surveyName
+      );
     }
-  }, [isEnabled, trackSurveyStart, totalPages, surveyData]);
+  }, [isEnabled, trackSurveyStart, trackPageView, totalPages, surveyData, currentPage, currentBlockIndex]);
 
   // Track page changes
   useEffect(() => {
@@ -86,12 +105,20 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
       // Track page view
       const pages = surveyData?.rootNode?.items || [];
       const currentPageData = pages[currentPage];
-      
+      const blocks = currentPageData?.items || [];
+      const currentBlock = blocks[currentBlockIndex];
+      const surveyName = surveyData?.rootNode?.label || 'Survey';
+      const blockLabel = currentBlock?.label || currentPageData?.label || `Page ${currentPage + 1}`;
+      const pageTitle = `${surveyName} - ${blockLabel}`;
+
+      console.log("Curtrrent page title is : ", pageTitle);
       trackPageView(
         currentPage,
         currentPageData?.uuid || `page-${currentPage}`,
-        currentPageData?.label || `Page ${currentPage + 1}`,
-        totalPages
+        pageTitle,
+        totalPages,
+        blockLabel,
+        surveyName
       );
 
       previousPageRef.current = currentPage;
@@ -123,7 +150,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
 
   // Track field value changes
   useEffect(() => {
-    if (!isEnabled || !analytics?.trackFieldInteractions) return;
+    if (!isEnabled) return;
 
     // Detect changed fields
     Object.keys(values).forEach(fieldId => {
@@ -133,12 +160,15 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
       if (newValue !== oldValue && newValue !== undefined) {
         // Find the field metadata
         const pages = surveyData?.rootNode?.items || [];
+        const surveyName = surveyData?.rootNode?.label || 'Survey';
         let fieldData: any = null;
+        let pageIndex = -1;
 
-        for (const page of pages) {
-          for (const block of (page.items || [])) {
+        for (let i = 0; i < pages.length; i++) {
+          for (const block of (pages[i].items || [])) {
             if (block.uuid === fieldId || block.fieldName === fieldId) {
               fieldData = block;
+              pageIndex = i;
               break;
             }
           }
@@ -146,19 +176,38 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
         }
 
         if (fieldData) {
-          // Track field completion
-          trackFieldComplete(
-            fieldId,
-            fieldData.type || 'unknown',
-            newValue,
-            fieldData.label
+          const blockLabel = fieldData.label || `Block ${fieldId}`;
+
+          // Track field completion with block context (only if trackFieldInteractions is enabled)
+          if (analytics?.trackFieldInteractions) {
+            trackFieldComplete(
+              fieldId,
+              fieldData.type || 'unknown',
+              newValue,
+              blockLabel
+            );
+          }
+
+          // Always track block value selection event (independent of trackFieldInteractions)
+          trackCustomEvent(
+            'block_value_selected',
+            blockLabel,
+            undefined,
+            {
+              surveyName,
+              blockLabel,
+              blockType: fieldData.type,
+              blockValue: newValue,
+              pageIndex,
+              timestamp: new Date().toISOString()
+            }
           );
         }
       }
     });
 
     fieldValuesRef.current = { ...values };
-  }, [values, isEnabled, trackFieldComplete, analytics?.trackFieldInteractions, surveyData]);
+  }, [values, isEnabled, trackFieldComplete, trackCustomEvent, analytics?.trackFieldInteractions, surveyData]);
 
   // Track validation errors
   useEffect(() => {
