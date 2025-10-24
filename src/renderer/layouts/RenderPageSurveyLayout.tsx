@@ -177,21 +177,14 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
 
       {/* Logo Section - Positioned after header */}
       {logo && (
-        <div className="w-full flex py-2 px-4 border-gray-100 mb-4">
-          <div className="w-full flex max-w-lg mx-auto px-4">
-          <div className="justify-start">
+        <div className="w-full flex py-2 border-gray-100 mb-4 mx-auto">
             {logo}
           </div>
-            
-          </div>
-        </div>
       )}
 
 
       {/* Fixed Header Section */}
-      <div className="w-full backdrop-blur-sm border-gray-100">
-        <div className="w-full max-w-lg min-w-80 sm:min-w-[32rem] mx-auto py-4 px-4">
-          
+      <div className="w-full backdrop-blur-sm mx-auto py-4">          
           {/* Progress Bar Section */}
           {progressBar && typeof progressBar === "object" && progressBar.position !== "bottom" && (
             <div className="mb-3">
@@ -282,13 +275,12 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                 </div>
               )}
             </div>
-          </div>
         </div>
       </div>
 
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="relative flex-1 flex flex-col w-full mx-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentPage}-${currentBlockIndex}`}
@@ -299,8 +291,8 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
             className="flex-1 flex flex-col"
           >
             {/* Question Content - Centered Layout */}
-            <div className="flex-[0.8] flex flex-col justify-start items-center py-2">
-              <div className="w-full max-w-lg min-w-80 sm:min-w-[32rem] space-y-6 px-4">
+            <div className="relative flex-[0.8] flex flex-col justify-start items-center py-2">
+              <div className="w-full mx-auto space-y-6">
                 {currentPageBlocks[currentBlockIndex] && (
                   <div className="text-start">
                     {/* Apply intake form styling to titles */}
@@ -374,7 +366,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
 
             {/* Navigation Buttons - Fixed at bottom */}
             <div className="w-full backdrop-blur-sm border-gray-100">
-              <div className="w-full max-w-2xl min-w-80 sm:min-w-[32rem] mx-auto px-4 py-4">
+              <div className="w-full mx-auto py-4">
                 
                 {/* Disclaimer Text */}
                 {blockDisclaimer && (
@@ -456,8 +448,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       {progressBar &&
         typeof progressBar === "object" &&
         progressBar.position === "bottom" && (
-          <div className="w-full border-t bg-white/80 backdrop-blur-sm">
-            <div className="w-full max-w-2xl min-w-80 sm:min-w-[32rem] mx-auto px-4 py-2">
+          <div className="w-full mx-auto border-t bg-white/80 backdrop-blur-sm py-2">
               <div className="h-2 w-full rounded-full overflow-hidden bg-gray-200">
                 <motion.div
                   className={cn(
@@ -468,7 +459,6 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                   animate={{ width: `${progressPercentage}%` }}
                 />
               </div>
-            </div>
           </div>
         )}
     </div>
