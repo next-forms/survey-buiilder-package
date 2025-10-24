@@ -116,6 +116,8 @@ const PRESET_OPTIONS = {
     { label: "3XL", value: "max-w-3xl" },
     { label: "4XL", value: "max-w-4xl" },
     { label: "5XL", value: "max-w-5xl" },
+    { label: "6XL", value: "max-w-7xl" },
+    { label: "7XL", value: "max-w-7xl" },
     { label: "Full", value: "max-w-full" },
   ],
 };
