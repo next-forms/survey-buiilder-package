@@ -7,7 +7,7 @@ import { LocalizationEditor } from "./helpers/LocalizationEditor";
 import { v4 as uuidv4 } from "uuid";
 import { BlockLibrary } from "./panels/BlockLibrary";
 import { JsonEditor } from "./helpers/JsonEditor";
-import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition } from "../../types";
+import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition, LayoutProps } from "../../types";
 import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
@@ -26,6 +26,7 @@ interface SurveyBuilderProps {
   nodeDefinitions?: NodeDefinition[];
   globalCustomFields?: GlobalCustomField[];
   customThemes?: Record<string, ThemeDefinition>;
+  previewLayout?: string | React.FC<LayoutProps>;
 }
 
 // The main component wrapped with provider
@@ -36,6 +37,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   nodeDefinitions = [],
   globalCustomFields = [],
   customThemes = {},
+  previewLayout,
 }) => {
   return (
     <SurveyBuilderProvider initialData={initialData}>
@@ -45,6 +47,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
         nodeDefinitions={nodeDefinitions}
         globalCustomFields={globalCustomFields}
         customThemes={customThemes}
+        previewLayout={previewLayout}
       />
     </SurveyBuilderProvider>
   );
@@ -57,6 +60,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   nodeDefinitions = [],
   globalCustomFields = [],
   customThemes = {},
+  previewLayout,
 }) => {
   const {
     state,
@@ -218,7 +222,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-scroll">
         <SheetHeader><SheetTitle className="sr-only">Preview</SheetTitle></SheetHeader>
-        <PreviewSurvey />
+        <PreviewSurvey layout={previewLayout} />
       </SheetContent>
     </Sheet>
 

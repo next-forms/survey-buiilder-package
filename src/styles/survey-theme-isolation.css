@@ -175,24 +175,6 @@
   box-shadow: var(--survey-shadow-lg);
 }
 
-/* Typography Elements */
-.survey-isolated-content h1,
-.survey-isolated-content h2,
-.survey-isolated-content h3,
-.survey-isolated-content h4,
-.survey-isolated-content h5,
-.survey-isolated-content h6 {
-  color: var(--survey-text);
-}
-
-/* Commenting out aggressive text color overrides that affect buttons
-.survey-isolated-content p,
-.survey-isolated-content span:not(button span):not([data-slot="button"] span),
-.survey-isolated-content div:not(button):not([data-slot="button"]),
-.survey-isolated-content label {
-  color: var(--survey-text);
-}
-*/
 
 /* Override any specific text color classes that might interfere - but not for buttons */
 .survey-isolated-content :not(button):not([data-slot="button"]).text-foreground,

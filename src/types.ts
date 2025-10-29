@@ -213,6 +213,8 @@ export interface SurveyFormRendererProps {
   debug?: boolean;
   enableDebug?: boolean;
   logo?: any;
+  // Custom layout support
+  layout?: string | React.FC<LayoutProps>;
   // Analytics configuration
   analytics?: {
     enabled?: boolean;
@@ -271,6 +273,24 @@ export interface NavigationButtonsOptions {
   position?: "bottom" | "split";
   align?: "left" | "center" | "right";
   style?: "default" | "outlined" | "text";
+}
+
+export interface LayoutProps {
+  progressBar?: ProgressBarOptions | boolean;
+  navigationButtons?: NavigationButtonsOptions;
+  autoScroll?: boolean;
+  autoFocus?: boolean;
+  showSummary?: boolean;
+  submitText?: string;
+  enableDebug?: boolean;
+  showNavigationHistory?: boolean;
+  logo?: any;
+}
+
+export interface LayoutDefinition {
+  name: string;
+  description?: string;
+  component: React.FC<LayoutProps>;
 }
 
 export interface BlockRendererProps {

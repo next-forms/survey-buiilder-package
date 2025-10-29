@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import type { SurveyFormRendererProps } from '../types';
 import { SurveyFormProvider } from '../context/SurveyFormContext';
-import { RenderPageSurveyLayout } from './layouts/RenderPageSurveyLayout';
+import { getLayoutComponent } from './layouts';
 import { themes } from '../themes';
 import { applyDynamicColors } from '../utils/colorUtils';
 import { SurveyAnalyticsProvider } from '../analytics';
@@ -41,6 +41,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   logo = null,
   className = '',
   themeMode = 'light',
+  layout,
   analytics,
 }) => {
   // Track render count to diagnose re-render issues
@@ -122,6 +123,9 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     [themeConfig.containerLayout, className]
   );
 
+  // Get the layout component to use
+  const LayoutComponent = React.useMemo(() => getLayoutComponent(layout), [layout]);
+
   // Memoize layout props to prevent recreation
   const layoutProps = React.useMemo(() => ({
     enableDebug,
@@ -186,7 +190,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
             logo={logo}
             analytics={analytics}
           >
-            <RenderPageSurveyLayout {...layoutProps} />
+            <LayoutComponent {...layoutProps} />
           </SurveyFormProvider>
         </div>
       </div>

@@ -294,34 +294,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
             <div className="relative flex-[0.8] flex flex-col justify-start items-center py-2">
               <div className="w-full mx-auto space-y-6">
                 {currentPageBlocks[currentBlockIndex] && (
-                  <div className="text-start">
-                    {/* Apply intake form styling to titles */}
-                    {/* <style jsx global>{`
-                      .survey-fullpage-layout h1,
-                      .survey-fullpage-layout .block-title,
-                      .survey-fullpage-layout .question-title {
-                        color: #E67E4D !important;
-                        font-weight: 300 !important;
-                        font-size: 2.25rem !important;
-                        line-height: 1.2 !important;
-                        margin-bottom: 1.5rem !important;
-                        text-align: center !important;
-                      }
-                      
-                      .survey-fullpage-layout .question-subtitle,
-                      .survey-fullpage-layout .block-description {
-                        color: #111827 !important;
-                        font-size: 1.125rem !important;
-                        line-height: 1.6 !important;
-                        font-weight: 400 !important;
-                        text-align: center !important;
-                        margin-bottom: 2rem !important;
-                        max-width: 28rem !important;
-                        margin-left: auto !important;
-                        margin-right: auto !important;
-                      }
-                    `}</style> */}
-                    
+                  <div className="text-start">                    
                     <BlockRenderer
                       block={currentPageBlocks[currentBlockIndex]}
                       value={(() => {

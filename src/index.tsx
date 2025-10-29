@@ -111,6 +111,22 @@ export {
   SelectableBoxQuestionBlock
 } from './blocks';
 
+// Export layout system
+export {
+  layoutRegistry,
+  getLayoutDefinition,
+  getAllLayoutDefinitions,
+  registerLayout,
+  unregisterLayout,
+  getLayoutComponent,
+  RenderPageSurveyLayout,
+  // Layout helpers for easier custom layout creation
+  CurrentBlock,
+  NavigationButtons,
+  ProgressIndicator,
+  createLayout
+} from './renderer/layouts';
+
 export * from "./builder/survey/SurveyBuilder";
 
 // Export context and hooks
