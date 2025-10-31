@@ -928,7 +928,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
     };
   
     // Debounce function
-    let timeoutId;
+    let timeoutId: NodeJS.Timeout;
     const debouncedResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(handleResize, 100);
@@ -1437,7 +1437,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
         return (
           editMode === 'visual' ? (
             <Tabs defaultValue="colors" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="colors" className="flex items-center gap-1">
                   <Palette className="w-4 h-4" />
                   <span className="hidden sm:inline">Colors</span>
@@ -1449,6 +1449,10 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                 <TabsTrigger value="typography" className="flex items-center gap-1">
                   <Type className="w-4 h-4" />
                   <span className="hidden sm:inline">Typography</span>
+                </TabsTrigger>
+                <TabsTrigger value="fonts" className="flex items-center gap-1">
+                  <PenLine className="w-4 h-4" />
+                  <span className="hidden sm:inline">Fonts</span>
                 </TabsTrigger>
                 <TabsTrigger value="fields" className="flex items-center gap-1">
                   <Package className="w-4 h-4" />
@@ -1898,6 +1902,349 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                         </div>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="fonts" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Custom Fonts</CardTitle>
+                    <CardDescription>
+                      Load custom fonts from CDN URLs and configure font families
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Font CDN URLs */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold">Font CDN URLs</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const urls = currentTheme.fonts?.urls || [];
+                            const newTheme = {
+                              ...currentTheme,
+                              fonts: {
+                                ...currentTheme.fonts,
+                                urls: [...urls, '']
+                              }
+                            };
+                            setCurrentTheme(newTheme);
+                            updateTheme(newTheme);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add URL
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Add URLs from Google Fonts, Adobe Fonts, or any other CDN
+                      </p>
+
+                      {(currentTheme.fonts?.urls || []).length === 0 ? (
+                        <Alert>
+                          <Info className="w-4 h-4" />
+                          <AlertDescription>
+                            No font URLs configured. Click "Add URL" to load custom fonts from a CDN.
+                            <br />
+                            <br />
+                            Example: https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <div className="space-y-2">
+                          {(currentTheme.fonts?.urls || []).map((url, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                value={url}
+                                onChange={(e) => {
+                                  const urls = [...(currentTheme.fonts?.urls || [])];
+                                  urls[index] = e.target.value;
+                                  const newTheme = {
+                                    ...currentTheme,
+                                    fonts: {
+                                      ...currentTheme.fonts,
+                                      urls
+                                    }
+                                  };
+                                  setCurrentTheme(newTheme);
+                                  updateTheme(newTheme);
+                                }}
+                                placeholder="https://fonts.googleapis.com/css2?family=..."
+                                className="flex-1"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const urls = (currentTheme.fonts?.urls || []).filter((_, i) => i !== index);
+                                  const newTheme = {
+                                    ...currentTheme,
+                                    fonts: {
+                                      ...currentTheme.fonts,
+                                      urls
+                                    }
+                                  };
+                                  setCurrentTheme(newTheme);
+                                  updateTheme(newTheme);
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Font Families */}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base font-semibold">Font Families</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Configure font families for different text elements
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {/* Primary Font */}
+                        <div className="space-y-2">
+                          <Label>Primary Font</Label>
+                          <Input
+                            value={currentTheme.fonts?.primary || ''}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  primary: e.target.value
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            placeholder='Inter, sans-serif'
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Main font family used across the survey (spaces will be auto-quoted)
+                          </p>
+                        </div>
+
+                        {/* Heading Font */}
+                        <div className="space-y-2">
+                          <Label>Heading Font</Label>
+                          <Input
+                            value={currentTheme.fonts?.heading || ''}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  heading: e.target.value
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            placeholder='Playfair Display, serif'
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Font family for headings (h1-h6)
+                          </p>
+                        </div>
+
+                        {/* Body Font */}
+                        <div className="space-y-2">
+                          <Label>Body Font</Label>
+                          <Input
+                            value={currentTheme.fonts?.body || ''}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  body: e.target.value
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            placeholder='Inter, sans-serif'
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Font family for body text
+                          </p>
+                        </div>
+
+                        {/* Secondary Font */}
+                        <div className="space-y-2">
+                          <Label>Secondary Font (Optional)</Label>
+                          <Input
+                            value={currentTheme.fonts?.secondary || ''}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  secondary: e.target.value
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            placeholder='Roboto, sans-serif'
+                          />
+                        </div>
+
+                        {/* Monospace Font */}
+                        <div className="space-y-2">
+                          <Label>Monospace Font (Optional)</Label>
+                          <Input
+                            value={currentTheme.fonts?.monospace || ''}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  monospace: e.target.value
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            placeholder='Courier New, monospace'
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Font family for code and pre elements
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Font Weights */}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base font-semibold">Font Weights</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Configure font weights for different text styles
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Normal Weight */}
+                        <div className="space-y-2">
+                          <Label>Normal</Label>
+                          <Input
+                            type="number"
+                            value={currentTheme.fonts?.weights?.normal || 400}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  weights: {
+                                    ...currentTheme.fonts?.weights,
+                                    normal: parseInt(e.target.value) || 400
+                                  }
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            min="100"
+                            max="900"
+                            step="100"
+                          />
+                        </div>
+
+                        {/* Medium Weight */}
+                        <div className="space-y-2">
+                          <Label>Medium</Label>
+                          <Input
+                            type="number"
+                            value={currentTheme.fonts?.weights?.medium || 500}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  weights: {
+                                    ...currentTheme.fonts?.weights,
+                                    medium: parseInt(e.target.value) || 500
+                                  }
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            min="100"
+                            max="900"
+                            step="100"
+                          />
+                        </div>
+
+                        {/* Semibold Weight */}
+                        <div className="space-y-2">
+                          <Label>Semibold</Label>
+                          <Input
+                            type="number"
+                            value={currentTheme.fonts?.weights?.semibold || 600}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  weights: {
+                                    ...currentTheme.fonts?.weights,
+                                    semibold: parseInt(e.target.value) || 600
+                                  }
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            min="100"
+                            max="900"
+                            step="100"
+                          />
+                        </div>
+
+                        {/* Bold Weight */}
+                        <div className="space-y-2">
+                          <Label>Bold</Label>
+                          <Input
+                            type="number"
+                            value={currentTheme.fonts?.weights?.bold || 700}
+                            onChange={(e) => {
+                              const newTheme = {
+                                ...currentTheme,
+                                fonts: {
+                                  ...currentTheme.fonts,
+                                  weights: {
+                                    ...currentTheme.fonts?.weights,
+                                    bold: parseInt(e.target.value) || 700
+                                  }
+                                }
+                              };
+                              setCurrentTheme(newTheme);
+                              updateTheme(newTheme);
+                            }}
+                            min="100"
+                            max="900"
+                            step="100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                   </CardContent>
                 </Card>
               </TabsContent>

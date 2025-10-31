@@ -142,6 +142,23 @@ export interface ThemeDefinition {
     error: string;
     success: string;
   };
+  fonts?: {
+    // CDN URLs for loading custom fonts (e.g., Google Fonts, Adobe Fonts, etc.)
+    urls?: string[];
+    // Font families
+    primary?: string;      // Primary font family (used for body text)
+    secondary?: string;    // Secondary font family
+    heading?: string;      // Font family for headings
+    body?: string;         // Font family for body text
+    monospace?: string;    // Font family for monospace text
+    // Font weights
+    weights?: {
+      normal?: number;
+      medium?: number;
+      semibold?: number;
+      bold?: number;
+    };
+  };
 }
 
 export interface GlobalCustomField {

@@ -13,6 +13,19 @@
   --survey-ring: oklch(0.705 0.015 286.067);
   --survey-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --survey-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Default Font Variables */
+  --survey-font-primary: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --survey-font-secondary: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --survey-font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --survey-font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --survey-font-monospace: ui-monospace, Menlo, Monaco, "Cascadia Code", "Courier New", monospace;
+
+  /* Default Font Weights */
+  --survey-font-weight-normal: 400;
+  --survey-font-weight-medium: 500;
+  --survey-font-weight-semibold: 600;
+  --survey-font-weight-bold: 700;
 }
 
 .survey-theme-dark {
@@ -57,7 +70,29 @@
 .survey-theme-container {
   background-color: var(--survey-bg);
   color: var(--survey-text);
+  font-family: var(--survey-font-body, var(--survey-font-primary));
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Apply font to all text elements in survey */
+.survey-isolated-content {
+  font-family: var(--survey-font-body, var(--survey-font-primary));
+}
+
+/* Apply heading font to headings */
+.survey-isolated-content h1,
+.survey-isolated-content h2,
+.survey-isolated-content h3,
+.survey-isolated-content h4,
+.survey-isolated-content h5,
+.survey-isolated-content h6 {
+  font-family: var(--survey-font-heading, var(--survey-font-primary));
+}
+
+/* Apply monospace font to code and pre elements */
+.survey-isolated-content code,
+.survey-isolated-content pre {
+  font-family: var(--survey-font-monospace);
 }
 
 /* Tailwind Class Overrides within Survey Scope */

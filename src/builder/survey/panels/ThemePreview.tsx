@@ -106,7 +106,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
       <CardContent className="flex-1 p-0 relative overflow-hidden">
         {/* Responsive preview wrapper */}
         <div className="h-full flex items-start justify-center p-4">
-          <div className="survey-preview-content transition-all duration-300 mx-auto">
+          <div className="survey-preview-content transition-all duration-300 w-full">
             {state.rootNode ? (
               <SurveyForm
                 survey={{...state, theme}}

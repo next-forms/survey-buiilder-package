@@ -4,6 +4,7 @@ import { SurveyFormProvider } from '../context/SurveyFormContext';
 import { getLayoutComponent } from './layouts';
 import { themes } from '../themes';
 import { applyDynamicColors } from '../utils/colorUtils';
+import { useFontLoader, getFontCSSProperties } from '../utils/fontLoader';
 import { SurveyAnalyticsProvider } from '../analytics';
 import type { AnalyticsConfig } from '../analytics';
 
@@ -76,12 +77,18 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   // Get the selected theme - memoize to prevent recreation
   const themeConfig = React.useMemo(() => survey?.theme ?? themes.uniloop, [survey?.theme]);
 
+  // Load custom fonts from CDN URLs if provided in theme
+  useFontLoader(themeConfig);
+
   // Determine if we should use dark theme based on the themeMode prop
   const isDarkMode = React.useMemo(() =>
     themeMode === 'dark' ||
     (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches),
     [themeMode]
   );
+
+  // Get font CSS properties
+  const fontCSSProperties = React.useMemo(() => getFontCSSProperties(themeConfig), [themeConfig]);
 
   // Create theme-specific CSS variables that override default values - memoize to prevent recreation
   const surveyThemeStyle = React.useMemo(() => ({
@@ -101,7 +108,9 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     '--survey-bg': themeConfig.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
     '--survey-shadow': isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     '--survey-shadow-lg': isDarkMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  } as React.CSSProperties), [themeConfig, isDarkMode]);
+    // Add font CSS properties
+    ...fontCSSProperties,
+  } as React.CSSProperties), [themeConfig, isDarkMode, fontCSSProperties]);
 
   useEffect(() => {
     applyDynamicColors(themeConfig);

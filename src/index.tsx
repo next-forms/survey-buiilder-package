@@ -35,6 +35,16 @@ import { SurveyBuilder } from './builder/survey/SurveyBuilder';
 
 export { applyDynamicColors } from './utils/colorUtils';
 
+// Font loader utilities
+export {
+  loadFonts,
+  unloadFonts,
+  useFontLoader,
+  getFontCSSProperties,
+  getFontFamilyWithFallback,
+  normalizeFontFamily
+} from './utils/fontLoader';
+
 // Themes
 export {
   themes,
