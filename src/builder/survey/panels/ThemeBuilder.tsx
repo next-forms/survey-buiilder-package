@@ -17,7 +17,8 @@ import {
   RefreshCw, Download, Upload, Plus, X, Info, Eye, EyeOff, Sparkles,
   Sliders, Paintbrush, Grid3X3, CheckSquare,
   ArrowLeft, ArrowRight, Settings, Brush, Wrench, Check, ChevronRight, Zap,
-  PenLine
+  PenLine,
+  Copy
 } from "lucide-react";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { ThemeDefinition, SurveyTheme, NodeData, LocalizationMap } from "../../../types";
@@ -1177,8 +1178,8 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
             onClick={handleCopyToClipboard}
             className="flex items-center gap-2"
           >
-            <Check className="w-4 h-4" />
-            Save Theme
+            <Copy className="w-4 h-4" />
+            Copy Theme
           </Button>
         ) : (
           <Button
@@ -2316,7 +2317,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                 <div className="space-y-4">
                   <div>
                     <Label className="text-lg font-semibold">Theme Summary</Label>
-                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                    <div className="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="font-medium">Theme Name:</span> {currentTheme.name}
