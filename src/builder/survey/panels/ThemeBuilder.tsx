@@ -24,6 +24,7 @@ import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { ThemeDefinition, SurveyTheme, NodeData, LocalizationMap } from "../../../types";
 import { themes } from "../../../themes";
 import ThemePreview from "./ThemePreview";
+import type { LayoutProps } from "../../../types";
 
 // Theme creation steps
 type ThemeStep = 'selection' | 'basics' | 'advanced' | 'review';
@@ -892,9 +893,10 @@ const ResizeHandle: React.FC = () => {
 interface ThemeBuilderProps {
   onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap; theme?: ThemeDefinition }) => void;
   customThemes?: Record<string, ThemeDefinition>;
+  layout?: string | React.FC<LayoutProps>;
 }
 
-export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customThemes = {}}) => {
+export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customThemes = {}, layout}) => {
   const { state, updateTheme, exportSurvey } = useSurveyBuilder();
   const [currentTheme, setCurrentTheme] = useState<ThemeDefinition>(state.theme);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -2539,7 +2541,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
             flexShrink: 0
           }}
         >
-          <ThemePreview theme={currentTheme} state={state}/>
+          <ThemePreview theme={currentTheme} state={state} layout={layout}/>
         </div>
       </div>
     </div>

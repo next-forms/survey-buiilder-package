@@ -133,7 +133,23 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   );
 
   // Get the layout component to use
-  const LayoutComponent = React.useMemo(() => getLayoutComponent(layout), [layout]);
+  const LayoutComponent = React.useMemo(() => {
+    if (enableDebug) {
+      console.log('[SurveyForm] Getting layout component for:', {
+        hasLayout: !!layout,
+        layoutType: typeof layout,
+        layoutName: typeof layout === 'function' ? (layout.name || 'Anonymous') : layout,
+      });
+    }
+    const component = getLayoutComponent(layout);
+    if (enableDebug) {
+      console.log('[SurveyForm] Got layout component:', {
+        componentType: typeof component,
+        componentName: component.name || 'Anonymous',
+      });
+    }
+    return component;
+  }, [layout, enableDebug]);
 
   // Memoize layout props to prevent recreation
   const layoutProps = React.useMemo(() => ({

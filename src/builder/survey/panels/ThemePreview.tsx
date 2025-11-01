@@ -4,6 +4,7 @@ import { Button } from "../../../components/ui/button";
 import { Package, Sun, Moon, Monitor, Smartphone, Tablet, Laptop, Monitor as MonitorIcon } from "lucide-react";
 import { SurveyForm } from "../../../renderer/SurveyForm";
 import { ThemeDefinition, SurveyBuilderState } from "../../../types";
+import type { LayoutProps } from "../../../types";
 
 // Theme mode type
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -11,11 +12,19 @@ type ThemeMode = 'light' | 'dark' | 'system';
 interface ThemePreviewProps {
   theme: ThemeDefinition;
   state: SurveyBuilderState;
+  layout?: string | React.FC<LayoutProps>;
 }
 
-const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
+const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state, layout }) => {
   const [surveyThemeMode, setSurveyThemeMode] = useState<ThemeMode>('light');
   const [previewWidth, setPreviewWidth] = useState(400);
+
+  console.log('[PreviewSurvey] Rendering with:', {
+    hasLayout: !!layout,
+    layoutType: typeof layout,
+    layoutName: typeof layout === 'function' ? (layout.name || 'Anonymous') : layout,
+    hasRootNode: !!state.rootNode,
+  });
 
   // Predefined viewport sizes
   const viewportPresets = [
@@ -110,7 +119,8 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state }) => {
             {state.rootNode ? (
               <SurveyForm
                 survey={{...state, theme}}
-                enableDebug={false}
+                enableDebug={true}
+                layout={layout}
                 theme={theme.name}
                 themeMode={surveyThemeMode}
                 progressBar={{

@@ -829,6 +829,121 @@ const MobileLayout = () => (
 );
 ```
 
+## Available Resources
+
+### UI Components
+
+Your custom layouts have access to a comprehensive set of shadcn/ui components:
+
+- **Form Inputs**: Input, Label, Textarea, Select, Checkbox, RadioGroup, Switch, Slider
+- **Layout**: Card, Separator, ScrollArea, Collapsible, Tabs
+- **Feedback**: Alert, Badge, Progress, Dialog, Popover
+- **Buttons**: Button, Toggle, ToggleGroup
+
+**Import from**: `@/components/ui/[component-name]`
+
+Example:
+```typescript
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+```
+
+### Icons
+
+Access to 1000+ Lucide React icons:
+
+```typescript
+import { ArrowLeft, Check, AlertCircle, Heart } from "lucide-react";
+
+// Usage in your layout
+<ArrowLeft className="h-4 w-4" />
+```
+
+### Available NPM Packages
+
+Your layouts can import from these pre-installed packages:
+
+**Charts & Visualization**:
+- `recharts` - Composable charting library
+- `chart.js` & `react-chartjs-2` - Canvas-based charts
+
+**Forms & Validation**:
+- `react-hook-form` - Performant forms
+- `zod` - TypeScript-first schema validation
+
+**Date & Time**:
+- `date-fns` - Modern date utilities
+- `react-day-picker` - Flexible date picker
+
+**Rich Text**:
+- `@tiptap/react` - Headless rich-text editor
+- `react-markdown` - Markdown component
+
+**Animations**:
+- `framer-motion` - Production-ready animations
+
+Example:
+```typescript
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { LineChart, Line, XAxis, YAxis } from "recharts";
+```
+
+### Theme Access
+
+Access theme properties for consistent styling:
+
+```typescript
+const { theme } = useSurveyForm();
+
+// Available theme properties:
+theme.colors.primary        // Primary color hex
+theme.colors.background     // Background color
+theme.button.primary        // Primary button classes
+theme.field.label          // Label styling
+theme.progress.bar         // Progress bar styling
+// ... and many more
+```
+
+### Helper Components
+
+The following helper components are available to make layout development easier:
+
+**CurrentBlock** - Automatically renders the current question:
+```typescript
+<CurrentBlock
+  className="my-4"
+  autoFocus={true}
+  onValueChange={(field, value) => console.log(field, value)}
+/>
+```
+
+**NavigationButtons** - Handles prev/next/submit logic:
+```typescript
+<NavigationButtons
+  showPrevious={true}
+  nextText="Continue"
+  submitText="Finish"
+  variant="custom"
+  renderNextButton={({ disabled, text, isSubmit }) => (
+    <button type="submit" disabled={disabled}>
+      {text}
+    </button>
+  )}
+/>
+```
+
+**ProgressIndicator** - Shows survey progress:
+```typescript
+<ProgressIndicator
+  type="bar"        // or "dots", "numbers", "percentage", "steps"
+  showPercentage={true}
+  showStepInfo={true}
+  color="bg-blue-600"
+/>
+```
+
 ## API Reference
 
 For complete TypeScript definitions, see:

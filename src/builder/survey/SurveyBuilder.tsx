@@ -189,7 +189,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-scroll">
         <SheetHeader><SheetTitle>Theme Builder</SheetTitle></SheetHeader>
-        <ThemeBuilder onDataChange={onDataChange} customThemes={customThemes} />
+        <ThemeBuilder onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
       </SheetContent>
     </Sheet>
 

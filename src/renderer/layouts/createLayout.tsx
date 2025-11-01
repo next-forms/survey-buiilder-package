@@ -34,12 +34,41 @@ export function createLayout(
   layoutComponent: React.ComponentType<LayoutProps>
 ): React.FC<LayoutProps> {
   const WrappedLayout: React.FC<LayoutProps> = (props) => {
+    console.log('[createLayout/WrappedLayout] Rendering with props:', {
+      hasProps: !!props,
+      propsKeys: Object.keys(props),
+      componentName: layoutComponent.displayName || layoutComponent.name || 'CustomLayout',
+    });
+
     const { analytics } = useSurveyForm();
 
-    const layoutContent = React.createElement(layoutComponent, props);
+    console.log('[createLayout/WrappedLayout] Creating element for:', layoutComponent.name);
+
+    // Create an error boundary wrapper to catch any errors
+    let layoutContent;
+    try {
+      // Call the component function directly to see what it returns
+      const LayoutComponent = layoutComponent as React.FC<LayoutProps>;
+      console.log('[createLayout/WrappedLayout] Calling component function directly');
+      layoutContent = <LayoutComponent {...props} />;
+      console.log('[createLayout/WrappedLayout] Component returned:', {
+        hasContent: !!layoutContent,
+        contentType: typeof layoutContent,
+        contentProps: layoutContent?.props,
+      });
+    } catch (error) {
+      console.error('[createLayout/WrappedLayout] Error creating layout:', error);
+      return (
+        <div style={{ padding: '20px', background: '#fee', border: '2px solid red', margin: '20px' }}>
+          <h3>Layout Error</h3>
+          <pre>{String(error)}</pre>
+        </div>
+      );
+    }
 
     // Wrap with analytics if configured
     if (analytics) {
+      console.log('[createLayout/WrappedLayout] Wrapping with analytics');
       return (
         <AnalyticsTrackedLayout analytics={analytics}>
           {layoutContent}
@@ -47,6 +76,7 @@ export function createLayout(
       );
     }
 
+    console.log('[createLayout/WrappedLayout] Returning layout content directly');
     return layoutContent;
   };
 
