@@ -42,33 +42,22 @@ export function unregisterLayout(name: string): void {
 export function getLayoutComponent(
   layout?: string | React.FC<LayoutProps>
 ): React.FC<LayoutProps> {
-  console.log('[getLayoutComponent] Called with:', {
-    hasLayout: !!layout,
-    layoutType: typeof layout,
-    layoutValue: layout,
-  });
 
   // If no layout specified, return default (already has analytics built-in)
   if (!layout) {
-    console.log('[getLayoutComponent] No layout, returning default');
     return RenderPageSurveyLayout;
   }
 
   // If it's a function component, wrap it with createLayout for automatic analytics
   if (typeof layout === "function") {
-    console.log('[getLayoutComponent] Function component detected, wrapping with createLayout');
-    console.log('[getLayoutComponent] Component name:', layout.name || 'Anonymous');
     const wrapped = createLayout(layout);
-    console.log('[getLayoutComponent] Wrapped component:', wrapped.name);
     return wrapped;
   }
 
   // If it's a string, look it up in the registry
   if (typeof layout === "string") {
-    console.log('[getLayoutComponent] String layout name:', layout);
     const layoutDef = getLayoutDefinition(layout);
     if (layoutDef) {
-      console.log('[getLayoutComponent] Found in registry');
       // Registry layouts are already set up correctly, no need to wrap
       return layoutDef.component;
     }
@@ -78,8 +67,6 @@ export function getLayoutComponent(
     return RenderPageSurveyLayout;
   }
 
-  // Fallback to default
-  console.log('[getLayoutComponent] Fallback to default');
   return RenderPageSurveyLayout;
 }
 
