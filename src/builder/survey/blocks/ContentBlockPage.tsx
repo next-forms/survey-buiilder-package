@@ -9,6 +9,12 @@ import {
 } from "../../../components/ui/card";
 import { Input } from "../../../components/ui/input";
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../../../components/ui/tabs";
+import {
   Root as Sortable,
   Content as SortableContent,
   Item as SortableItem,
@@ -179,8 +185,30 @@ export const ContentBlockPage: React.FC<ContentBlockPageProps> = ({
             {/* Menu to add new blocks */}
             <div className="mt-4">
               <h4 className="text-sm font-medium mb-2">Add Item</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {Object.entries(state.definitions.blocks).map(([type, definition]) => (
+              {(() => {
+                // Separate blocks into default and custom
+                const defaultBlocks = Object.entries(state.definitions.blocks).filter(
+                  ([_, definition]) => {
+                    const defaultData = definition.generateDefaultData
+                      ? definition.generateDefaultData()
+                      : definition.defaultData;
+                    return !defaultData?.isCustom;
+                  }
+                );
+
+                const customBlocks = Object.entries(state.definitions.blocks).filter(
+                  ([_, definition]) => {
+                    const defaultData = definition.generateDefaultData
+                      ? definition.generateDefaultData()
+                      : definition.defaultData;
+                    return defaultData?.isCustom === true;
+                  }
+                );
+
+                const hasCustomBlocks = customBlocks.length > 0;
+
+                // Render function for block buttons
+                const renderBlockButton = ([type, definition]: [string, any]) => (
                   <Button
                     type="button"
                     key={type}
@@ -196,8 +224,39 @@ export const ContentBlockPage: React.FC<ContentBlockPageProps> = ({
                     {definition.icon && <span className="mr-2">{definition.icon}</span>}
                     <span className="truncate">{definition.name}</span>
                   </Button>
-                ))}
-              </div>
+                );
+
+                // If no custom blocks, just show default blocks without tabs
+                if (!hasCustomBlocks) {
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {defaultBlocks.map(renderBlockButton)}
+                    </div>
+                  );
+                }
+
+                // If custom blocks exist, show tabs
+                return (
+                  <Tabs defaultValue="default" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="default">Default Blocks</TabsTrigger>
+                      <TabsTrigger value="custom">Custom Blocks</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="default">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {defaultBlocks.map(renderBlockButton)}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="custom">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {customBlocks.map(renderBlockButton)}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                );
+              })()}
             </div>
           </div>
         </CardContent>
