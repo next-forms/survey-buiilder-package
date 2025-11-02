@@ -158,7 +158,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
 
   const layoutContent = (
     <div
-      className="survey-fullpage-layout min-h-max flex flex-col w-full"
+      className="survey-fullpage-layout min-h-max flex flex-col w-full p-4 sm:p-8"
       ref={containerRef}
     >
       {/* Debug Panel (only visible when enableDebug is true) */}

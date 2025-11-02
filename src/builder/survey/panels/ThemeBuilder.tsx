@@ -162,24 +162,29 @@ const parseTailwindClasses = (classString: string) => {
   };
 
   classes.forEach(cls => {
+    // Check for responsive breakpoint prefix
+    const breakpointMatch = cls.match(/^(sm|md|lg|xl|2xl):(.+)$/);
+    const breakpoint = breakpointMatch ? breakpointMatch[1] : '';
+    const actualClass = breakpointMatch ? breakpointMatch[2] : cls;
+
     // Font size
-    if (cls.startsWith('text-') && PRESET_OPTIONS.fontSize.some(opt => opt.value === cls)) {
+    if (actualClass.startsWith('text-') && PRESET_OPTIONS.fontSize.some(opt => opt.value === actualClass)) {
       parsed.fontSize = cls;
     }
     // Font weight
-    else if (cls.startsWith('font-')) {
+    else if (actualClass.startsWith('font-')) {
       parsed.fontWeight = cls;
     }
     // Text align
-    else if (['text-left', 'text-center', 'text-right', 'text-justify'].includes(cls)) {
+    else if (['text-left', 'text-center', 'text-right', 'text-justify'].includes(actualClass)) {
       parsed.textAlign = cls;
     }
     // Text color
-    else if (cls.startsWith('text-') && (cls.includes('[#') || cls.includes('-50') || cls.includes('-100') || cls.includes('-200') || cls.includes('-300') || cls.includes('-400') || cls.includes('-500') || cls.includes('-600') || cls.includes('-700') || cls.includes('-800') || cls.includes('-900'))) {
+    else if (actualClass.startsWith('text-') && (actualClass.includes('[#') || actualClass.includes('-50') || actualClass.includes('-100') || actualClass.includes('-200') || actualClass.includes('-300') || actualClass.includes('-400') || actualClass.includes('-500') || actualClass.includes('-600') || actualClass.includes('-700') || actualClass.includes('-800') || actualClass.includes('-900'))) {
       parsed.textColor = cls;
     }
     // Background color
-    else if (cls.startsWith('bg-')) {
+    else if (actualClass.startsWith('bg-')) {
       parsed.bgColor = cls;
     }
     // Hover Text color
@@ -191,30 +196,32 @@ const parseTailwindClasses = (classString: string) => {
       parsed.hoverBackgoundColor = cls;
     }
     // Border radius
-    else if (cls.startsWith('rounded')) {
+    else if (actualClass.startsWith('rounded')) {
       parsed.borderRadius = cls;
     }
     // Border width
-    else if (cls === 'border' || cls.match(/^border-\d+$/)) {
+    else if (actualClass === 'border' || actualClass.match(/^border-\d+$/)) {
       parsed.borderWidth = cls;
     }
     // Border color
-    else if (cls.startsWith('border-') && !cls.match(/^border-\d+$/)) {
+    else if (actualClass.startsWith('border-') && !actualClass.match(/^border-\d+$/)) {
       parsed.borderColor = cls;
     }
     // Shadow
-    else if (cls.startsWith('shadow')) {
+    else if (actualClass.startsWith('shadow')) {
       parsed.shadow = cls;
     }
-    // Padding
-    else if (cls.match(/^p[tlrbxy]?-/)) {
-      const [type, value] = cls.split('-');
-      parsed.padding[type] = value;
+    // Padding (with responsive support)
+    else if (actualClass.match(/^p[tlrbxy]?-/)) {
+      const [type, value] = actualClass.split('-');
+      const key = breakpoint ? `${breakpoint}:${type}` : type;
+      parsed.padding[key] = value;
     }
-    // Margin
-    else if (cls.match(/^m[tlrbxy]?-/)) {
-      const [type, value] = cls.split('-');
-      parsed.margin[type] = value;
+    // Margin (with responsive support)
+    else if (actualClass.match(/^m[tlrbxy]?-/)) {
+      const [type, value] = actualClass.split('-');
+      const key = breakpoint ? `${breakpoint}:${type}` : type;
+      parsed.margin[key] = value;
     }
     // Custom classes
     else {
@@ -223,6 +230,77 @@ const parseTailwindClasses = (classString: string) => {
   });
 
   return parsed;
+};
+
+// Helper functions for containerLayout spacing
+const parseContainerLayoutSpacing = (containerLayout: string) => {
+  const classes = containerLayout.split(' ').filter(Boolean);
+  const spacing: { padding: Record<string, string>; margin: Record<string, string> } = {
+    padding: {},
+    margin: {}
+  };
+
+  classes.forEach(cls => {
+    // Check for responsive breakpoint prefix
+    const breakpointMatch = cls.match(/^(sm|md|lg|xl|2xl):(.+)$/);
+    const breakpoint = breakpointMatch ? breakpointMatch[1] : '';
+    const actualClass = breakpointMatch ? breakpointMatch[2] : cls;
+
+    // Padding
+    if (actualClass.match(/^p[tlrbxy]?-/)) {
+      const [type, value] = actualClass.split('-');
+      const key = breakpoint ? `${breakpoint}:${type}` : type;
+      spacing.padding[key] = value;
+    }
+    // Margin
+    else if (actualClass.match(/^m[tlrbxy]?-/)) {
+      const [type, value] = actualClass.split('-');
+      const key = breakpoint ? `${breakpoint}:${type}` : type;
+      spacing.margin[key] = value;
+    }
+  });
+
+  return spacing;
+};
+
+const updateContainerLayoutSpacing = (
+  containerLayout: string,
+  newPadding: Record<string, string>,
+  newMargin: Record<string, string>
+) => {
+  const classes = containerLayout.split(' ').filter(Boolean);
+
+  // Remove existing spacing classes
+  const nonSpacingClasses = classes.filter(cls => {
+    const actualClass = cls.includes(':') ? cls.split(':')[1] : cls;
+    return !actualClass.match(/^[pm][tlrbxy]?-/);
+  });
+
+  // Add new padding classes
+  Object.entries(newPadding).forEach(([key, val]) => {
+    if (val !== '0') {
+      if (key.includes(':')) {
+        const [breakpoint, type] = key.split(':');
+        nonSpacingClasses.push(`${breakpoint}:${type}-${val}`);
+      } else {
+        nonSpacingClasses.push(`${key}-${val}`);
+      }
+    }
+  });
+
+  // Add new margin classes
+  Object.entries(newMargin).forEach(([key, val]) => {
+    if (val !== '0') {
+      if (key.includes(':')) {
+        const [breakpoint, type] = key.split(':');
+        nonSpacingClasses.push(`${breakpoint}:${type}-${val}`);
+      } else {
+        nonSpacingClasses.push(`${key}-${val}`);
+      }
+    }
+  });
+
+  return nonSpacingClasses.join(' ');
 };
 
 // Helper to extract color from Tailwind class
@@ -426,30 +504,36 @@ const SpacingControl: React.FC<{
   type: 'padding' | 'margin';
 }> = ({ value, onChange, type }) => {
   const prefix = type === 'padding' ? 'p' : 'm';
-  
-  const updateSpacing = (side: string, val: string) => {
+  const breakpoints = ['', 'sm', 'md', 'lg', 'xl', '2xl'];
+
+  const updateSpacing = (breakpoint: string, side: string, val: string) => {
     const newValue = { ...value };
+    const key = breakpoint ? `${breakpoint}:${prefix}${side}` : `${prefix}${side}`;
+
     if (val === '0') {
-      delete newValue[`${prefix}${side}`];
+      delete newValue[key];
     } else {
-      newValue[`${prefix}${side}`] = val;
+      newValue[key] = val;
     }
     onChange(newValue);
   };
 
-  const allValue = value[prefix] || '0';
+  const getSpacingValue = (breakpoint: string, side: string) => {
+    const key = breakpoint ? `${breakpoint}:${prefix}${side}` : `${prefix}${side}`;
+    return value[key] || '0';
+  };
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label className="capitalize">{type}</Label>
-        <Badge variant="outline" className="bg-background text-foreground">{Object.keys(value).length} rules</Badge>
-      </div>
-      
+  const renderBreakpointControls = (breakpoint: string) => {
+    const allValue = getSpacingValue(breakpoint, '');
+    const xValue = getSpacingValue(breakpoint, 'x');
+    const yValue = getSpacingValue(breakpoint, 'y');
+
+    return (
       <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+        {/* All sides */}
         <div className="flex items-center gap-2">
-          <Label className="w-16 text-xs">All</Label>
-          <Select value={allValue} onValueChange={(val) => updateSpacing('', val)}>
+          <Label className="w-20 text-xs">All</Label>
+          <Select value={allValue} onValueChange={(val) => updateSpacing(breakpoint, '', val)}>
             <SelectTrigger className="h-8">
               <SelectValue />
             </SelectTrigger>
@@ -460,9 +544,42 @@ const SpacingControl: React.FC<{
             </SelectContent>
           </Select>
         </div>
-        
+
         <Separator />
-        
+
+        {/* Axis controls */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2">
+            <Label className="w-20 text-xs">X (H)</Label>
+            <Select value={xValue} onValueChange={(val) => updateSpacing(breakpoint, 'x', val)}>
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRESET_OPTIONS.spacing.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="w-20 text-xs">Y (V)</Label>
+            <Select value={yValue} onValueChange={(val) => updateSpacing(breakpoint, 'y', val)}>
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRESET_OPTIONS.spacing.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Individual sides */}
         <div className="grid grid-cols-2 gap-2">
           {[
             { side: 't', label: 'Top' },
@@ -471,10 +588,10 @@ const SpacingControl: React.FC<{
             { side: 'l', label: 'Left' }
           ].map(({ side, label }) => (
             <div key={side} className="flex items-center gap-2">
-              <Label className="w-12 text-xs">{label}</Label>
-              <Select 
-                value={value[`${prefix}${side}`] || '0'} 
-                onValueChange={(val) => updateSpacing(side, val)}
+              <Label className="w-20 text-xs">{label}</Label>
+              <Select
+                value={getSpacingValue(breakpoint, side)}
+                onValueChange={(val) => updateSpacing(breakpoint, side, val)}
               >
                 <SelectTrigger className="h-8">
                   <SelectValue />
@@ -489,6 +606,31 @@ const SpacingControl: React.FC<{
           ))}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="capitalize">{type}</Label>
+        <Badge variant="outline" className="bg-background text-foreground">{Object.keys(value).length} rules</Badge>
+      </div>
+
+      <Tabs defaultValue="" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="" className="text-xs">Base</TabsTrigger>
+          <TabsTrigger value="sm" className="text-xs">SM</TabsTrigger>
+          <TabsTrigger value="md" className="text-xs">MD</TabsTrigger>
+          <TabsTrigger value="lg" className="text-xs">LG</TabsTrigger>
+          <TabsTrigger value="xl" className="text-xs">XL</TabsTrigger>
+          <TabsTrigger value="2xl" className="text-xs">2XL</TabsTrigger>
+        </TabsList>
+        {breakpoints.map(bp => (
+          <TabsContent key={bp} value={bp}>
+            {renderBreakpointControls(bp)}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };
@@ -527,10 +669,22 @@ const VisualStyleBuilder: React.FC<{
     
     // Add spacing classes
     Object.entries(newParsed.padding).forEach(([key, val]) => {
-      classes.push(`${key}-${val}`);
+      // Handle responsive classes (e.g., "sm:p" -> "sm:p-4")
+      if (key.includes(':')) {
+        const [breakpoint, type] = key.split(':');
+        classes.push(`${breakpoint}:${type}-${val}`);
+      } else {
+        classes.push(`${key}-${val}`);
+      }
     });
     Object.entries(newParsed.margin).forEach(([key, val]) => {
-      classes.push(`${key}-${val}`);
+      // Handle responsive classes (e.g., "md:m" -> "md:m-2")
+      if (key.includes(':')) {
+        const [breakpoint, type] = key.split(':');
+        classes.push(`${breakpoint}:${type}-${val}`);
+      } else {
+        classes.push(`${key}-${val}`);
+      }
     });
 
     // Add custom classes (filter empty strings to prevent double spaces)
@@ -1571,7 +1725,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                           <Grid3X3 className="w-4 h-4" />
                           Container Width
                         </Label>
-                        <Select 
+                        <Select
                           value={currentTheme.containerLayout.match(/max-w-\w+/)?.[0] || 'max-w-2xl'}
                           onValueChange={(val) => {
                             const newLayout = currentTheme.containerLayout.replace(/max-w-\w+/, val);
@@ -1588,6 +1742,42 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div>
+                        <Label className="mb-2">Container Padding</Label>
+                        <SpacingControl
+                          type="padding"
+                          value={parseContainerLayoutSpacing(currentTheme.containerLayout).padding}
+                          onChange={(newPadding) => {
+                            const currentSpacing = parseContainerLayoutSpacing(currentTheme.containerLayout);
+                            const newLayout = updateContainerLayoutSpacing(
+                              currentTheme.containerLayout,
+                              newPadding,
+                              currentSpacing.margin
+                            );
+                            handleThemeUpdate({ containerLayout: newLayout });
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="mb-2">Container Margin</Label>
+                        <SpacingControl
+                          type="margin"
+                          value={parseContainerLayoutSpacing(currentTheme.containerLayout).margin}
+                          onChange={(newMargin) => {
+                            const currentSpacing = parseContainerLayoutSpacing(currentTheme.containerLayout);
+                            const newLayout = updateContainerLayoutSpacing(
+                              currentTheme.containerLayout,
+                              currentSpacing.padding,
+                              newMargin
+                            );
+                            handleThemeUpdate({ containerLayout: newLayout });
+                          }}
+                        />
+                      </div>
+
+                      <Separator />
 
                       <div>
                         <Label>Background Style</Label>

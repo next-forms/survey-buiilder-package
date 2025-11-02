@@ -11,19 +11,12 @@ interface PreviewSurveyProps {
 export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
   const { state } = useSurveyBuilder();
 
-  console.log('[PreviewSurvey] Rendering with:', {
-    hasLayout: !!layout,
-    layoutType: typeof layout,
-    layoutName: typeof layout === 'function' ? (layout.name || 'Anonymous') : layout,
-    hasRootNode: !!state.rootNode,
-  });
-
   return (
-    <div className="container-fluid min-h-screen">
+    <div className="w-full h-full">
       {state.rootNode ? (
         <SurveyForm
           survey={state}
-          enableDebug={true}
+          enableDebug={false}
           layout={layout}
           progressBar={{
             type: 'percentage',
@@ -33,7 +26,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
           }}
         />
       ) : (
-        <p>Add some blocks to see survey in action</p>
+        <p className="p-4">Add some blocks to see survey in action</p>
       )}
     </div>
   );

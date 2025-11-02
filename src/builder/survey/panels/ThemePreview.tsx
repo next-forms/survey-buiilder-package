@@ -119,7 +119,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state, layout }) => 
             {state.rootNode ? (
               <SurveyForm
                 survey={{...state, theme}}
-                enableDebug={true}
+                enableDebug={false}
                 layout={layout}
                 theme={theme.name}
                 themeMode={surveyThemeMode}
