@@ -139,7 +139,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   <h2 className="text-xl font-bold shrink-0">Form Builder</h2>
 
   {/* Controls */}
-  <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto lg:flex-nowrap">
+  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
     {/* Tabs */}
     <Tabs
       value={state.displayMode}
