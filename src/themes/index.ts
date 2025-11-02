@@ -6,7 +6,7 @@ export type { ThemeDefinition } from "../types";
 // Default theme - clean and refined
 export const defaultTheme: ThemeDefinition = {
   name: "default",
-  containerLayout: "max-w-full mx-auto py-6 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto",
   header: "mb-6",
   title: "text-2xl font-semibold text-gray-900 mb-2",
   description: "text-base text-gray-600",
@@ -79,7 +79,7 @@ export const defaultTheme: ThemeDefinition = {
 // Minimal theme - clean and modern
 export const minimalTheme: ThemeDefinition = {
   name: "minimal",
-  containerLayout: "max-w-full mx-auto py-8 px-4 sm:px-6",
+  containerLayout: "max-w-xl mx-auto",
   header: "mb-6",
   title: "text-2xl font-light text-gray-900 mb-3",
   description: "text-base text-gray-600 mb-6",
@@ -152,7 +152,7 @@ export const minimalTheme: ThemeDefinition = {
 // Colorful theme - vibrant but refined
 export const colorfulTheme: ThemeDefinition = {
   name: "colorful",
-  containerLayout: "max-w-full mx-auto py-6 px-4 sm:px-6",
+  containerLayout: "max-w-4xl mx-auto",
   header: "mb-6",
   title: "text-2xl font-bold text-purple-900 mb-2",
   description: "text-base text-purple-700",
@@ -225,7 +225,7 @@ export const colorfulTheme: ThemeDefinition = {
 // Modern theme - clean and sophisticated
 export const modernTheme: ThemeDefinition = {
   name: "modern",
-  containerLayout: "max-w-full mx-auto py-4 px-4 sm:px-6",
+  containerLayout: "max-w-2xl mx-auto",
   header: "mb-6",
   title: "text-3xl font-light text-[#E67E4D] mb-4 leading-tight",
   description: "text-lg text-gray-700 leading-relaxed",
@@ -298,7 +298,7 @@ export const modernTheme: ThemeDefinition = {
 // Corporate theme - professional and clean
 export const corporateTheme: ThemeDefinition = {
   name: "corporate",
-  containerLayout: "max-w-full mx-auto py-6 px-4 sm:px-6",
+  containerLayout: "max-w-xl mx-auto",
   header: "mb-6",
   title: "text-xl font-bold text-gray-800 mb-2",
   description: "text-sm text-gray-600",
@@ -371,7 +371,7 @@ export const corporateTheme: ThemeDefinition = {
 // Dark theme - sleek and modern
 export const darkTheme: ThemeDefinition = {
   name: "dark",
-  containerLayout: "max-w-full mx-auto py-6 px-4 sm:px-6",
+  containerLayout: "max-w-full mx-auto",
   header: "mb-5",
   title: "text-2xl font-semibold text-gray-100 mb-2",
   description: "text-sm text-gray-300",
@@ -444,7 +444,7 @@ export const darkTheme: ThemeDefinition = {
 // Hims theme - clean medical aesthetic
 export const himsTheme: ThemeDefinition = {
   name: "hims",
-  containerLayout: "max-w-2xl mx-auto py-8 px-6 sm:px-8",
+  containerLayout: "max-w-2xl mx-auto",
   header: "mb-8 text-start",
   title: "text-2xl font-normal text-gray-900 mb-8 text-start",
   description: "text-base text-gray-600 mb-6 text-start",
@@ -517,7 +517,7 @@ export const himsTheme: ThemeDefinition = {
 // Uniloop theme - medical-friendly subtle version (unchanged as you already fixed it)
 export const uniloop: ThemeDefinition = {
   "name": "uniloop",
-  "containerLayout": "max-w-full mx-auto py-8 px-4 sm:px-6",
+  "containerLayout": "max-w-xl mx-auto ",
   "header": "mb-8",
   "title": "text-3xl font-semibold text-slate-800 mb-4 text-left",
   "description": "text-lg text-slate-600 mb-6 text-left",
