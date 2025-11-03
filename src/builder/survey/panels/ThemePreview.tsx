@@ -19,13 +19,6 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state, layout }) => 
   const [surveyThemeMode, setSurveyThemeMode] = useState<ThemeMode>('light');
   const [previewWidth, setPreviewWidth] = useState(400);
 
-  console.log('[PreviewSurvey] Rendering with:', {
-    hasLayout: !!layout,
-    layoutType: typeof layout,
-    layoutName: typeof layout === 'function' ? (layout.name || 'Anonymous') : layout,
-    hasRootNode: !!state.rootNode,
-  });
-
   // Predefined viewport sizes
   const viewportPresets = [
     { name: "Mobile", width: 375, icon: Smartphone },
