@@ -17,6 +17,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
         <SurveyForm
           survey={state}
           enableDebug={false}
+          abTestPreviewMode={true}
           layout={layout}
           progressBar={{
             type: 'percentage',

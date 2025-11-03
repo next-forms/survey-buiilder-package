@@ -1,43 +1,62 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import type { BlockRendererProps } from '../../types';
 import { getBlockDefinition } from '../../blocks';
-// Legacy renderers for blocks not yet migrated
-import { blockTypeMap, validateBlock } from '../../utils/blockAdapter';
+import { validateBlock } from '../../utils/blockAdapter';
 import { useSurveyForm } from '../../context/SurveyFormContext';
+import { getBlockDataForRendering } from '../../utils/abTestUtils';
+import { ABTestIndicator } from '../../components/ui/ABTestIndicator';
 
 /**
  * A component that renders different types of blocks based on their type
  */
-export const BlockRenderer = forwardRef<HTMLElement, BlockRendererProps>((props, ref) => {
+export const BlockRenderer = forwardRef<HTMLElement, BlockRendererProps>((props, _ref) => {
   const { block, value, onChange, onBlur, error, disabled, customComponents, theme = null, isVisible } = props;
-  const { getVisibleBlocks } = useSurveyForm();
+  const { analytics, enableDebug, abTestPreviewMode } = useSurveyForm();
+
+  // Apply A/B testing variant selection if enabled
+  const blockToRender = useMemo(() => {
+    return getBlockDataForRendering(block, analytics?.sessionId, enableDebug, abTestPreviewMode);
+  }, [block, analytics?.sessionId, enableDebug, abTestPreviewMode]);
 
   // If the block has a visibility condition and is explicitly not visible, don't render it
   if (isVisible === false) {
     return null;
   }
 
-  // Common props for all renderers (excluding ref since different components need different ref types)
-  const validationError = validateBlock(block);
-  const commonProps = {
-    value,
-    onChange,
-    onBlur,
-    error: error ?? (validationError === null ? undefined : validationError),
-    disabled,
-    theme
+  // Common props for all renderers
+  const validationError = validateBlock(blockToRender);
+
+  // Update props to use the selected variant
+  const updatedProps = {
+    ...props,
+    block: blockToRender,
   };
 
+  // Render A/B test indicator if debug mode is enabled and A/B testing is active
+  const abTestIndicator = enableDebug && blockToRender.abTest?.enabled ? (
+    <ABTestIndicator block={blockToRender} />
+  ) : null;
+
   // If there's a custom component for this block type, use it
-  if (customComponents && customComponents[block.type]) {
-    const CustomComponent = customComponents[block.type] as React.FC<BlockRendererProps>;
-    return <CustomComponent {...props} />;
+  if (customComponents && customComponents[blockToRender.type]) {
+    const CustomComponent = customComponents[blockToRender.type] as React.FC<BlockRendererProps>;
+    return (
+      <>
+        {abTestIndicator}
+        <CustomComponent {...updatedProps} />
+      </>
+    );
   }
 
   // Check if we have a unified block definition with renderBlock method
-  const blockDefinition = getBlockDefinition(block.type);
+  const blockDefinition = getBlockDefinition(blockToRender.type);
   if (blockDefinition?.renderBlock) {
-    return blockDefinition.renderBlock(props);
+    return (
+      <>
+        {abTestIndicator}
+        {blockDefinition.renderBlock(updatedProps)}
+      </>
+    );
   }
 
 });

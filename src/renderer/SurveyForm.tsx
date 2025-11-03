@@ -43,6 +43,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   className = '',
   themeMode = 'light',
   layout,
+  abTestPreviewMode = false,
   analytics,
 }) => {
   // Track render count to diagnose re-render issues
@@ -213,6 +214,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
             language={language}
             theme={themeConfig}
             logo={logo}
+            abTestPreviewMode={abTestPreviewMode}
             analytics={analytics}
           >
             <LayoutComponent {...layoutProps} />

@@ -63,9 +63,12 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
   }, [data.isEndBlock]);
 
   return (
-    <>
+    <div className="space-y-4 p-4 mt-4 border rounded-lg bg-card">
+      <div className="flex items-center gap-2">
+        <Label className="text-base font-semibold">Base Settings</Label>
+      </div>
+
       <div className="space-y-4 mt-4 mb-4">
-        <Label className="text-sm">Base Settings</Label>
         <div className="flex items-center gap-2 mt-4">
           <Checkbox
             id="is-end-block"
@@ -100,6 +103,6 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
           customFields={state.globalCustomFields}
         />
       )}
-    </>
+    </div>
   );
 };

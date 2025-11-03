@@ -2,14 +2,18 @@ import type React from "react";
 import { useState, Suspense, lazy } from "react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "../../../components/ui/card";
+import { Badge } from "../../../components/ui/badge";
+import { Label } from "../../../components/ui/label";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { BlockData } from "../../../types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
 import {CommonBlockRules} from "../../common/CommonBlockRules";
+import { PieChart } from "lucide-react";
 
 // Lazy load heavy rule editors - they're only used when dialog is open
 const NavigationRulesEditor = lazy(() => import("../../common/NavigationRulesEditor").then(m => ({ default: m.NavigationRulesEditor })));
 const ValidationRulesEditor = lazy(() => import("../../common/ValidationRulesEditor").then(m => ({ default: m.ValidationRulesEditor })));
+const ABTestEditor = lazy(() => import("../../common/ABTestEditor").then(m => ({ default: m.ABTestEditor })));
 
 interface ContentBlockItemProps {
   data: BlockData;
@@ -50,13 +54,19 @@ export const ContentBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <Card className="mb-4 content-block-item">
       <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2">
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           {blockDefinition.icon && <span>{blockDefinition.icon}</span>}
           <span className="font-medium">{data.name || blockDefinition.name}</span>
           {data.fieldName && (
             <span className="text-xs bg-muted px-2 py-1 rounded-md">
               {data.fieldName}
             </span>
+          )}
+          {data.abTest?.enabled && (
+            <Badge variant="secondary" className="gap-1">
+              <PieChart className="h-3 w-3" />
+              A/B Testing ({data.abTest.variants.length} variants)
+            </Badge>
           )}
         </div>
         <div className="flex flex-wrap gap-2 sm:flex-nowrap">
@@ -74,16 +84,22 @@ export const ContentBlockItem: React.FC<ContentBlockItemProps> = ({
                 <DialogTitle>Edit {blockDefinition.name}</DialogTitle>
               </DialogHeader>
               <div className="py-4">
+                <div className="space-y-4 p-4 mt-4 border rounded-lg bg-card">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-base font-semibold">Block Configuration</Label>
+                  </div>
+                  {blockDefinition.renderFormFields({
+                    data,
+                    onUpdate,
+                    onRemove: () => {
+                      setIsEditing(false);
+                      onRemove();
+                    },
+                  })}
+                </div>
                 <CommonBlockRules data={data} onUpdate={onUpdate} />
-                {blockDefinition.renderFormFields({
-                  data,
-                  onUpdate,
-                  onRemove: () => {
-                    setIsEditing(false);
-                    onRemove();
-                  },
-                })}
                 <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading editors...</div>}>
+                  <ABTestEditor data={data} onUpdate={onUpdate} />
                   <NavigationRulesEditor data={data} onUpdate={onUpdate} />
                   <ValidationRulesEditor data={data} onUpdate={onUpdate} />
                 </Suspense>

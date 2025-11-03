@@ -102,6 +102,7 @@ interface SurveyFormProviderProps {
   debug?: boolean;
   enableDebug?: boolean;
   logo?: any;
+  abTestPreviewMode?: boolean; // If true, bypasses storage and selects fresh variants each time
   analytics?: any; // Analytics configuration passed from SurveyForm
 }
 
@@ -124,6 +125,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   enableDebug = false,
   debug = false,
   logo = null,
+  abTestPreviewMode = false,
   analytics,
 }) => {
   // Debug log for resume functionality
@@ -973,6 +975,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
         getCurrentStepPosition,
         isCurrentPageValid,
         logo,
+        abTestPreviewMode,
         analytics
       }}
     >

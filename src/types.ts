@@ -232,6 +232,8 @@ export interface SurveyFormRendererProps {
   logo?: any;
   // Custom layout support
   layout?: string | React.FC<LayoutProps>;
+  // A/B testing configuration
+  abTestPreviewMode?: boolean; // If true, bypasses storage and selects fresh variants each time
   // Analytics configuration
   analytics?: {
     enabled?: boolean;
@@ -371,6 +373,7 @@ export interface SurveyFormContextProps {
   validateField: (fieldName: string, value: any) => string | null;
   enableDebug?: boolean;
   logo?: any;
+  abTestPreviewMode?: boolean;
   analytics?: {
     surveyId?: string;
     sessionId?: string;
@@ -471,6 +474,19 @@ export interface SwipeDirection {
     endY: number;
 }
 
+export interface ABTestVariant {
+  id: string;
+  name: string;
+  weight: number; // Relative weight for probability (e.g., 1, 2, 3)
+  blockData: BlockData;
+}
+
+export interface ABTestConfig {
+  enabled: boolean;
+  variants: ABTestVariant[];
+  selectedVariantId?: string; // Track which variant was selected for a user session
+}
+
 
 export interface BlockData {
   type: string;
@@ -495,6 +511,8 @@ export interface BlockData {
   autoContinueOnSelect?: boolean;
   /** Whether to show the continue button for this block/page */
   showContinueButton?: boolean;
+  /** A/B testing configuration */
+  abTest?: ABTestConfig;
   [key: string]: any;
 }
 
