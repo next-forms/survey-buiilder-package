@@ -170,10 +170,9 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className={className}>
-      <div className={`flex items-center ${alignmentClass}`}>
         {/* Previous Button */}
         {showPrevious && canGoBack && (
-          <div>
+          <>
             {renderPreviousButton ? (
               renderPreviousButton({
                 onClick: handlePrevious,
@@ -207,7 +206,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 {previousText}
               </button>
             )}
-          </div>
+          </>
         )}
 
         {/* Spacer for alignment */}
@@ -215,7 +214,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
 
         {/* Next/Submit Button */}
         {shouldShowNext && (
-          <div>
+          <>
             {renderNextButton ? (
               renderNextButton({
                 onClick: handleSubmit,
@@ -251,9 +250,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 {nextButtonText}
               </button>
             )}
-          </div>
+          </>
         )}
-      </div>
     </form>
   );
 };
