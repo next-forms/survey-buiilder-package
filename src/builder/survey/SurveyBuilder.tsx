@@ -26,6 +26,7 @@ interface SurveyBuilderProps {
   globalCustomFields?: GlobalCustomField[];
   customThemes?: Record<string, ThemeDefinition>;
   previewLayout?: string | React.FC<LayoutProps>;
+  customData?: any;
 }
 
 // The main component wrapped with provider
@@ -37,9 +38,10 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   globalCustomFields = [],
   customThemes = {},
   previewLayout,
+  customData,
 }) => {
   return (
-    <SurveyBuilderProvider initialData={initialData}>
+    <SurveyBuilderProvider initialData={initialData} customData={customData}>
       <SurveyBuilderContent
         onDataChange={onDataChange}
         blockDefinitions={blockDefinitions}

@@ -39,6 +39,7 @@ interface EnhancedSurveyFormContextProps extends SurveyFormContextProps {
   getCurrentStepPosition: () => number;
   isCurrentPageValid: boolean;
   analytics?: any;
+  customData?: any;
 }
 
 // Create context with default values
@@ -79,6 +80,7 @@ export const SurveyFormContext = createContext<EnhancedSurveyFormContextProps>({
   getCurrentStepPosition: () => 0,
   isCurrentPageValid: false,
   analytics: undefined,
+  customData: undefined,
 });
 
 // Props for the provider
@@ -104,6 +106,7 @@ interface SurveyFormProviderProps {
   logo?: any;
   abTestPreviewMode?: boolean; // If true, bypasses storage and selects fresh variants each time
   analytics?: any; // Analytics configuration passed from SurveyForm
+  customData?: any; // Custom data for custom blocks
 }
 
 // Provider component
@@ -127,6 +130,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   logo = null,
   abTestPreviewMode = false,
   analytics,
+  customData,
 }) => {
   // Debug log for resume functionality
   if(debug)
@@ -976,7 +980,8 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
         isCurrentPageValid,
         logo,
         abTestPreviewMode,
-        analytics
+        analytics,
+        customData
       }}
     >
       {children}

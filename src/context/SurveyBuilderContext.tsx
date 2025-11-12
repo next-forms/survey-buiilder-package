@@ -38,6 +38,7 @@ const initialState: SurveyBuilderState = {
   selectedNode: null,
   displayMode: "list",
   enableDebug: false,
+  customData: undefined,
 };
 
 // Action types
@@ -55,6 +56,7 @@ export const ActionTypes = {
   UPDATE_THEME: "UPDATE_THEME",
   IMPORT_SURVEY: "IMPORT_SURVEY",
   SET_GLOBAL_CUSTOM_FIELDS: "SET_GLOBAL_CUSTOM_FIELDS",
+  SET_CUSTOM_DATA: "SET_CUSTOM_DATA",
 };
 
 // Reducer
@@ -322,6 +324,12 @@ const surveyBuilderReducer = (
         globalCustomFields: action.payload,
       };
 
+    case ActionTypes.SET_CUSTOM_DATA:
+      return {
+        ...state,
+        customData: action.payload,
+      };
+
     default:
       return state;
   }
@@ -346,6 +354,7 @@ interface SurveyBuilderContextType {
   importSurvey: (data: { rootNode: NodeData; localizations?: LocalizationMap; theme?: ThemeDefinition }) => void;
   exportSurvey: () => { rootNode: NodeData | null; localizations: LocalizationMap; theme: ThemeDefinition };
   setGlobalCustomFields: (customFields: GlobalCustomField[]) => void;
+  setCustomData: (customData: any) => void;
 }
 
 export const SurveyBuilderContext = createContext<SurveyBuilderContextType | undefined>(
@@ -361,12 +370,14 @@ interface SurveyBuilderProviderProps {
     theme?: ThemeDefinition;
   };
   enableDebug?: boolean;
+  customData?: any;
 }
 
 export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
   children,
   initialData,
   enableDebug = false,
+  customData,
 }) => {
   const [state, dispatch] = useReducer(
     surveyBuilderReducer,
@@ -376,6 +387,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
       localizations: initialData?.localizations || { en: {} },
       theme: initialData?.theme || uniTheme,
       enableDebug,
+      customData,
     }
   );
 
@@ -505,6 +517,13 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     });
   };
 
+  const setCustomData = (customData: any) => {
+    dispatch({
+      type: ActionTypes.SET_CUSTOM_DATA,
+      payload: customData,
+    });
+  };
+
   const value = {
     state,
     dispatch,
@@ -521,6 +540,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     importSurvey,
     exportSurvey,
     setGlobalCustomFields,
+    setCustomData,
   };
 
   return (

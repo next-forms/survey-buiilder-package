@@ -117,6 +117,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, state, layout }) => 
                 layout={layout}
                 theme={theme.name}
                 themeMode={surveyThemeMode}
+                customData={state.customData}
                 progressBar={{
                   type: 'percentage',
                   showPercentage: true,

@@ -19,6 +19,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
           enableDebug={false}
           abTestPreviewMode={true}
           layout={layout}
+          customData={state.customData}
           progressBar={{
             type: 'percentage',
             showPercentage: true,

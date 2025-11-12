@@ -186,6 +186,7 @@ export interface SurveyBuilderState {
   displayMode: 'list' | 'graph' | 'flow' | 'lang' | 'theme';
   enableDebug?: boolean;
   globalCustomFields?: GlobalCustomField[];
+  customData?: any;
 }
 
 export interface SurveyBuilderAction {
@@ -265,6 +266,8 @@ export interface SurveyFormRendererProps {
     trackTimings?: boolean;
     customDimensions?: Record<string, any>;
   };
+  // Custom data for custom blocks
+  customData?: any;
 }
 
 
@@ -382,6 +385,7 @@ export interface SurveyFormContextProps {
     trackValidationErrors?: boolean;
     trackTimings?: boolean;
   };
+  customData?: any;
 }
 
 // New interfaces for conditional branching and validation
@@ -513,6 +517,7 @@ export interface BlockData {
   showContinueButton?: boolean;
   /** A/B testing configuration */
   abTest?: ABTestConfig;
+  isCustom?: boolean;
   [key: string]: any;
 }
 
