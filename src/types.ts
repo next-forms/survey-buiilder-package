@@ -25,6 +25,39 @@ export interface ContentBlockItemProps {
   onRemove?: () => void;
 }
 
+// Output schema types for blocks
+export type OutputSchemaScalar = {
+  type: 'string' | 'number' | 'boolean' | 'date';
+};
+
+export type OutputSchemaArray = {
+  type: 'array';
+  items: {
+    type: 'string' | 'number' | 'boolean' | 'object';
+  };
+};
+
+export type OutputSchemaObject = {
+  type: 'object';
+  properties: Record<string, {
+    type: 'string' | 'number' | 'boolean' | 'date' | 'object' | 'array';
+    optional?: boolean;
+    description?: string;
+  }>;
+};
+
+// Union type - for blocks that can return different types based on configuration
+export type OutputSchemaUnion = {
+  oneOf: Array<OutputSchemaScalar | OutputSchemaArray | OutputSchemaObject>;
+  // Optional: specify which block configuration field determines the type
+  discriminator?: {
+    propertyName: string;  // e.g., 'multiSelect'
+    mapping: Record<string, number>;  // maps config value (as string) to oneOf index
+  };
+};
+
+export type OutputSchema = OutputSchemaScalar | OutputSchemaArray | OutputSchemaObject | OutputSchemaUnion;
+
 export interface BlockDefinition {
   type: string;
   name: string;
@@ -41,6 +74,8 @@ export interface BlockDefinition {
   // Validation
   validate?: (data: BlockData) => string | null;
   validateValue?: (value: any, data: BlockData) => string | null;
+  // Output schema - defines what data structure this block returns
+  outputSchema?: OutputSchema;
 }
 
 export interface NodeDefinition {

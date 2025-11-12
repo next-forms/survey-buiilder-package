@@ -851,4 +851,20 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
     if (!data.options || data.options.length === 0) return "At least one option is required";
     return null;
   },
+  // Output schema - Union type based on multiSelect configuration
+  // - Single select mode (multiSelect: false): returns string (e.g., "option-1")
+  // - Multi-select mode (multiSelect: true): returns array (e.g., ["option-1", "option-2"])
+  outputSchema: {
+    oneOf: [
+      { type: 'string' },  // index 0: single select
+      { type: 'array', items: { type: 'string' } }  // index 1: multi-select
+    ],
+    discriminator: {
+      propertyName: 'multiSelect',
+      mapping: {
+        'false': 0,  // when multiSelect is false, use schema at index 0 (string)
+        'true': 1    // when multiSelect is true, use schema at index 1 (array)
+      }
+    }
+  },
 };

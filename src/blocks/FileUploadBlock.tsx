@@ -632,16 +632,16 @@ export const FileUploadBlock: BlockDefinition = {
       const files = Array.isArray(value) ? value : [value];
       const maxFiles = parseInt(data.maxFiles || "1", 10);
       const maxFileSize = parseInt(data.maxFileSize || "5", 10) * 1024 * 1024; // Convert MB to bytes
-      
+
       if (files.length > maxFiles) {
         return `Maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''} allowed`;
       }
-      
+
       for (const file of files) {
         if (file.size && file.size > maxFileSize) {
           return `File size must be less than ${data.maxFileSize || "5"}MB`;
         }
-        
+
         if (data.acceptedFileTypes && data.acceptedFileTypes.length > 0 && file.name) {
           const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
           if (!data.acceptedFileTypes.includes(fileExtension)) {
@@ -650,7 +650,11 @@ export const FileUploadBlock: BlockDefinition = {
         }
       }
     }
-    
+
     return null;
+  },
+  // Output schema - this block returns a string (file URL) or object with file information
+  outputSchema: {
+    type: 'string'
   },
 };

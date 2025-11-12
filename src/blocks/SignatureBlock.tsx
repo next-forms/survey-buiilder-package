@@ -447,4 +447,8 @@ export const SignatureBlock: BlockDefinition = {
     if (data.required && !value) return "Signature is required";
     return null;
   },
+  // Output schema - this block returns a base64-encoded image string
+  outputSchema: {
+    type: 'string'
+  },
 };

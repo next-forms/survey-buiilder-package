@@ -132,11 +132,25 @@ export function evaluateSimpleCondition(
 /**
  * Evaluates a complex condition rule against field values
  */
+/**
+ * Get a nested value from an object using dot notation
+ * For example: getNestedValue(values, "authResults.email") returns values.authResults?.email
+ */
+function getNestedValue(obj: Record<string, any>, path: string): any {
+  if (!path || !obj) return undefined;
+
+  // Split by dots and traverse the object
+  return path.split('.').reduce((current, key) => {
+    return current?.[key];
+  }, obj);
+}
+
 export function evaluateConditionRule(
   rule: ConditionRule,
   fieldValues: Record<string, any>
 ): boolean {
-  const fieldValue = fieldValues[rule.field];
+  // Support nested field paths (e.g., "authResults.email")
+  const fieldValue = getNestedValue(fieldValues, rule.field);
   return evaluateSimpleCondition(
     fieldValue,
     rule.operator,
@@ -502,11 +516,17 @@ export function evaluateCondition(
 /**
  * Translates a condition string to use explicit references to the values object
  * For example, converts "age > 18" to "values.age > 18"
+ * Also handles nested fields like "authResults.email" → "values.authResults.email"
  */
 function translateConditionToExplicitReferences(condition: string): string {
   // Replace variable names with values object references
-  // This regex looks for identifiers that aren't part of a property access
-  return condition.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b(?!\s*:|\s*\(|\[|\.])/g, (match, name) => {
+  // This regex looks for identifiers that:
+  // 1. Are not preceded by a dot (to avoid matching nested property names)
+  // 2. Are not followed by : or ( (to avoid function calls and object literals)
+  return condition.replace(/(?<!\.)(\b[a-zA-Z_$][a-zA-Z0-9_$]*(?:\.[a-zA-Z_$][a-zA-Z0-9_$]*)*)\b(?!\s*:|\s*\()/g, (match, name) => {
+    // Extract the root identifier (first part before any dots)
+    const rootName = name.split('.')[0];
+
     // Don't replace JavaScript keywords and common values
     const keywords = [
       'true', 'false', 'null', 'undefined', 'NaN', 'Infinity',
@@ -514,10 +534,11 @@ function translateConditionToExplicitReferences(condition: string): string {
       'new', 'this', 'typeof', 'instanceof', 'in'
     ];
 
-    if (keywords.includes(name)) {
+    if (keywords.includes(rootName)) {
       return name;
     }
 
+    // Replace the entire dotted path with values. prefix
     return `values.${name}`;
   });
 }

@@ -828,4 +828,26 @@ export const CheckoutBlock: BlockDefinition = {
     if (!data.fieldName) return "Field name is required";
     return null;
   },
+  // Output schema - this block returns comprehensive checkout information
+  outputSchema: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', optional: true, description: 'Customer email address' },
+      phone: { type: 'string', optional: true, description: 'Customer phone number' },
+      firstName: { type: 'string', optional: true, description: 'First name' },
+      lastName: { type: 'string', optional: true, description: 'Last name' },
+      fullName: { type: 'string', optional: true, description: 'Full name' },
+      company: { type: 'string', optional: true, description: 'Company name' },
+      shippingAddress: {
+        type: 'object',
+        optional: true,
+        description: 'Shipping address details'
+      },
+      billingAddress: {
+        type: 'object',
+        optional: true,
+        description: 'Billing address details'
+      }
+    }
+  },
 };

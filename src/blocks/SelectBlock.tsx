@@ -523,8 +523,12 @@ export const SelectBlock: BlockDefinition = {
   },
   validateValue: (value, data) => {
     if (data.required && !value) return "This field is required";
-    if (value && data.values && !data.values.includes(value)) 
+    if (value && data.values && !data.values.includes(value))
       return "Selected value is not valid";
     return null;
+  },
+  // Output schema - this block returns a single selected value (string or number)
+  outputSchema: {
+    type: 'string'
   },
 };

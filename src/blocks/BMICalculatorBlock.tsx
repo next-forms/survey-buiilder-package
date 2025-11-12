@@ -875,4 +875,15 @@ export const BMICalculatorBlock: BlockDefinition = {
     if (!data.fieldName) return "Field name is required";
     return null;
   },
+  // Output schema - this block returns BMI calculation results
+  outputSchema: {
+    type: 'object',
+    properties: {
+      bmi: { type: 'number', description: 'Calculated BMI value' },
+      category: { type: 'string', description: 'BMI category (underweight, normal, overweight, obese)' },
+      weight: { type: 'number', description: 'Weight value entered' },
+      height: { type: 'number', description: 'Height value entered' },
+      unit: { type: 'string', description: 'Unit system used (metric or imperial)' }
+    }
+  },
 };

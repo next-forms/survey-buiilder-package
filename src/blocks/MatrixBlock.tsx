@@ -736,4 +736,11 @@ export const MatrixBlock: BlockDefinition = {
     if (!data.options || data.options.length === 0) return "At least one option is required";
     return null;
   },
+  // Output schema - this block returns an object with question IDs mapped to selected values
+  outputSchema: {
+    type: 'object',
+    properties: {
+      // Dynamic keys based on questions, values are strings (selected option values)
+    }
+  },
 };

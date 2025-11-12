@@ -57,30 +57,19 @@ function buildRules(rules: RuleState[]): ValidationRule[] {
 }
 
 export function ValidationRulesEditor({ data, onUpdate }: Props) {
-  const { state } = useSurveyBuilder();
+  const { getAvailableFieldsUptoCurrent } = useSurveyBuilder();
   const [rules, setRules] = useState<RuleState[]>(() => parseRules(data));
 
   // Get all available fields for reference in validation rules
   const availableFields = React.useMemo(() => {
-    const fields: string[] = [];
-    const traverse = (node: any) => {
-      if (node.items) {
-        node.items.forEach((item: any) => {
-          if (item.type === 'set') {
-            traverse(item);
-          } else if (item.fieldName) {
-            fields.push(item.fieldName);
-          }
-        });
-      }
-    };
-    
-    if (state?.rootNode) {
-      traverse(state.rootNode);
+    const currentBlockId = data.uuid || data.fieldName;
+
+    if (!currentBlockId) {
+      return [];
     }
-    
-    return fields.filter((field, index, self) => self.indexOf(field) === index);
-  }, [state]);
+
+    return getAvailableFieldsUptoCurrent(currentBlockId);
+  }, [data.uuid, data.fieldName, getAvailableFieldsUptoCurrent]);
 
   const updateRules = useCallback((newRules: RuleState[]) => {
     setRules(newRules);

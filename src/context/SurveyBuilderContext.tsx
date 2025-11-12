@@ -1,8 +1,7 @@
 import type React from "react";
-import { act, createContext, useContext, useReducer, type ReactNode } from "react"
+import { createContext, useContext, useReducer, type ReactNode } from "react"
 import { v4 as uuidv4 } from "uuid";
 import {
-  BlockData,
   type BlockDefinition,
   type GlobalCustomField,
   type LocalizationMap,
@@ -14,6 +13,7 @@ import {
   type UUID
 } from "../types";
 import { uniloop as uniTheme } from "../themes";
+import { getOutputKeys, isObjectOutput } from "../utils/outputSchema";
 
 // Custom hook
 export const useSurveyBuilder = () => {
@@ -355,6 +355,11 @@ interface SurveyBuilderContextType {
   exportSurvey: () => { rootNode: NodeData | null; localizations: LocalizationMap; theme: ThemeDefinition };
   setGlobalCustomFields: (customFields: GlobalCustomField[]) => void;
   setCustomData: (customData: any) => void;
+  // Field collection utilities (includes nested fields from output schemas)
+  getAvailableFields: (currentBlockId: string) => string[];
+  getAvailableFieldsBefore: (currentBlockId: string) => string[];
+  getAvailableFieldsUptoCurrent: (currentBlockId: string) => string[];
+  getAvailableFieldsExcludingCurrent: (currentBlockId: string) => string[];
 }
 
 export const SurveyBuilderContext = createContext<SurveyBuilderContextType | undefined>(
@@ -524,6 +529,291 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     });
   };
 
+  // Helper: Find the path from root to a specific block
+  const findBlockPath = (node: any, targetUuid: string, currentPath: any[] = []): any[] | null => {
+    if (!node) return null;
+
+    const newPath = [...currentPath, node];
+
+    // Check if this node has the target block in its items
+    if (Array.isArray(node.items)) {
+      for (const item of node.items) {
+        if (item.uuid === targetUuid || item.fieldName === targetUuid) {
+          return [...newPath, item];
+        }
+      }
+    }
+
+    // Check if this node has items and recurse into them
+    if (Array.isArray(node.items)) {
+      for (const item of node.items) {
+        const result = findBlockPath(item, targetUuid, newPath);
+        if (result) return result;
+      }
+    }
+
+    // Check if this node has child nodes and recurse into them
+    if (Array.isArray(node.nodes)) {
+      for (const childNode of node.nodes) {
+        if (typeof childNode !== "string") {
+          const result = findBlockPath(childNode, targetUuid, newPath);
+          if (result) return result;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Helper: Collect field names from blocks, including nested fields from output schemas
+  const collectFieldsFromBlocks = (
+    blocks: any[],
+    options: {
+      stopAt?: string;  // Stop collecting when reaching this block ID
+      excludeBlock?: string;  // Exclude this block from collection
+    } = {}
+  ): string[] => {
+    const names: string[] = [];
+
+    for (const item of blocks) {
+      // Stop if we've reached the stop block
+      if (options.stopAt && (item.uuid === options.stopAt || item.fieldName === options.stopAt)) {
+        break;
+      }
+
+      // Skip if this is the excluded block
+      if (options.excludeBlock && (item.uuid === options.excludeBlock || item.fieldName === options.excludeBlock)) {
+        continue;
+      }
+
+      if (item.fieldName) {
+        names.push(item.fieldName);
+
+        // Check if this block has an output schema with nested fields
+        const blockDefinition = state.definitions?.blocks?.[item.type];
+        if (blockDefinition && item.fieldName) {
+          // Check if block outputs an object (which may have nested fields)
+          if (isObjectOutput(blockDefinition, item)) {
+            const outputKeys = getOutputKeys(blockDefinition, item);
+            // Add nested field accessors (e.g., "authResults.email")
+            for (const key of outputKeys) {
+              names.push(`${item.fieldName}.${key}`);
+            }
+          }
+        }
+      }
+
+      // Recurse into subitems if they exist
+      if (Array.isArray(item.items)) {
+        names.push(...collectFieldsFromBlocks(item.items, options));
+      }
+    }
+
+    return names;
+  };
+
+  // Get all available fields up to and including the current block
+  const getAvailableFields = (currentBlockId: string): string[] => {
+    if (!state.rootNode || !currentBlockId) {
+      return [];
+    }
+
+    const path = findBlockPath(state.rootNode, currentBlockId);
+    if (!path) {
+      return [];
+    }
+
+    const fieldNames: string[] = [];
+
+    // Collect fields from all nodes in the path
+    for (let i = 0; i < path.length; i++) {
+      const node = path[i];
+
+      if (node.fieldName) {
+        fieldNames.push(node.fieldName);
+      }
+
+      if (Array.isArray(node.items)) {
+        // For the last node in path, collect all items (including current block)
+        if (i === path.length - 1) {
+          fieldNames.push(...collectFieldsFromBlocks(node.items, {}));
+        } else {
+          fieldNames.push(...collectFieldsFromBlocks(node.items, {}));
+        }
+      }
+    }
+
+    return [...new Set(fieldNames)];
+  };
+
+  // Get available fields from blocks that exist before the current block
+  const getAvailableFieldsBefore = (currentBlockId: string): string[] => {
+    if (!state.rootNode || !currentBlockId) {
+      return [];
+    }
+
+    // Simple linear traversal: collect fields until we hit the current block
+    const fieldNames: string[] = [];
+    let found = false;
+
+    const traverse = (node: any): void => {
+      if (found) return;  // Stop traversing once we've found the current block
+
+      // Check if this is the current block
+      if (node.uuid === currentBlockId || node.fieldName === currentBlockId) {
+        found = true;
+        return;  // Don't include the current block
+      }
+
+      // Add this node's field name if it exists
+      if (node.fieldName) {
+        fieldNames.push(node.fieldName);
+
+        // Add nested fields from output schema
+        const blockDefinition = state.definitions?.blocks?.[node.type];
+        if (blockDefinition) {
+          if (isObjectOutput(blockDefinition, node)) {
+            const outputKeys = getOutputKeys(blockDefinition, node);
+            for (const key of outputKeys) {
+              fieldNames.push(`${node.fieldName}.${key}`);
+            }
+          }
+        }
+      }
+
+      // Recursively traverse child items
+      if (Array.isArray(node.items)) {
+        for (const item of node.items) {
+          if (found) break;
+          traverse(item);
+        }
+      }
+
+      // Recursively traverse child nodes
+      if (Array.isArray(node.nodes)) {
+        for (const childNode of node.nodes) {
+          if (found) break;
+          if (typeof childNode !== "string") {
+            traverse(childNode);
+          }
+        }
+      }
+    };
+
+    traverse(state.rootNode);
+    return [...new Set(fieldNames)];
+  };
+
+  // Get available fields up to and including the current block
+  // Get available fields from blocks that exist before the current block
+  const getAvailableFieldsUptoCurrent = (currentBlockId: string): string[] => {
+    if (!state.rootNode || !currentBlockId) {
+      return [];
+    }
+
+    // Simple linear traversal: collect fields until we hit the current block
+    const fieldNames: string[] = [];
+    let found = false;
+
+    const traverse = (node: any): void => {
+      if (found) return;  // Stop traversing once we've found the current block
+
+      // Check if this is the current block
+      if (node.uuid === currentBlockId || node.fieldName === currentBlockId) {
+        found = true;
+      }
+
+      // Add this node's field name if it exists
+      if (node.fieldName) {
+        fieldNames.push(node.fieldName);
+
+        // Add nested fields from output schema
+        const blockDefinition = state.definitions?.blocks?.[node.type];
+        if (blockDefinition) {
+          if (isObjectOutput(blockDefinition, node)) {
+            const outputKeys = getOutputKeys(blockDefinition, node);
+            for (const key of outputKeys) {
+              fieldNames.push(`${node.fieldName}.${key}`);
+            }
+          }
+        }
+      }
+
+      // Recursively traverse child items
+      if (Array.isArray(node.items)) {
+        for (const item of node.items) {
+          if (found) break;
+          traverse(item);
+        }
+      }
+
+      // Recursively traverse child nodes
+      if (Array.isArray(node.nodes)) {
+        for (const childNode of node.nodes) {
+          if (found) break;
+          if (typeof childNode !== "string") {
+            traverse(childNode);
+          }
+        }
+      }
+    };
+
+    traverse(state.rootNode);
+    return [...new Set(fieldNames)];
+  };
+
+  // Get available fields excluding the current block (all fields in survey except current)
+  const getAvailableFieldsExcludingCurrent = (currentBlockId: string): string[] => {
+    if (!state.rootNode || !currentBlockId) {
+      return [];
+    }
+
+    // Linear traversal: collect all fields except the current block
+    const fieldNames: string[] = [];
+
+    const traverse = (node: any): void => {
+      // Skip the current block
+      if (node.uuid === currentBlockId || node.fieldName === currentBlockId) {
+        return;
+      }
+
+      // Add this node's field name if it exists
+      if (node.fieldName) {
+        fieldNames.push(node.fieldName);
+
+        // Add nested fields from output schema
+        const blockDefinition = state.definitions?.blocks?.[node.type];
+        if (blockDefinition) {
+          if (isObjectOutput(blockDefinition, node)) {
+            const outputKeys = getOutputKeys(blockDefinition, node);
+            for (const key of outputKeys) {
+              fieldNames.push(`${node.fieldName}.${key}`);
+            }
+          }
+        }
+      }
+
+      // Recursively traverse child items
+      if (Array.isArray(node.items)) {
+        for (const item of node.items) {
+          traverse(item);
+        }
+      }
+
+      // Recursively traverse child nodes
+      if (Array.isArray(node.nodes)) {
+        for (const childNode of node.nodes) {
+          if (typeof childNode !== "string") {
+            traverse(childNode);
+          }
+        }
+      }
+    };
+
+    traverse(state.rootNode);
+    return [...new Set(fieldNames)];
+  };
+
   const value = {
     state,
     dispatch,
@@ -541,6 +831,10 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     exportSurvey,
     setGlobalCustomFields,
     setCustomData,
+    getAvailableFields,
+    getAvailableFieldsBefore,
+    getAvailableFieldsUptoCurrent,
+    getAvailableFieldsExcludingCurrent,
   };
 
   return (

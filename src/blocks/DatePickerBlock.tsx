@@ -539,18 +539,22 @@ export const DatePickerBlock: BlockDefinition = {
     if (value) {
       const dateValue = new Date(value);
       if (isNaN(dateValue.getTime())) return "Please enter a valid date";
-      
+
       if (data.minDate) {
         const minDate = new Date(data.minDate);
         if (dateValue < minDate) return `Date must be after ${minDate.toLocaleDateString()}`;
       }
-      
+
       if (data.maxDate) {
         const maxDate = new Date(data.maxDate);
         if (dateValue > maxDate) return `Date must be before ${maxDate.toLocaleDateString()}`;
       }
     }
-    
+
     return null;
+  },
+  // Output schema - this block returns a date as a string (ISO format)
+  outputSchema: {
+    type: 'date'
   },
 };

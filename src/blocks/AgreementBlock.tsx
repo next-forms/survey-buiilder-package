@@ -444,4 +444,13 @@ export const AgreementBlock: BlockDefinition = {
     if (data.requireSignature && !v.signatureDataUrl) return "Signature is required";
     return null;
   },
+  // Output schema - this block returns agreement data with name and signature
+  outputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: 'Signer full name' },
+      signatureDataUrl: { type: 'string', description: 'Base64-encoded signature image' },
+      timestamp: { type: 'string', optional: true, description: 'Timestamp when signed' }
+    }
+  },
 };

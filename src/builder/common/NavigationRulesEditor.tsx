@@ -1,6 +1,5 @@
 import React from "react";
 import { Label } from "../../components/ui/label";
-import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import {
   Select,
@@ -14,9 +13,9 @@ import {
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import type { BlockData, NavigationRule } from "../../types";
 import { NavigationRuleValueInput } from "./NavigationRuleValueInput";
-import { 
-  OPERATORS, 
-  enhancedRuleToStandard, 
+import {
+  OPERATORS,
+  enhancedRuleToStandard,
   standardRuleToEnhanced,
   type EnhancedNavigationRule
 } from "./navigation-rules-types";
@@ -52,7 +51,7 @@ function buildRule(state: RuleState): NavigationRule {
 }
 
 export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
-  const { state } = useSurveyBuilder();
+  const { state, getAvailableFieldsUptoCurrent } = useSurveyBuilder();
   
   // Initialize rules state early, before any conditional returns
   const [rules, setRules] = React.useState<RuleState[]>(() => {
@@ -226,42 +225,6 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
     return nodes;
   }, []);
 
-  const collectFieldNamesFromPath = React.useCallback((path: any[], currentBlockId: string): string[] => {
-    let names: string[] = [];
-    
-    for (let i = 0; i < path.length; i++) {
-      const node = path[i];
-      
-      // Add field name if this node has one
-      if (node.fieldName) {
-        names.push(node.fieldName);
-      }
-      
-      // Add field names from items in this node
-      if (Array.isArray(node.items)) {
-        for (const item of node.items) {
-          // If this is the last node in the path, only include items that come before current block
-          if (i === path.length - 1) {
-            // Stop when we reach the current block
-            if (item.uuid === currentBlockId || item.fieldName === currentBlockId) {
-              break;
-            }
-          }
-          
-          if (item.fieldName) {
-            names.push(item.fieldName);
-          }
-          
-          // If this item has subitems, add those too
-          if (Array.isArray(item.items)) {
-            names = names.concat(collectFieldNamesFromPath([item], currentBlockId));
-          }
-        }
-      }
-    }
-    
-    return names;
-  }, []);
 
   const collectPages = React.useCallback((node: any) => {
     if (!node) return [] as Array<{ uuid: string; name: string }>;
@@ -311,29 +274,14 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   const fieldOptions = React.useMemo(() => {
     // Get current block identifier (UUID or fieldName)
     const currentBlockId = data.uuid || data.fieldName;
-    
-    if (!currentBlockId || !state.rootNode) {
+
+    if (!currentBlockId) {
       return [];
     }
-    
-    // Find the path from root to current block
-    const path = findBlockPath(state.rootNode, currentBlockId);
-    
-    if (!path) {
-      return [];
-    }
-    
-    // Only collect field names from blocks in the path (up to but not including the current block)
-    const fieldNames = collectFieldNamesFromPath(path, currentBlockId);
-    
-    // Also include the current block's field name if it exists
-    if (data.fieldName) {
-      fieldNames.push(data.fieldName);
-    }
-    
-    // Remove duplicates and return
-    return [...new Set(fieldNames)];
-  }, [state.rootNode, data.uuid, data.fieldName, findBlockPath, collectFieldNamesFromPath]);
+
+    // Get fields that exist before the current block (for navigation conditions)
+    return getAvailableFieldsUptoCurrent(currentBlockId);
+  }, [data.uuid, data.fieldName, getAvailableFieldsUptoCurrent]);
   const pageOptions = React.useMemo(() => collectPages(state.rootNode), [state.rootNode]);
   const allBlockOptions = React.useMemo(() => collectBlocks(state.rootNode), [state.rootNode]);
   

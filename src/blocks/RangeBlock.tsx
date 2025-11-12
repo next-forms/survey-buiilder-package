@@ -432,16 +432,20 @@ export const RangeBlock: BlockDefinition = {
   },
   validateValue: (value, data) => {
     if (data.required && (value === null || value === undefined)) return "This field is required";
-    
+
     if (value !== null && value !== undefined) {
       const numValue = Number(value);
       const min = Number(data.min || 0);
       const max = Number(data.max || 100);
-      
+
       if (numValue < min) return `Value must be at least ${min}`;
       if (numValue > max) return `Value must be at most ${max}`;
     }
-    
+
     return null;
+  },
+  // Output schema - this block returns a numeric value (slider position)
+  outputSchema: {
+    type: 'number'
   },
 };

@@ -234,10 +234,14 @@ export const TextareaBlock: BlockDefinition = {
   },
   validateValue: (value, data) => {
     if (data.required && !value) return "This field is required";
-    if (data.minLength && value?.length < data.minLength) 
+    if (data.minLength && value?.length < data.minLength)
       return `Minimum ${data.minLength} characters required`;
-    if (data.maxLength && value?.length > data.maxLength) 
+    if (data.maxLength && value?.length > data.maxLength)
       return `Maximum ${data.maxLength} characters allowed`;
     return null;
+  },
+  // Output schema - this block returns multi-line text as a string
+  outputSchema: {
+    type: 'string'
   },
 };

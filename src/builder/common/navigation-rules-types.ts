@@ -202,21 +202,23 @@ export function enhancedRuleToStandard(rule: EnhancedNavigationRule): string {
 
 // Helper to parse standard rule to enhanced format
 export function standardRuleToEnhanced(condition: string): Partial<EnhancedNavigationRule> {
-  
-  // Try to match various patterns
+
+  // Try to match various patterns (updated to support nested field names with dots)
   const patterns = [
-    // Standard comparison: field == "value"
-    /^(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/,
+    // Standard comparison: field == "value" (supports nested like "bmi.bmi")
+    /^([\w.]+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/,
     // Contains/starts/ends: field.contains("value")
-    /^(\w+)\.(contains|startsWith|endsWith)\((.+)\)$/,
+    // Note: This is ambiguous with nested fields, so we need to be careful
+    // We'll match the entire path up to the last dot before the method
+    /^([\w.]+)\.(contains|startsWith|endsWith)\((.+)\)$/,
     // Array includes: ["a","b"].includes(field)
-    /^(\[.+\])\.includes\((\w+)\)$/,
+    /^(\[.+\])\.includes\(([\w.]+)\)$/,
     // Not includes: !["a","b"].includes(field)
-    /^!(\[.+\])\.includes\((\w+)\)$/,
-    // Empty checks: !field || field === ""
-    /^!(\w+)\s*\|\|\s*\1\s*===\s*""$/,
-    // Not empty: field && field !== ""
-    /^(\w+)\s*&&\s*\1\s*!==\s*""$/,
+    /^!(\[.+\])\.includes\(([\w.]+)\)$/,
+    // Empty checks: !field || field === "" (supports nested fields)
+    /^!([\w.]+)\s*\|\|\s*[\w.]+\s*===\s*""$/,
+    // Not empty: field && field !== "" (supports nested fields)
+    /^([\w.]+)\s*&&\s*[\w.]+\s*!==\s*""$/,
   ];
   
   for (const pattern of patterns) {
@@ -260,11 +262,11 @@ export function standardRuleToEnhanced(condition: string): Partial<EnhancedNavig
     }
   }
   
-  // Fallback - try to extract field and value
-  const fallbackMatch = condition.match(/^(\w+)\s*(.+)$/);
+  // Fallback - try to extract field and value (supports nested fields)
+  const fallbackMatch = condition.match(/^([\w.]+)\s*(.+)$/);
   if (fallbackMatch) {
     return { field: fallbackMatch[1], operator: '==', value: fallbackMatch[2] };
   }
-  
+
   return { field: '', operator: '==', value: '' };
 }

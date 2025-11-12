@@ -502,4 +502,6 @@ return age >= 18;`,
     }
     return null;
   },
+  // Note: ConditionalBlock is a container block - its output schema depends on the child block
+  // The actual output will match whatever the child block returns
 };

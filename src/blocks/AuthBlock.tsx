@@ -2180,12 +2180,12 @@ export const AuthBlock: BlockDefinition = {
     if (!data.requireEmail && !data.requireMobile) {
       return "Either email or mobile must be enabled for authentication to work";
     }
-    
+
     // Check that at least one auth URL is provided
     if (!data.loginUrl && !data.signupUrl) {
       return "At least one authentication URL (login or signup) is required";
     }
-    
+
     // Check OTP configuration
     if (data.useOtp) {
       if (data.requireEmail && (!data.sendEmailOtpUrl || !data.verifyEmailOtpUrl)) {
@@ -2195,7 +2195,22 @@ export const AuthBlock: BlockDefinition = {
         return "Both Send Mobile OTP URL and Verify Mobile OTP URL are required when Mobile is enabled with OTP";
       }
     }
-    
+
     return null;
+  },
+  // Output schema - this block returns a complex authentication object
+  outputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', optional: true, description: 'Full name of the user' },
+      firstName: { type: 'string', optional: true, description: 'First name (if using separate name fields)' },
+      lastName: { type: 'string', optional: true, description: 'Last name (if using separate name fields)' },
+      email: { type: 'string', optional: true, description: 'Email address' },
+      mobile: { type: 'string', optional: true, description: 'Mobile phone number' },
+      token: { type: 'string', description: 'Authentication token' },
+      isAuthenticated: { type: 'boolean', description: 'Whether authentication was successful' },
+      skipped: { type: 'boolean', description: 'Whether authentication was skipped' },
+      skipReason: { type: 'string', optional: true, description: 'Reason for skipping (if skipped)' },
+    }
   },
 };

@@ -86,7 +86,6 @@ export const NavigationRulesEditorDialog = ({
   nodeId,
   nodeName,
   navigationRules = [],
-  availableFields = [],
   availableTargets = { pages: [], blocks: [] },
   onSave,
   onClose
@@ -96,31 +95,11 @@ export const NavigationRulesEditorDialog = ({
   nodeId: string;
   nodeName: string;
   navigationRules: NavigationRule[];
-  availableFields: string[];
   availableTargets: { pages: Array<{ uuid: string; name: string }>, blocks: Array<{ uuid: string; name: string }> };
   onSave: (rules: NavigationRule[]) => void;
   onClose: () => void;
 }) => {
-  const { state } = useSurveyBuilder();
-
-  const collectFieldNames = React.useCallback((node: any): string[] => {
-    if (!node) return [];
-    let names: string[] = [];
-    if (node.fieldName) names.push(node.fieldName);
-    if (Array.isArray(node.items)) {
-      for (const item of node.items) {
-        names = names.concat(collectFieldNames(item));
-      }
-    }
-    if (Array.isArray(node.nodes)) {
-      for (const n of node.nodes) {
-        if (typeof n !== "string") {
-          names = names.concat(collectFieldNames(n));
-        }
-      }
-    }
-    return names;
-  }, []);
+  const { state, getAvailableFieldsUptoCurrent } = useSurveyBuilder();
 
   const collectPages = React.useCallback((node: any) => {
     if (!node) return [] as Array<{ uuid: string; name: string }>;
@@ -167,7 +146,10 @@ export const NavigationRulesEditorDialog = ({
     return blocks;
   }, []);
 
-  const fieldOptions = React.useMemo(() => collectFieldNames(state.rootNode), [state.rootNode]);
+  // Get fields that exist before the current node (for navigation conditions)
+  const fieldOptions = React.useMemo(() => {
+    return getAvailableFieldsUptoCurrent(nodeId);
+  }, [nodeId, getAvailableFieldsUptoCurrent]);
   const pageOptions = React.useMemo(() => collectPages(state.rootNode), [state.rootNode]);
   const blockOptions = React.useMemo(() => collectBlocks(state.rootNode), [state.rootNode]);
 

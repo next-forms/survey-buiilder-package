@@ -549,4 +549,9 @@ return "Low Risk";`,
     if (!data.dependencies || data.dependencies.length === 0) return "At least one dependency is required";
     return null;
   },
+  // Output schema - this block returns a calculated value (number or string based on formula)
+  // Note: Actual type depends on resultType configuration
+  outputSchema: {
+    type: 'number'
+  },
 };

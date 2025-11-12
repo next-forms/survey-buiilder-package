@@ -75,4 +75,68 @@ export const PatientBlock: BlockDefinition = {
     }
     return null;
   },
+  // Output schema - this block returns a patient authentication object with patient data
+  outputSchema: {
+    type: 'object',
+    properties: {
+      patient: {
+        type: 'object',
+        description: 'Complete patient information object'
+      },
+      token: {
+        type: 'string',
+        description: 'Authentication token'
+      },
+      firstName: {
+        type: 'string',
+        optional: true,
+        description: 'Patient first name'
+      },
+      middleName: {
+        type: 'string',
+        optional: true,
+        description: 'Patient middle name'
+      },
+      lastName: {
+        type: 'string',
+        optional: true,
+        description: 'Patient last name'
+      },
+      email: {
+        type: 'string',
+        optional: true,
+        description: 'Patient email address'
+      },
+      phone: {
+        type: 'string',
+        optional: true,
+        description: 'Patient phone number'
+      },
+      gender: {
+        type: 'string',
+        optional: true,
+        description: 'Patient gender identity'
+      },
+      genderBiological: {
+        type: 'string',
+        optional: true,
+        description: 'Patient biological gender'
+      },
+      dateOfBirth: {
+        type: 'string',
+        optional: true,
+        description: 'Patient date of birth'
+      },
+      height: {
+        type: 'string',
+        optional: true,
+        description: 'Patient height'
+      },
+      weight: {
+        type: 'string',
+        optional: true,
+        description: 'Patient weight'
+      }
+    }
+  },
 };
