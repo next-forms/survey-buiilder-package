@@ -96,8 +96,7 @@
 }
 
 /* Tailwind Class Overrides within Survey Scope */
-.survey-isolated-content .bg-background,
-.survey-isolated-content .bg-white {
+.survey-isolated-content .bg-background {
   background-color: var(--survey-bg);
 }
 
@@ -231,12 +230,6 @@
 .survey-isolated-content button.text-black,
 .survey-isolated-content [data-slot="button"].text-black {
   color: #000000;
-}
-
-/* Don't override inline styles or custom color classes on buttons */
-.survey-isolated-content button[style*="color"],
-.survey-isolated-content [data-slot="button"][style*="color"] {
-  /* Inline styles should take precedence */
 }
 
 /* Form Controls */
