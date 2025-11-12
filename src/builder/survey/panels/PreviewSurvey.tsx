@@ -6,9 +6,10 @@ import type { LayoutProps } from "../../../types";
 
 interface PreviewSurveyProps {
   layout?: string | React.FC<LayoutProps>;
+  logo?: any;
 }
 
-export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
+export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout, logo = null }) => {
   const { state } = useSurveyBuilder();
 
   return (
@@ -19,6 +20,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout }) => {
           enableDebug={false}
           abTestPreviewMode={true}
           layout={layout}
+          logo={logo}
           customData={state.customData}
           progressBar={{
             type: 'percentage',

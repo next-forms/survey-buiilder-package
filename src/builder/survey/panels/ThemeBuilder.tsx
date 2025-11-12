@@ -1048,9 +1048,10 @@ interface ThemeBuilderProps {
   onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap; theme?: ThemeDefinition }) => void;
   customThemes?: Record<string, ThemeDefinition>;
   layout?: string | React.FC<LayoutProps>;
+  logo?: any;
 }
 
-export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customThemes = {}, layout}) => {
+export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customThemes = {}, layout, logo = null}) => {
   const { state, updateTheme, exportSurvey } = useSurveyBuilder();
   const [currentTheme, setCurrentTheme] = useState<ThemeDefinition>(state.theme);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -2731,7 +2732,7 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
             flexShrink: 0
           }}
         >
-          <ThemePreview theme={currentTheme} state={state} layout={layout}/>
+          <ThemePreview theme={currentTheme} state={state} layout={layout} logo={logo}/>
         </div>
       </div>
     </div>

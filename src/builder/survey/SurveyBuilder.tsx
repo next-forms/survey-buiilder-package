@@ -27,6 +27,7 @@ interface SurveyBuilderProps {
   customThemes?: Record<string, ThemeDefinition>;
   previewLayout?: string | React.FC<LayoutProps>;
   customData?: any;
+  logo?: any;
 }
 
 // The main component wrapped with provider
@@ -39,6 +40,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   customThemes = {},
   previewLayout,
   customData,
+  logo = null,
 }) => {
   return (
     <SurveyBuilderProvider initialData={initialData} customData={customData}>
@@ -49,6 +51,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
         globalCustomFields={globalCustomFields}
         customThemes={customThemes}
         previewLayout={previewLayout}
+        logo={logo}
       />
     </SurveyBuilderProvider>
   );
@@ -62,6 +65,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   globalCustomFields = [],
   customThemes = {},
   previewLayout,
+  logo = null,
 }) => {
   const {
     state,
@@ -190,7 +194,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-scroll">
         <SheetHeader><SheetTitle>Theme Builder</SheetTitle></SheetHeader>
-        <ThemeBuilder onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
+        <ThemeBuilder logo={logo} onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
       </SheetContent>
     </Sheet>
 
@@ -223,7 +227,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </SheetTrigger>
       <SheetContent side="right" className="w-full p-0 overflow-y-auto border-0">
         <SheetHeader className="sr-only"><SheetTitle>Preview</SheetTitle></SheetHeader>
-        <PreviewSurvey layout={previewLayout} />
+        <PreviewSurvey layout={previewLayout} logo={logo} />
       </SheetContent>
     </Sheet>
 
