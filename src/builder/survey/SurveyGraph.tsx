@@ -1279,7 +1279,7 @@ export const SurveyGraph: React.FC<SurveyGraphProps> = ({
           nodeId={editingRules}
           nodeName={selectedNodeData.data.label}
           navigationRules={selectedNodeData.data.originalData.navigationRules || []}
-          availableFields={fieldNames}
+          // availableFields={fieldNames}
           availableTargets={targets}
           onSave={(rules: NavigationRule[]) => saveNavigationRules(editingRules, rules)}
           onClose={() => setEditingRules(null)}
