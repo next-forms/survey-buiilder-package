@@ -178,7 +178,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       {/* Logo Section - Positioned after header */}
       {logo && (
         <div className="w-full flex py-2 border-gray-100 mb-4 mx-auto">
-            {logo}
+            {logo()}
           </div>
       )}
 
