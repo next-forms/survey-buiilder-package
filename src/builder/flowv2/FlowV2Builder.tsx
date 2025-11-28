@@ -27,7 +27,7 @@ import { ConditionalEdge } from "./edges";
 import { FlowV2Sidebar } from "./FlowV2Sidebar";
 import { FlowV2Toolbar } from "./FlowV2Toolbar";
 import { pagelessToFlow, recalculatePositions } from "./utils/flowV2Transforms";
-import type { FlowV2Mode, BlockNodeData } from "./types";
+import type { FlowV2Mode, BlockNodeData, FlowV2Node, FlowV2Edge } from "./types";
 import { BlockData } from "../../types";
 import { v4 as uuidv4 } from "uuid";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
@@ -83,9 +83,6 @@ const FlowV2BuilderInner: React.FC = () => {
   // Handle new connection
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
-      // Only allow connections in connect mode
-      if (mode !== "connect") return;
-
       // Validate connection
       if (!params.source || !params.target) return;
 
@@ -94,21 +91,6 @@ const FlowV2BuilderInner: React.FC = () => {
         const hasBlocks = nodes.some((n) => n.type === "block");
         if (hasBlocks) return;
       }
-
-      // Add the edge
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...params,
-            type: "conditional",
-            data: {
-              condition: "new condition",
-              isDefault: false,
-            },
-          },
-          eds
-        )
-      );
 
       // Create navigation rule on source block
       const sourceNode = nodes.find((n) => n.id === params.source);
@@ -125,8 +107,10 @@ const FlowV2BuilderInner: React.FC = () => {
         }
 
         if (targetString) {
+          // Create new navigation rule
+          // Prefill with a sensible default condition
           const newRule = {
-            condition: `${blockData.fieldName || "field"} == ""`,
+            condition: `${blockData.fieldName || "field"} != ""`,
             target: targetString,
             isDefault: false,
           };
@@ -146,13 +130,13 @@ const FlowV2BuilderInner: React.FC = () => {
             items: updatedItems,
           });
 
-          // Open config panel to edit the rule
+          // Open config panel to edit the rule immediately
           setConfigNodeId(sourceNode.id);
           setShowNodeConfig(true);
         }
       }
     },
-    [mode, nodes, state.rootNode, updateNode, setEdges]
+    [nodes, state.rootNode, updateNode]
   );
 
   // Handle drag over for dropping new blocks
@@ -217,14 +201,6 @@ const FlowV2BuilderInner: React.FC = () => {
     [nodes, state.rootNode, state.definitions.blocks, screenToFlowPosition, updateNode]
   );
 
-  // Handle node click for configuration
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if (node.type === "block") {
-      setConfigNodeId(node.id);
-      setShowNodeConfig(true);
-    }
-  }, []);
-
   // Handle node double-click for inline editing
   const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     if (node.type === "block") {
@@ -275,10 +251,11 @@ const FlowV2BuilderInner: React.FC = () => {
 
   // Reset layout
   const handleResetLayout = useCallback(() => {
-    const flow = pagelessToFlow(state.rootNode);
-    setNodes(recalculatePositions(flow.nodes) as Node[]);
+    // Use recalculatePositions with current nodes to leverage measured dimensions (e.g. collapsed state)
+    const layoutedNodes = recalculatePositions(nodes as FlowV2Node[], edges as FlowV2Edge[]);
+    setNodes(layoutedNodes as Node[]);
     setTimeout(() => fitView({ padding: 0.2 }), 50);
-  }, [state.rootNode, setNodes, fitView]);
+  }, [nodes, edges, setNodes, fitView]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -318,6 +295,20 @@ const FlowV2BuilderInner: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [fitView, zoomIn, zoomOut]);
 
+  // Listen for custom configuration event from nodes
+  React.useEffect(() => {
+    const handleConfigEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ nodeId: string }>;
+      if (customEvent.detail?.nodeId) {
+        setConfigNodeId(customEvent.detail.nodeId);
+        setShowNodeConfig(true);
+      }
+    };
+
+    window.addEventListener('flow-v2-configure-node', handleConfigEvent);
+    return () => window.removeEventListener('flow-v2-configure-node', handleConfigEvent);
+  }, []);
+
   return (
     <div className="h-full flex flex-col">
       <FlowV2Toolbar
@@ -341,7 +332,6 @@ const FlowV2BuilderInner: React.FC = () => {
             onConnect={onConnect}
             onDragOver={onDragOver}
             onDrop={onDrop}
-            onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
             onNodesDelete={onNodesDelete}
             nodeTypes={nodeTypes}

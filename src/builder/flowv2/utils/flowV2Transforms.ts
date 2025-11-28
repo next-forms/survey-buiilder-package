@@ -1,19 +1,18 @@
-import type { NodeData, BlockData } from "../../../types";
+import type { NodeData, BlockData, NavigationRule } from "../../../types";
 import type { FlowV2Node, FlowV2Edge, BlockNodeData } from "../types";
 import { NODE_DIMENSIONS } from "../types";
+import dagre from "dagre";
 
 // Layout configuration
+// Using dagre defaults where possible, but these are useful for estimates
 const LAYOUT = {
-  startY: 80,
-  nodeSpacingY: 160,
-  nodeSpacingX: 350,
-  centerX: 500,
-  branchOffsetX: 300,
+  defaultNodeWidth: 400, 
+  defaultNodeHeight: 150, 
 };
 
 /**
  * Transform pageless survey data (rootNode.items = blocks) to React Flow nodes and edges
- * with proper branching layout based on navigation rules
+ * using dagre for layout.
  */
 export function pagelessToFlow(rootNode: NodeData | null): {
   nodes: FlowV2Node[];
@@ -23,57 +22,28 @@ export function pagelessToFlow(rootNode: NodeData | null): {
     return { nodes: [], edges: [] };
   }
 
-  const nodes: FlowV2Node[] = [];
+  let nodes: FlowV2Node[] = [];
   const edges: FlowV2Edge[] = [];
-
-  // Get blocks directly from rootNode.items (pageless mode)
   const blocks = (rootNode.items || []) as BlockData[];
 
-  // Analyze navigation rules to determine layout
-  const branchTargets = new Set<string>();
-  const branchSources = new Map<string, string[]>(); // source -> targets
+  // --- 1. Generate Nodes ---
 
-  blocks.forEach((block) => {
-    const rules = block.navigationRules || [];
-    if (rules.length > 0) {
-      const targets: string[] = [];
-      rules.forEach((rule) => {
-        if (rule.target && rule.target !== "submit") {
-          branchTargets.add(rule.target);
-          targets.push(rule.target);
-        }
-      });
-      if (targets.length > 0) {
-        branchSources.set(block.uuid || block.fieldName || "", targets);
-      }
-    }
-  });
-
-  // Calculate positions using a tree-like layout
-  const positions = calculateBranchingLayout(blocks, branchSources, branchTargets);
-
-  // Create start node
-  const startNode: FlowV2Node = {
+  // Start Node
+  nodes.push({
     id: "start",
     type: "start",
-    position: { x: LAYOUT.centerX - NODE_DIMENSIONS.start.width / 2, y: LAYOUT.startY },
-    data: { label: "Start" },
+    position: { x: 0, y: 0 }, // Will be calculated
+    data: { label: "Start Survey" },
     draggable: true,
-  };
-  nodes.push(startNode);
+  });
 
-  // Create block nodes with calculated positions
+  // Block Nodes
   blocks.forEach((block, index) => {
     const blockId = block.uuid || `block-${index}`;
-    const pos = positions.get(blockId) || {
-      x: LAYOUT.centerX - NODE_DIMENSIONS.block.width / 2,
-      y: LAYOUT.startY + NODE_DIMENSIONS.start.height + LAYOUT.nodeSpacingY * (index + 1),
-    };
-
-    const blockNode: FlowV2Node = {
+    nodes.push({
       id: blockId,
       type: "block",
-      position: pos,
+      position: { x: 0, y: 0 }, // Will be calculated
       data: {
         block,
         index,
@@ -81,231 +51,311 @@ export function pagelessToFlow(rootNode: NodeData | null): {
         isLast: index === blocks.length - 1,
       } as BlockNodeData,
       draggable: true,
-    };
-    nodes.push(blockNode);
+    });
   });
 
-  // Create submit node
-  const maxY = Math.max(...Array.from(positions.values()).map((p) => p.y), LAYOUT.startY);
-  const submitY = maxY + LAYOUT.nodeSpacingY;
-  const submitNode: FlowV2Node = {
+  // Submit Node
+  nodes.push({
     id: "submit",
     type: "submit",
-    position: { x: LAYOUT.centerX - NODE_DIMENSIONS.submit.width / 2, y: submitY },
-    data: { label: "Submit" },
+    position: { x: 0, y: 0 }, // Will be calculated
+    data: { label: "Submit / End" },
     draggable: true,
-  };
-  nodes.push(submitNode);
-
-  // Create edges
-  createEdges(blocks, edges);
-
-  return { nodes, edges };
-}
-
-/**
- * Calculate positions for blocks considering branching
- */
-function calculateBranchingLayout(
-  blocks: BlockData[],
-  branchSources: Map<string, string[]>,
-  branchTargets: Set<string>
-): Map<string, { x: number; y: number }> {
-  const positions = new Map<string, { x: number; y: number }>();
-
-  // Track which blocks are branch targets (they might be offset)
-  const blockColumns = new Map<string, number>(); // blockId -> column (0 = center, -1 = left, 1 = right)
-
-  // First pass: identify branches and assign columns
-  blocks.forEach((block, index) => {
-    const blockId = block.uuid || block.fieldName || `block-${index}`;
-
-    // Check if this block branches to multiple targets
-    const targets = branchSources.get(blockId) || [];
-    if (targets.length > 1) {
-      // This block branches - keep it centered, spread targets
-      blockColumns.set(blockId, 0);
-    } else if (branchTargets.has(blockId) || branchTargets.has(block.fieldName || "")) {
-      // This block is a branch target - might need to offset
-      // Find which branch it belongs to
-      let foundColumn = 0;
-      branchSources.forEach((targetList) => {
-        const targetIndex = targetList.indexOf(blockId) !== -1
-          ? targetList.indexOf(blockId)
-          : targetList.indexOf(block.fieldName || "");
-        if (targetIndex !== -1) {
-          foundColumn = targetIndex - Math.floor(targetList.length / 2);
-        }
-      });
-      blockColumns.set(blockId, foundColumn);
-    } else {
-      blockColumns.set(blockId, 0);
-    }
   });
 
-  // Second pass: calculate actual positions - simple sequential layout
-  // For now, just place blocks vertically in order
-  blocks.forEach((block, index) => {
-    const blockId = block.uuid || block.fieldName || `block-${index}`;
-    const column = blockColumns.get(blockId) || 0;
+  // --- 2. Generate Edges ---
 
-    const x = LAYOUT.centerX - NODE_DIMENSIONS.block.width / 2 + column * LAYOUT.branchOffsetX;
-    const y = LAYOUT.startY + NODE_DIMENSIONS.start.height + LAYOUT.nodeSpacingY * (index + 1);
-
-    positions.set(blockId, { x, y });
-  });
-
-  return positions;
-}
-
-/**
- * Create edges between nodes based on navigation rules and sequential flow
- */
-function createEdges(
-  blocks: BlockData[],
-  edges: FlowV2Edge[]
-): void {
-  // Start -> first block (or submit if no blocks)
-  if (blocks.length > 0) {
+  if (blocks.length === 0) {
+    // Empty survey: Start -> Submit
+    edges.push({
+      id: "start-to-submit",
+      source: "start",
+      target: "submit",
+      type: "smoothstep",
+      animated: true,
+      data: { isSequential: true },
+    });
+  } else {
+    // Start -> First Block
     const firstBlockId = blocks[0].uuid || "block-0";
     edges.push({
       id: "start-to-first",
       source: "start",
       target: firstBlockId,
-      type: "conditional",
+      type: "smoothstep",
+      animated: true,
       data: { isSequential: true },
     });
-  } else {
-    edges.push({
-      id: "start-to-submit",
-      source: "start",
-      target: "submit",
-      type: "conditional",
-      data: { isSequential: true },
-    });
-    return;
-  }
 
-  // Process each block
-  blocks.forEach((block, index) => {
-    const blockId = block.uuid || `block-${index}`;
-    const isLastBlock = index === blocks.length - 1;
-    const nextBlockId = isLastBlock ? "submit" : blocks[index + 1].uuid || `block-${index + 1}`;
+    // Block Connections
+    blocks.forEach((block, index) => {
+      const blockId = block.uuid || `block-${index}`;
+      const navRules = block.navigationRules || [];
+      const nextBlockId =
+        index < blocks.length - 1
+          ? blocks[index + 1].uuid || `block-${index + 1}`
+          : "submit";
 
-    const navigationRules = block.navigationRules || [];
+      // Collect all edges to be created for this block
+      const edgesByTarget: Record<string, any[]> = {};
 
-    if (navigationRules.length > 0) {
-      // Create edges for each navigation rule
-      navigationRules.forEach((rule, ruleIndex) => {
+      const addEdgeConfig = (config: any) => {
+        if (!edgesByTarget[config.targetId]) {
+          edgesByTarget[config.targetId] = [];
+        }
+        edgesByTarget[config.targetId].push(config);
+      };
+
+      // 1. Navigation Rules (Conditional)
+      navRules.forEach((rule, ruleIndex) => {
         const targetId = resolveNavigationTarget(rule.target, blocks);
-
-        edges.push({
-          id: `${blockId}-nav-${ruleIndex}`,
-          source: blockId,
-          target: targetId,
-          type: "conditional",
-          data: {
-            condition: rule.condition,
-            isDefault: rule.isDefault,
-            label: rule.isDefault ? "default" : rule.condition,
-            navigationRule: rule,
-          },
-        });
+        if (targetId) {
+          addEdgeConfig({
+            type: "rule",
+            targetId,
+            rule,
+            ruleIndex,
+          });
+        }
       });
 
-      // Add default sequential edge if no default rule exists
-      const hasDefault = navigationRules.some((r) => r.isDefault);
-      if (!hasDefault) {
-        edges.push({
-          id: `${blockId}-to-${nextBlockId}-seq`,
-          source: blockId,
-          target: nextBlockId,
-          type: "conditional",
-          data: {
-            isSequential: true,
-            isDefault: true,
-            label: "default",
-          },
+      // 2. Check if we need a default/sequential fallback
+      const hasDefaultRule = navRules.some((r) => r.isDefault);
+      if (!hasDefaultRule) {
+        addEdgeConfig({
+          type: "sequential",
+          targetId: nextBlockId,
         });
       }
-    } else {
-      // No navigation rules - just sequential flow
-      edges.push({
-        id: `${blockId}-to-${nextBlockId}`,
-        source: blockId,
-        target: nextBlockId,
-        type: "conditional",
-        data: { isSequential: true },
+
+      // Flatten and assign handles
+      const allEdgesForBlock: any[] = [];
+      Object.values(edgesByTarget).forEach((group) => {
+        group.forEach((config, idx) => {
+           allEdgesForBlock.push({
+             ...config,
+             parallelIndex: idx,
+             parallelTotal: group.length
+           });
+        });
       });
-    }
-  });
-}
+      
+      // Distribute handles
+      const edgeCount = allEdgesForBlock.length;
+      let handleIndices: number[] = [];
 
-/**
- * Resolve navigation target to node ID
- */
-function resolveNavigationTarget(target: string, blocks: BlockData[]): string {
-  if (target === "submit" || target === "end") {
-    return "submit";
-  }
+      if (edgeCount === 1) handleIndices = [2];
+      else if (edgeCount === 2) handleIndices = [1, 3];
+      else if (edgeCount === 3) handleIndices = [1, 2, 3];
+      else if (edgeCount === 4) handleIndices = [0, 1, 3, 4];
+      else handleIndices = allEdgesForBlock.map((_, i) => i % 5);
 
-  // Check if target matches a block's uuid or fieldName
-  const targetBlock = blocks.find((b) => b.uuid === target || b.fieldName === target);
+      // Create the actual edge objects
+      allEdgesForBlock.forEach((edgeConfig, i) => {
+        const sourceHandle = `source-${handleIndices[i]}`;
+        const isSequential = edgeConfig.type === "sequential";
+        const rule = edgeConfig.rule;
 
-  if (targetBlock) {
-    return targetBlock.uuid || `block-${blocks.indexOf(targetBlock)}`;
-  }
-
-  // Default to submit if target not found
-  return "submit";
-}
-
-/**
- * Recalculate node positions after reorder - maintains the branching structure
- */
-export function recalculatePositions(nodes: FlowV2Node[]): FlowV2Node[] {
-  const startNode = nodes.find((n) => n.type === "start");
-  const blockNodes = nodes.filter((n) => n.type === "block").sort((a, b) => {
-    const aData = a.data as BlockNodeData;
-    const bData = b.data as BlockNodeData;
-    return aData.index - bData.index;
-  });
-  const submitNode = nodes.find((n) => n.type === "submit");
-
-  const result: FlowV2Node[] = [];
-
-  if (startNode) {
-    result.push({
-      ...startNode,
-      position: {
-        x: LAYOUT.centerX - NODE_DIMENSIONS.start.width / 2,
-        y: LAYOUT.startY,
-      },
+        if (isSequential) {
+          edges.push({
+            id: `${blockId}-seq-${edgeConfig.targetId}`,
+            source: blockId,
+            sourceHandle,
+            target: edgeConfig.targetId,
+            type: "conditional",
+            label: navRules.length > 0 ? "Else" : undefined,
+            data: {
+              isSequential: true,
+              isDefault: true,
+              parallelIndex: edgeConfig.parallelIndex,
+              parallelTotal: edgeConfig.parallelTotal,
+            },
+            style: {
+              stroke: "#94a3b8",
+              strokeDasharray: "5,5",
+            },
+          });
+        } else {
+          edges.push({
+            id: `${blockId}-nav-${edgeConfig.ruleIndex}`,
+            source: blockId,
+            sourceHandle,
+            target: edgeConfig.targetId,
+            type: "conditional",
+            animated: !rule.isDefault,
+            label: rule.isDefault ? undefined : truncateLabel(rule.condition),
+            data: {
+              condition: rule.condition,
+              isDefault: rule.isDefault,
+              navigationRule: rule,
+              parallelIndex: edgeConfig.parallelIndex,
+              parallelTotal: edgeConfig.parallelTotal,
+            },
+            style: {
+              stroke: rule.isDefault ? "#94a3b8" : "#3b82f6",
+              strokeWidth: rule.isDefault ? 1 : 2,
+            },
+          });
+        }
+      });
     });
   }
 
-  blockNodes.forEach((node, index) => {
-    const y = LAYOUT.startY + NODE_DIMENSIONS.start.height + LAYOUT.nodeSpacingY * (index + 1);
-    result.push({
+  // --- 3. Compute Layout using Dagre ---
+  const layoutedNodes = computeDagreLayout(nodes, edges);
+
+  return { nodes: layoutedNodes, edges };
+}
+
+/**
+ * Helper to truncate long condition labels
+ */
+function truncateLabel(str?: string, maxLength = 20): string | undefined {
+  if (!str) return undefined;
+  return str.length > maxLength ? str.substring(0, maxLength) + "..." : str;
+}
+
+/**
+ * Resolve target ID from string (uuid or fieldName)
+ */
+function resolveNavigationTarget(target: string, blocks: BlockData[]): string | null {
+  if (!target) return null;
+  if (target === "submit" || target === "end") return "submit";
+
+  const targetBlock = blocks.find(
+    (b) => b.uuid === target || b.fieldName === target
+  );
+  return targetBlock ? targetBlock.uuid || "" : "submit";
+}
+
+/**
+ * Recalculate positions for existing nodes using Dagre.
+ * Supports using actual measured dimensions if available.
+ */
+export function recalculatePositions(nodes: FlowV2Node[], edges: FlowV2Edge[]): FlowV2Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ 
+    rankdir: "TB", 
+    nodesep: 80, // Horizontal separation
+    ranksep: 100, // Vertical separation
+    marginx: 50,
+    marginy: 50
+  });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  // Set nodes
+  nodes.forEach((node) => {
+    // Use measured dimensions if available, otherwise estimate
+    const width = node.measured?.width ?? estimateNodeSize(node).width;
+    const height = node.measured?.height ?? estimateNodeSize(node).height;
+    g.setNode(node.id, { width, height });
+  });
+
+  // Set edges
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  // Calculate layout
+  dagre.layout(g);
+
+  // Apply positions
+  return nodes.map((node) => {
+    const nodeWithPosition = g.node(node.id);
+    
+    const width = node.measured?.width ?? estimateNodeSize(node).width;
+    const height = node.measured?.height ?? estimateNodeSize(node).height;
+
+    // Dagre gives center coordinates, React Flow needs top-left
+    return {
       ...node,
       position: {
-        x: LAYOUT.centerX - NODE_DIMENSIONS.block.width / 2,
-        y,
+        x: nodeWithPosition.x - width / 2,
+        y: nodeWithPosition.y - height / 2,
       },
-    });
+    };
   });
+}
 
-  if (submitNode) {
-    const submitY =
-      LAYOUT.startY + NODE_DIMENSIONS.start.height + LAYOUT.nodeSpacingY * (blockNodes.length + 1);
-    result.push({
-      ...submitNode,
-      position: {
-        x: LAYOUT.centerX - NODE_DIMENSIONS.submit.width / 2,
-        y: submitY,
-      },
-    });
+/**
+ * Estimate node dimensions based on content
+ */
+function estimateNodeSize(node: FlowV2Node): { width: number; height: number } {
+  if (node.type === "start" || node.type === "submit") {
+    return { width: 150, height: 80 };
   }
 
-  return result;
+  if (node.type === "block") {
+    const block = (node.data as BlockNodeData).block;
+    // Block width constraint from CSS (min 320, max 450)
+    const width = 400; 
+    
+    // Base height for header + padding
+    let height = 100; 
+    
+    // Add height for content (rough estimate)
+    // If rendering options or complex fields, height increases
+    if (block.options && block.options.length > 0) {
+      // 40px per option approx, capped
+      height += Math.min(block.options.length * 40, 400);
+    } else {
+      // Default input field approx height
+      height += 80;
+    }
+    
+    // Add extra for label text wrapping
+    if (block.label && block.label.length > 50) {
+      height += 40;
+    }
+
+    return { width, height };
+  }
+
+  return { width: 200, height: 100 };
+}
+
+/**
+ * Compute initial layout using Dagre with estimated sizes
+ */
+function computeDagreLayout(
+  nodes: FlowV2Node[],
+  edges: FlowV2Edge[]
+): FlowV2Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ 
+    rankdir: 'TB', 
+    nodesep: 80, // Horizontal separation
+    ranksep: 100, // Vertical separation
+    marginx: 50,
+    marginy: 50
+  });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  // Set nodes
+  nodes.forEach((node) => {
+    const size = estimateNodeSize(node);
+    g.setNode(node.id, { width: size.width, height: size.height });
+  });
+
+  // Set edges
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  // Calculate layout
+  dagre.layout(g);
+
+  // Apply positions
+  return nodes.map((node) => {
+    const nodeWithPosition = g.node(node.id);
+    const size = estimateNodeSize(node);
+    
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - size.width / 2,
+        y: nodeWithPosition.y - size.height / 2,
+      },
+    };
+  });
 }
