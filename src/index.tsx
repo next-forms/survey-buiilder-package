@@ -162,6 +162,10 @@ export * from './utils/nodeUtils';
 export { useFlowHistory } from './builder/flow/useFlowHistory';
 export type { FlowHistoryState, FlowHistoryEntry, FlowHistory, UseFlowHistoryReturn } from './builder/flow/useFlowHistory';
 
+// Export FlowV2 builder for pageless mode
+export { FlowV2Builder } from './builder/flowv2/FlowV2Builder';
+export * from './builder/flowv2/types';
+
 // Export global custom fields components
 export { GlobalCustomFields } from './builder/common/GlobalCustomFields';
 export { ReferenceQuestionKeyField } from './examples/ReferenceQuestionKeyField';

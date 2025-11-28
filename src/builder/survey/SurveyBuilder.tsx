@@ -13,6 +13,7 @@ import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
 import { PreviewSurvey } from "./panels/PreviewSurvey";
 import { FlowBuilder } from "../flow/FlowBuilder";
+import { FlowV2Builder } from "../flowv2/FlowV2Builder";
 
 // Define the props
 interface SurveyBuilderProps {
@@ -170,7 +171,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </TabsList>
     </Tabs>
 
-    {/* Flow Builder */}
+    {/* Flow Builder - uses FlowV2 for pageless mode, FlowBuilder for paged mode */}
     <Sheet open={isFlowBuilderOpen} onOpenChange={setIsFlowBuilderOpen}>
       <SheetTrigger asChild>
         <Button type="button" variant="outline" className="grow lg:grow-0">
@@ -181,7 +182,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
         <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
           <div className="survey-flow h-full">
             {state.rootNode ? (
-              <FlowBuilder />
+              mode === 'pageless' ? <FlowV2Builder /> : <FlowBuilder />
             ) : (
               <div className="text-center p-12 bg-muted rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>
