@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
@@ -10,6 +10,7 @@ import { Settings } from "lucide-react";
 import { NavigationRulesEditor } from "../common/NavigationRulesEditor";
 import { ValidationRulesEditor } from "../common/ValidationRulesEditor";
 import { CommonBlockRules } from "../common/CommonBlockRules";
+import { ABTestEditor } from "../common/ABTestEditor";
 
 interface NodeConfigPanelProps {
   nodeId: string | null;
@@ -144,41 +145,36 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     // Full mode shows all sections
     return (
       <div className="space-y-4">
+        {/* Block-specific configuration using renderFormFields */}
+        <div className="space-y-4 p-4 mt-4 border rounded-lg bg-card">
+          <div className="flex items-center gap-2">
+            <Label className="text-base font-semibold">Block Configuration</Label>
+          </div>
+          {definition && definition.renderFormFields && (
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Block Configuration</Label>
+              {definition.renderFormFields({
+                data: blockData,
+                onUpdate: handleBlockUpdate,
+                onRemove: () => {}
+              })}
+            </div>
+          )}
+        </div>
+
+
         {/* Common Block Rules */}
         <CommonBlockRules 
           data={blockData} 
           onUpdate={handleBlockUpdate} 
         />
 
-        <Separator />
+        <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading editors...</div>}>
+          <ABTestEditor data={blockData} onUpdate={handleBlockUpdate} />
+          <NavigationRulesEditor data={blockData} onUpdate={handleBlockUpdate} />
+          <ValidationRulesEditor data={blockData} onUpdate={handleBlockUpdate} />
+        </Suspense>
 
-        {/* Block-specific configuration using renderFormFields */}
-        {definition && definition.renderFormFields && (
-          <div>
-            <Label className="text-sm font-medium mb-2 block">Block Configuration</Label>
-            {definition.renderFormFields({
-              data: blockData,
-              onUpdate: handleBlockUpdate,
-              onRemove: () => {}
-            })}
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Navigation Rules */}
-        <NavigationRulesEditor
-          data={blockData}
-          onUpdate={handleBlockUpdate}
-        />
-
-        <Separator />
-
-        {/* Validation Rules */}
-        <ValidationRulesEditor
-          data={blockData}
-          onUpdate={handleBlockUpdate}
-        />
       </div>
     );
   };

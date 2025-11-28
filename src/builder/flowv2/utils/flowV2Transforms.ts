@@ -83,7 +83,7 @@ export function pagelessToFlow(rootNode: NodeData | null): {
       id: "start-to-submit",
       source: "start",
       target: "submit",
-      type: "smoothstep",
+      type: "smart",
       animated: true,
       data: { isSequential: true },
     });
@@ -94,7 +94,7 @@ export function pagelessToFlow(rootNode: NodeData | null): {
       id: "start-to-first",
       source: "start",
       target: firstBlockId,
-      type: "smoothstep",
+      type: "smart",
       animated: true,
       data: { isSequential: true },
     });
@@ -174,7 +174,7 @@ export function pagelessToFlow(rootNode: NodeData | null): {
             source: blockId,
             sourceHandle,
             target: edgeConfig.targetId,
-            type: "conditional",
+            type: "smart",
             label: navRules.length > 0 ? "Else" : undefined,
             data: {
               isSequential: true,
@@ -193,7 +193,7 @@ export function pagelessToFlow(rootNode: NodeData | null): {
             source: blockId,
             sourceHandle,
             target: edgeConfig.targetId,
-            type: "conditional",
+            type: "smart",
             animated: !rule.isDefault,
             label: rule.isDefault ? undefined : truncateLabel(rule.condition),
             data: {

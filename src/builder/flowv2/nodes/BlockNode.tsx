@@ -10,8 +10,11 @@ import {
   ArrowRight,
   CircleDot,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  PieChart
 } from "lucide-react";
+import { Badge } from "../../../components/ui/badge";
+
 
 // Output handle positions for horizontal layout (distributed vertically on the right side)
 const OUTPUT_HANDLE_POSITIONS = [20, 35, 50, 65, 80]; // percentages from top
@@ -127,6 +130,16 @@ export const BlockNode = memo(({
             </div>
           )}
         </div>
+
+        <div className="flex-1 min-w-0">
+          {block.abTest?.enabled && (
+            <Badge variant="secondary" className="gap-1">
+              <PieChart className="h-3 w-3" />
+              A/B Testing ({block.abTest.variants.length} variants)
+            </Badge>
+          )}
+        </div>
+
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button

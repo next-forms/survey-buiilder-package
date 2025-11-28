@@ -5,9 +5,10 @@ import { CircleDot } from "lucide-react";
 
 interface FlowV2SidebarProps {
   onDragStart?: (blockType: string) => void;
+  onDragEnd?: () => void;
 }
 
-export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart }) => {
+export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart, onDragEnd }) => {
   const { state } = useSurveyBuilder();
 
   // Separate default and custom blocks
@@ -38,11 +39,16 @@ export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart }) => 
     onDragStart?.(blockType);
   };
 
+  const handleDragEnd = () => {
+    onDragEnd?.();
+  };
+
   const renderBlockItem = ([type, definition]: [string, any]) => (
     <div
       key={type}
       draggable
       onDragStart={(e) => handleDragStart(e, type)}
+      onDragEnd={handleDragEnd}
       className="
         flex items-center gap-2 px-3 py-2
         bg-white dark:bg-slate-800

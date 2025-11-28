@@ -13,6 +13,7 @@ import {
   ReactFlowProvider,
   Panel,
   type OnConnect,
+  type OnConnectEnd,
   type Node,
   type Edge,
   BackgroundVariant,
@@ -21,35 +22,37 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
-import { StartNode, BlockNode, SubmitNode } from "./nodes";
-import { ConditionalEdge } from "./edges";
+import { StartNode, BlockNode, SubmitNode, DropZoneNode } from "./nodes";
+import type { DropZoneNodeData } from "./nodes";
+import { ConditionalEdge, SmartEdge } from "./edges";
 import { FlowV2Sidebar } from "./FlowV2Sidebar";
 import { FlowV2Toolbar } from "./FlowV2Toolbar";
-import {
-  pagelessToFlow,
-  layoutWithMeasuredDimensions,
-} from "./utils/flowV2Transforms";
+import { pagelessToFlow } from "./utils/flowV2Transforms";
+import { useSmartLayout, analyzeFlowStructure } from "./hooks";
 import type { FlowV2Mode, BlockNodeData, FlowV2Node, FlowV2Edge } from "./types";
 import { BlockData } from "../../types";
 import { v4 as uuidv4 } from "uuid";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
-import { EdgeLabelProvider } from "./context";
+import { EdgeLabelProvider, NodeBoundsProvider, useNodeBoundsContext } from "./context";
+import type { NodeBounds } from "./context";
 
 // Define custom node types
 const nodeTypes: NodeTypes = {
   start: StartNode,
   block: BlockNode,
   submit: SubmitNode,
+  dropzone: DropZoneNode,
 };
 
 // Define custom edge types
 const edgeTypes: EdgeTypes = {
   conditional: ConditionalEdge,
+  smart: SmartEdge,
 };
 
-// Default edge options
+// Default edge options - use smart edges for better routing
 const defaultEdgeOptions = {
-  type: "conditional",
+  type: "smart",
   markerEnd: {
     type: MarkerType.ArrowClosed,
     width: 20,
@@ -66,14 +69,22 @@ interface FlowV2BuilderProps {
 const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   const { state, updateNode } = useSurveyBuilder();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView, zoomIn, zoomOut, screenToFlowPosition, getNodes } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, screenToFlowPosition, getNodes, getEdges } = useReactFlow();
 
   const [mode, setMode] = useState<FlowV2Mode>("select");
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const [showNodeConfig, setShowNodeConfig] = useState(false);
+  const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
+  const [flowMetrics, setFlowMetrics] = useState<{ complexity: string; blockCount: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const previousNodeCountRef = useRef<number>(0);
-  const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialRenderRef = useRef(true);
+
+  // Smart layout hooks
+  const { applySmartLayout } = useSmartLayout();
+
+  // Node bounds context for edge routing
+  const nodeBoundsContext = useNodeBoundsContext();
 
   // Convert survey data to flow nodes/edges
   const initialFlow = useMemo(() => {
@@ -83,81 +94,216 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
 
-  // Handle initial render - apply layout once nodes are measured
+  // Update node bounds for edge routing whenever nodes change position or size
   useEffect(() => {
-    if (!isInitialRenderRef.current) return;
+    const bounds: NodeBounds[] = nodes.map((node) => ({
+      id: node.id,
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width || (node.type === 'block' ? 350 : 150),
+      height: node.measured?.height || (node.type === 'block' ? 100 : 50),
+    }));
+    nodeBoundsContext.updateNodeBounds(bounds);
+  }, [nodes, nodeBoundsContext]);
+
+  // Track if this is the very first render (for initial fitView only)
+  const hasInitializedRef = useRef(false);
+
+  // Handle initial render ONLY - apply smart layout once nodes are measured
+  useEffect(() => {
+    // Only run once on first mount
+    if (hasInitializedRef.current) return;
 
     const checkAndLayout = () => {
       const currentNodes = getNodes();
+      const currentEdges = getEdges();
       const allMeasured = currentNodes.every(
         (n) => n.measured?.width && n.measured?.height
       );
 
       if (allMeasured && currentNodes.length > 0) {
-        const layoutedNodes = layoutWithMeasuredDimensions(
-          currentNodes as FlowV2Node[],
-          edges as FlowV2Edge[]
-        );
-        setNodes(layoutedNodes as Node[]);
+        // Use smart layout for initial positioning with fitView
+        applySmartLayout({
+          animate: false,
+          fitAfterLayout: true,
+          fitPadding: 0.12,
+        });
+
         previousNodeCountRef.current = currentNodes.length;
+        hasInitializedRef.current = true;
         isInitialRenderRef.current = false;
 
-        // Fit view to show all nodes after layout
-        setTimeout(() => {
-          fitView({ padding: 0.15, duration: 200 });
-        }, 50);
+        // Update flow metrics for display
+        const metrics = analyzeFlowStructure(
+          currentNodes as FlowV2Node[],
+          currentEdges as FlowV2Edge[]
+        );
+        setFlowMetrics({
+          complexity: metrics.complexity,
+          blockCount: metrics.blockNodes,
+        });
       }
     };
 
     // Small delay to allow React Flow to measure nodes
     const timeout = setTimeout(checkAndLayout, 80);
     return () => clearTimeout(timeout);
-  }, [nodes, edges, getNodes, setNodes, fitView]);
+  }, [nodes, edges, getNodes, getEdges, applySmartLayout]);
 
-  // Re-layout when node count changes (new nodes added/removed)
+  // Update metrics when node count changes (but DON'T re-layout or change viewport)
   useEffect(() => {
-    if (isInitialRenderRef.current) return;
+    if (!hasInitializedRef.current) return;
 
     const currentNodeCount = nodes.length;
     if (currentNodeCount !== previousNodeCountRef.current) {
-      // Debounce layout to avoid rapid successive layouts
-      if (layoutTimeoutRef.current) {
-        clearTimeout(layoutTimeoutRef.current);
-      }
+      previousNodeCountRef.current = currentNodeCount;
 
-      layoutTimeoutRef.current = setTimeout(() => {
-        const currentNodes = getNodes();
-        const allMeasured = currentNodes.every(
-          (n) => n.measured?.width && n.measured?.height
-        );
-
-        if (allMeasured) {
-          const layoutedNodes = layoutWithMeasuredDimensions(
-            currentNodes as FlowV2Node[],
-            edges as FlowV2Edge[]
-          );
-          setNodes(layoutedNodes as Node[]);
-          previousNodeCountRef.current = currentNodeCount;
-        }
-      }, 100);
+      // Only update metrics, don't re-layout
+      const currentNodes = getNodes();
+      const currentEdges = getEdges();
+      const metrics = analyzeFlowStructure(
+        currentNodes as FlowV2Node[],
+        currentEdges as FlowV2Edge[]
+      );
+      setFlowMetrics({
+        complexity: metrics.complexity,
+        blockCount: metrics.blockNodes,
+      });
     }
+  }, [nodes.length, getNodes, getEdges]);
 
-    return () => {
-      if (layoutTimeoutRef.current) {
-        clearTimeout(layoutTimeoutRef.current);
-      }
-    };
-  }, [nodes.length, edges, getNodes, setNodes]);
-
-  // Sync nodes when survey data changes
+  // Sync nodes when survey data changes - preserve viewport
   useEffect(() => {
     const flow = pagelessToFlow(state.rootNode);
     setNodes(flow.nodes as Node[]);
     setEdges(flow.edges as Edge[]);
-    isInitialRenderRef.current = true;
+    // Don't reset isInitialRenderRef - we want to preserve viewport
   }, [state.rootNode, setNodes, setEdges]);
 
-  // Handle new connection
+  // Generate drop zone positions based on provided nodes (not from state to avoid loops)
+  // Uses horizontal (LR) layout - drop zones appear between nodes horizontally
+  const generateDropZones = useCallback((currentNodes: Node[]): Node<DropZoneNodeData>[] => {
+    // Get block nodes sorted by X position (horizontal layout)
+    const blockNodes = currentNodes
+      .filter((n) => n.type === "block")
+      .sort((a, b) => a.position.x - b.position.x);
+
+    // Find the start node position
+    const startNode = currentNodes.find((n) => n.type === "start");
+    const startX = startNode?.position.x ?? 0;
+    const startY = startNode?.position.y ?? 0;
+    const startWidth = startNode?.measured?.width || 150;
+
+    // Generate drop zones between blocks and at start/end
+    const dropZones: Node<DropZoneNodeData>[] = [];
+
+    if (blockNodes.length === 0) {
+      // No blocks - single drop zone after start
+      dropZones.push({
+        id: "dropzone-start",
+        type: "dropzone",
+        position: {
+          x: startX + startWidth + 40, // Position to the right of start node
+          y: startY - 10,
+        },
+        data: { insertIndex: 0, isFirst: true, isLast: true, isVisible: true },
+        draggable: false,
+        selectable: false,
+        zIndex: 1000,
+      });
+    } else {
+      // Drop zone before first block (after start)
+      const firstBlock = blockNodes[0];
+      const firstBlockX = firstBlock.position.x;
+      dropZones.push({
+        id: "dropzone-start",
+        type: "dropzone",
+        position: {
+          x: startX + startWidth + (firstBlockX - startX - startWidth) / 2 - 100,
+          y: startY - 10,
+        },
+        data: { insertIndex: 0, isFirst: true, isVisible: true },
+        draggable: false,
+        selectable: false,
+        zIndex: 1000,
+      });
+
+      // Drop zones between each block and after last block
+      blockNodes.forEach((node, index) => {
+        const nodeWidth = node.measured?.width || 350;
+        const nextNode = blockNodes[index + 1];
+
+        if (nextNode) {
+          // Between two blocks - position in the gap
+          const gapStart = node.position.x + nodeWidth;
+          const gapEnd = nextNode.position.x;
+          const midX = gapStart + (gapEnd - gapStart) / 2 - 100;
+
+          dropZones.push({
+            id: `dropzone-${index + 1}`,
+            type: "dropzone",
+            position: {
+              x: midX,
+              y: node.position.y - 10,
+            },
+            data: { insertIndex: index + 1, isVisible: true },
+            draggable: false,
+            selectable: false,
+            zIndex: 1000,
+          });
+        } else {
+          // After the last block
+          dropZones.push({
+            id: `dropzone-end`,
+            type: "dropzone",
+            position: {
+              x: node.position.x + nodeWidth + 40,
+              y: node.position.y - 10,
+            },
+            data: { insertIndex: index + 1, isLast: true, isVisible: true },
+            draggable: false,
+            selectable: false,
+            zIndex: 1000,
+          });
+        }
+      });
+    }
+
+    return dropZones;
+  }, []);
+
+  // Track previous isDragging to detect changes
+  const prevIsDraggingRef = useRef(isDragging);
+
+  // Add/remove drop zones when dragging state changes
+  useEffect(() => {
+    // Only act when isDragging actually changes
+    if (prevIsDraggingRef.current === isDragging) return;
+    prevIsDraggingRef.current = isDragging;
+
+    if (isDragging) {
+      // Add drop zones
+      setNodes((currentNodes) => {
+        // Remove any existing drop zones first
+        const withoutDropZones = currentNodes.filter((n) => n.type !== "dropzone");
+        const dropZones = generateDropZones(withoutDropZones);
+        return [...withoutDropZones, ...dropZones];
+      });
+    } else {
+      // Remove drop zones
+      setNodes((currentNodes) => currentNodes.filter((n) => n.type !== "dropzone"));
+    }
+  }, [isDragging, generateDropZones, setNodes]);
+
+  // Track connection start for onConnectEnd
+  const connectingNodeId = useRef<string | null>(null);
+
+  // Handle connection start - track which node we're connecting from
+  const onConnectStart = useCallback((_event: MouseEvent | TouchEvent, params: { nodeId: string | null }) => {
+    connectingNodeId.current = params.nodeId;
+  }, []);
+
+  // Handle new connection (when dropped on a handle)
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
       // Validate connection
@@ -187,7 +333,7 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
           // Create new navigation rule
           // Prefill with a sensible default condition
           const newRule = {
-            condition: `${blockData.fieldName || "field"} != ""`,
+            condition: `${blockData.fieldName || "field"} == ""`,
             target: targetString,
             isDefault: false,
           };
@@ -209,9 +355,118 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
 
           // Open config panel to edit the rule immediately
           setConfigNodeId(sourceNode.id);
+          setConfigMode("navigation-only");
           setShowNodeConfig(true);
         }
       }
+
+      // Clear the connecting node ref
+      connectingNodeId.current = null;
+    },
+    [nodes, state.rootNode, updateNode]
+  );
+
+  // Handle connection end - detect if dropped on a node (not on a handle)
+  const onConnectEnd: OnConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      const sourceId = connectingNodeId.current;
+      if (!sourceId || !state.rootNode) {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Get the target element from the event
+      const targetElement = (event as MouseEvent).target as HTMLElement;
+      if (!targetElement) {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Find the closest node element by traversing up the DOM
+      const nodeElement = targetElement.closest('.react-flow__node');
+      if (!nodeElement) {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Get the node ID from the data attribute
+      const targetId = nodeElement.getAttribute('data-id');
+      if (!targetId || targetId === sourceId) {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Find the nodes
+      const sourceNode = nodes.find((n) => n.id === sourceId);
+      const targetNode = nodes.find((n) => n.id === targetId);
+
+      if (!sourceNode || !targetNode) {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Don't allow connections from non-block nodes
+      if (sourceNode.type !== "block") {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Don't allow connections to start node
+      if (targetNode.type === "start") {
+        connectingNodeId.current = null;
+        return;
+      }
+
+      // Don't allow connections from start to submit directly if there are blocks
+      if (sourceId === "start" && targetId === "submit") {
+        const hasBlocks = nodes.some((n) => n.type === "block");
+        if (hasBlocks) {
+          connectingNodeId.current = null;
+          return;
+        }
+      }
+
+      // Create navigation rule on source block
+      const blockData = (sourceNode.data as unknown as BlockNodeData).block;
+
+      let targetString = "";
+      if (targetNode.type === "submit") {
+        targetString = "submit";
+      } else if (targetNode.type === "block") {
+        const targetBlock = (targetNode.data as unknown as BlockNodeData).block;
+        targetString = targetBlock.uuid || targetBlock.fieldName || targetId;
+      }
+
+      if (targetString) {
+        // Create new navigation rule
+        const newRule = {
+          condition: `${blockData.fieldName || "field"} == ""`,
+          target: targetString,
+          isDefault: false,
+        };
+
+        const updatedBlock = {
+          ...blockData,
+          navigationRules: [...(blockData.navigationRules || []), newRule],
+        };
+
+        // Update the block in rootNode.items
+        const updatedItems = (state.rootNode.items || []).map((item) =>
+          (item as BlockData).uuid === blockData.uuid ? updatedBlock : item
+        );
+
+        updateNode(state.rootNode.uuid!, {
+          ...state.rootNode,
+          items: updatedItems,
+        });
+
+        // Open config panel to edit the rule immediately
+        setConfigNodeId(sourceNode.id);
+        setConfigMode("navigation-only");
+        setShowNodeConfig(true);
+      }
+
+      connectingNodeId.current = null;
     },
     [nodes, state.rootNode, updateNode]
   );
@@ -326,17 +581,27 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
     [state.rootNode, updateNode]
   );
 
-  // Reset layout - uses measured dimensions and resolves overlaps
+  // Reset layout - uses smart layout with animation
   const handleResetLayout = useCallback(() => {
+    applySmartLayout({
+      animate: true,
+      fitAfterLayout: true,
+      fitPadding: 0.15,
+    });
+    previousNodeCountRef.current = getNodes().length;
+
+    // Update metrics
     const currentNodes = getNodes();
-    const layoutedNodes = layoutWithMeasuredDimensions(
+    const currentEdges = getEdges();
+    const metrics = analyzeFlowStructure(
       currentNodes as FlowV2Node[],
-      edges as FlowV2Edge[]
+      currentEdges as FlowV2Edge[]
     );
-    setNodes(layoutedNodes as Node[]);
-    previousNodeCountRef.current = layoutedNodes.length;
-    setTimeout(() => fitView({ padding: 0.2 }), 50);
-  }, [edges, getNodes, setNodes, fitView]);
+    setFlowMetrics({
+      complexity: metrics.complexity,
+      blockCount: metrics.blockNodes,
+    });
+  }, [applySmartLayout, getNodes, getEdges]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -382,12 +647,127 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
       const customEvent = e as CustomEvent<{ nodeId: string }>;
       if (customEvent.detail?.nodeId) {
         setConfigNodeId(customEvent.detail.nodeId);
+        setConfigMode("full"); // Use full mode for regular configuration
         setShowNodeConfig(true);
       }
     };
 
     window.addEventListener('flow-v2-configure-node', handleConfigEvent);
     return () => window.removeEventListener('flow-v2-configure-node', handleConfigEvent);
+  }, []);
+
+  // Listen for drop events from drop zone nodes
+  React.useEffect(() => {
+    const handleDropBlock = (e: Event) => {
+      const customEvent = e as CustomEvent<{ blockType: string; insertIndex: number }>;
+      const { blockType, insertIndex } = customEvent.detail || {};
+
+      if (!blockType || !state.rootNode) return;
+
+      const blockDefinition = state.definitions.blocks[blockType];
+      if (!blockDefinition) return;
+
+      // Create new block data
+      const newBlockData = blockDefinition.generateDefaultData
+        ? blockDefinition.generateDefaultData()
+        : { ...blockDefinition.defaultData };
+
+      const newBlock: BlockData = {
+        ...newBlockData,
+        uuid: uuidv4(),
+      };
+
+      // Insert block at the correct position
+      const currentItems = (state.rootNode.items || []) as BlockData[];
+      const updatedItems = [
+        ...currentItems.slice(0, insertIndex),
+        newBlock,
+        ...currentItems.slice(insertIndex),
+      ];
+
+      updateNode(state.rootNode.uuid!, {
+        ...state.rootNode,
+        items: updatedItems,
+      });
+
+      // Hide drop zones after drop
+      setIsDragging(false);
+    };
+
+    window.addEventListener('flow-v2-drop-block', handleDropBlock);
+    return () => window.removeEventListener('flow-v2-drop-block', handleDropBlock);
+  }, [state.rootNode, state.definitions.blocks, updateNode]);
+
+  // Listen for delete navigation rule events from edge labels
+  React.useEffect(() => {
+    const handleDeleteNavigationRule = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        sourceNodeId: string;
+        targetNodeId: string;
+        edgeId: string;
+        condition: string;
+      }>;
+      const { sourceNodeId, targetNodeId, condition } = customEvent.detail || {};
+
+      if (!sourceNodeId || !state.rootNode) return;
+
+      // Find the source block and remove the matching navigation rule
+      const updatedItems = (state.rootNode.items || []).map((item) => {
+        const block = item as BlockData;
+        if (block.uuid === sourceNodeId && block.navigationRules) {
+          // Find and remove the navigation rule that matches the target and condition
+          const updatedRules = block.navigationRules.filter((rule) => {
+            // Match by target and condition
+            const ruleTarget = rule.target;
+            const ruleCondition = rule.condition;
+
+            // Check if this rule matches - compare target (which could be uuid or "submit")
+            // and condition
+            const targetMatches =
+              ruleTarget === targetNodeId ||
+              ruleTarget === "submit" && targetNodeId === "submit";
+
+            const conditionMatches = ruleCondition === condition;
+
+            // Keep the rule if it doesn't match (i.e., remove the one that matches)
+            return !(targetMatches && conditionMatches);
+          });
+
+          return {
+            ...block,
+            navigationRules: updatedRules,
+          };
+        }
+        return item;
+      });
+
+      updateNode(state.rootNode.uuid!, {
+        ...state.rootNode,
+        items: updatedItems,
+      });
+    };
+
+    window.addEventListener('flow-v2-delete-navigation-rule', handleDeleteNavigationRule);
+    return () => window.removeEventListener('flow-v2-delete-navigation-rule', handleDeleteNavigationRule);
+  }, [state.rootNode, updateNode]);
+
+  // Handle sidebar drag callbacks - show/hide drop zones
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Global drag end detection (in case drag ends outside sidebar)
+  React.useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('dragend', handleGlobalDragEnd);
+    return () => window.removeEventListener('dragend', handleGlobalDragEnd);
   }, []);
 
   return (
@@ -403,16 +783,18 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <FlowV2Sidebar />
+        <FlowV2Sidebar onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
 
         <div ref={reactFlowWrapper} className="flex-1 relative">
           <EdgeLabelProvider>
-            <ReactFlow
+              <ReactFlow
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
               onDragOver={onDragOver}
               onDrop={onDrop}
               onNodeDoubleClick={onNodeDoubleClick}
@@ -458,37 +840,73 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
                 }
               }}
               maskColor="rgba(0, 0, 0, 0.1)"
-              className="!shadow-lg !rounded-lg !border !border-slate-200"
+              className="!shadow-lg !border !border-slate-200"
             />
 
-            {/* Mode indicator panel */}
+            {/* Mode indicator panel with flow stats */}
             <Panel position="top-right" className="!m-4">
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 py-2 text-sm">
-                <span className="text-slate-500 dark:text-slate-400">Mode: </span>
-                <span className="font-medium text-slate-800 dark:text-slate-200 capitalize">
-                  {mode}
-                </span>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-slate-500 dark:text-slate-400">Mode:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+                    {mode}
+                  </span>
+                </div>
                 {mode === "connect" && (
-                  <span className="ml-2 text-xs text-amber-600">(Click nodes to connect)</span>
+                  <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-md">
+                    Click nodes to connect
+                  </div>
+                )}
+                {flowMetrics && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">Blocks:</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{flowMetrics.blockCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">Complexity:</span>
+                      <span className={`font-medium px-1.5 py-0.5 rounded text-[10px] uppercase ${
+                        flowMetrics.complexity === 'simple'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : flowMetrics.complexity === 'moderate'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                          : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                      }`}>
+                        {flowMetrics.complexity}
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             </Panel>
 
-            {/* Legend panel */}
+            {/* Enhanced Legend panel */}
             <Panel position="top-left" className="!m-4">
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 py-2 text-xs space-y-1">
-                <div className="font-medium text-slate-700 dark:text-slate-200 mb-2">Legend</div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-blue-500"></div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs space-y-2">
+                <div className="font-semibold text-slate-700 dark:text-slate-200 pb-1 border-b border-slate-100 dark:border-slate-700">
+                  Flow Legend
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-0.5 bg-blue-500 rounded-full"></div>
                   <span className="text-slate-600 dark:text-slate-400">Sequential flow</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-amber-500" style={{ backgroundImage: "repeating-linear-gradient(90deg, #f59e0b 0, #f59e0b 5px, transparent 5px, transparent 10px)" }}></div>
-                  <span className="text-slate-600 dark:text-slate-400">Conditional navigation</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-0.5 bg-amber-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Conditional branch</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-slate-400" style={{ backgroundImage: "repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 5px, transparent 5px, transparent 10px)" }}></div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-0.5 bg-slate-400 rounded-full" style={{ backgroundImage: "repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)" }}></div>
                   <span className="text-slate-600 dark:text-slate-400">Default fallback</span>
+                </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[9px]">V</kbd>
+                    <span>Select</span>
+                    <kbd className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[9px]">C</kbd>
+                    <span>Connect</span>
+                    <kbd className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[9px]">H</kbd>
+                    <span>Pan</span>
+                  </div>
                 </div>
               </div>
             </Panel>
@@ -502,18 +920,20 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
           open={showNodeConfig}
           onOpenChange={setShowNodeConfig}
           onUpdate={handleNodeUpdate}
-          mode="full"
+          mode={configMode}
         />
       </div>
     </div>
   );
 };
 
-// Wrapper component with ReactFlowProvider
+// Wrapper component with ReactFlowProvider and NodeBoundsProvider
 export const FlowV2Builder: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   return (
     <ReactFlowProvider>
-      <FlowV2BuilderInner onClose={onClose} />
+      <NodeBoundsProvider>
+        <FlowV2BuilderInner onClose={onClose} />
+      </NodeBoundsProvider>
     </ReactFlowProvider>
   );
 };
