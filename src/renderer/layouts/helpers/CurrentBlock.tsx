@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useSurveyForm } from '../../../context/SurveyFormContext';
 import { BlockRenderer } from '../../renderers/BlockRenderer';
-import { getSurveyPages } from '../../../utils/surveyUtils';
+import { getSurveyPages, detectSurveyMode } from '../../../utils/surveyUtils';
 
 interface CurrentBlockProps {
   /**
@@ -59,7 +59,8 @@ export const CurrentBlock: React.FC<CurrentBlockProps> = ({
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   // Get the current page blocks
-  const pages = getSurveyPages(surveyData.rootNode);
+  const surveyMode = detectSurveyMode(surveyData.rootNode);
+  const pages = getSurveyPages(surveyData.rootNode, surveyMode);
   const currentPageBlocks = currentPage < pages.length ? pages[currentPage] : [];
   const currentBlock = currentPageBlocks[currentBlockIndex];
 

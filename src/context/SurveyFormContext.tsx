@@ -9,7 +9,8 @@ import type {
   CustomValidator,
   BranchingLogic
 } from "../types";
-import { getSurveyPages, getSurveyPageIds, evaluateLogic } from "../utils/surveyUtils";
+import { getSurveyPages, getSurveyPageIds, evaluateLogic, detectSurveyMode } from "../utils/surveyUtils";
+import type { SurveyMode } from "../types";
 import { validationRuleToFunction } from "../builder/common/validation-rules-types";
 import {
   evaluateCondition,
@@ -88,6 +89,7 @@ interface SurveyFormProviderProps {
   children: ReactNode;
   surveyData: {
     rootNode: NodeData;
+    mode?: SurveyMode;
   };
   defaultValues?: Record<string, any>;
   initialValues?: Record<string, any>; // For loading saved answers
@@ -107,6 +109,13 @@ interface SurveyFormProviderProps {
   abTestPreviewMode?: boolean; // If true, bypasses storage and selects fresh variants each time
   analytics?: any; // Analytics configuration passed from SurveyForm
   customData?: any; // Custom data for custom blocks
+  /**
+   * Survey structure mode - determines how the survey data is organized
+   * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+   * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
+   * If not provided, auto-detects based on survey structure
+   */
+  mode?: SurveyMode;
 }
 
 // Provider component
@@ -131,6 +140,7 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   abTestPreviewMode = false,
   analytics,
   customData,
+  mode,
 }) => {
   // Debug log for resume functionality
   if(debug)
@@ -142,10 +152,19 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
       hasInitialValues: !!initialValues && Object.keys(initialValues).length > 0
     });
 
+  // Determine survey mode - use explicit mode prop, or from surveyData, or auto-detect
+  const surveyMode = mode ?? surveyData.mode ?? detectSurveyMode(surveyData.rootNode);
+
   // Get all pages from the survey - must be before state initialization
-  const pages = getSurveyPages(surveyData.rootNode);
-  const pageIds = getSurveyPageIds(surveyData.rootNode);
+  // In pageless mode, each block becomes its own "page"
+  const pages = getSurveyPages(surveyData.rootNode, surveyMode);
+  const pageIds = getSurveyPageIds(surveyData.rootNode, surveyMode);
   const totalPages = Math.max(1, pages.length);
+
+  if (debug) {
+    console.log('[SurveyFormProvider] Survey mode:', surveyMode);
+    console.log('[SurveyFormProvider] Pages:', pages.length, 'Page IDs:', pageIds.length);
+  }
 
   // State for form values and errors
   // Merge defaultValues with initialValues (initialValues takes precedence for loading saved answers)

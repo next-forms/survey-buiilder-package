@@ -10,7 +10,8 @@ import {
   type SurveyBuilderAction,
   type SurveyBuilderState,
   type ThemeDefinition,
-  type UUID
+  type UUID,
+  type SurveyMode
 } from "../types";
 import { uniloop as uniTheme } from "../themes";
 import { getOutputKeys, isObjectOutput } from "../utils/outputSchema";
@@ -39,6 +40,7 @@ const initialState: SurveyBuilderState = {
   displayMode: "list",
   enableDebug: false,
   customData: undefined,
+  mode: 'paged',
 };
 
 // Action types
@@ -57,6 +59,7 @@ export const ActionTypes = {
   IMPORT_SURVEY: "IMPORT_SURVEY",
   SET_GLOBAL_CUSTOM_FIELDS: "SET_GLOBAL_CUSTOM_FIELDS",
   SET_CUSTOM_DATA: "SET_CUSTOM_DATA",
+  SET_MODE: "SET_MODE",
 };
 
 // Reducer
@@ -330,6 +333,12 @@ const surveyBuilderReducer = (
         customData: action.payload,
       };
 
+    case ActionTypes.SET_MODE:
+      return {
+        ...state,
+        mode: action.payload,
+      };
+
     default:
       return state;
   }
@@ -376,6 +385,13 @@ interface SurveyBuilderProviderProps {
   };
   enableDebug?: boolean;
   customData?: any;
+  /**
+   * Survey structure mode - determines how the survey data is organized
+   * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+   * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
+   * @default 'paged'
+   */
+  mode?: SurveyMode;
 }
 
 export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
@@ -383,6 +399,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
   initialData,
   enableDebug = false,
   customData,
+  mode = 'paged',
 }) => {
   const [state, dispatch] = useReducer(
     surveyBuilderReducer,
@@ -393,6 +410,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
       theme: initialData?.theme || uniTheme,
       enableDebug,
       customData,
+      mode,
     }
   );
 
@@ -414,18 +432,33 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
   const createId = () => uuidv4();
 
   const initSurvey = () => {
+    // Create root node structure based on mode
+    const rootNode = state.mode === 'pageless'
+      ? {
+          // Pageless mode: blocks directly in rootNode.items (no pages/sets)
+          type: "section",
+          name: "New Form",
+          uuid: createId(),
+          items: [], // Blocks go directly here
+          navigationLogic: "",
+          entryLogic: "",
+          exitLogic: "",
+          backLogic: ""
+        }
+      : {
+          // Paged mode: traditional structure with pages (sets)
+          type: "section",
+          name: "New Form",
+          uuid: createId(),
+          items: [], // Pages (sets) go here
+          navigationLogic: "return 0;",
+          entryLogic: "",
+          exitLogic: "",
+          backLogic: ""
+        };
+
     const data = {
-      rootNode: {
-        type: "section",
-        name: "New Form",
-        uuid: createId(),
-        items: [
-        ],
-        navigationLogic: "return 0;",
-        entryLogic: "",
-        exitLogic: "",
-        backLogic: ""
-      },
+      rootNode,
       localizations: {
         en: {}
       },

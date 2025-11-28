@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSurveyForm } from '../../../context/SurveyFormContext';
-import { getSurveyPages } from '../../../utils/surveyUtils';
+import { getSurveyPages, detectSurveyMode } from '../../../utils/surveyUtils';
 
 interface NavigationButtonsProps {
   /**
@@ -119,7 +119,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   } = useSurveyForm();
 
   // Get the current page blocks to check for showContinueButton
-  const pages = getSurveyPages(surveyData.rootNode);
+  const surveyMode = detectSurveyMode(surveyData.rootNode);
+  const pages = getSurveyPages(surveyData.rootNode, surveyMode);
   const currentPageBlocks = currentPage < pages.length ? pages[currentPage] : [];
   const currentBlock = currentPageBlocks[currentBlockIndex];
 

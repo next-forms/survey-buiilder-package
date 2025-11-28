@@ -1,11 +1,34 @@
-import type { NodeData, BlockData } from "../types";
+import type { NodeData, BlockData, SurveyMode } from "../types";
+
+/**
+ * Detects the survey mode based on the structure of rootNode
+ * - If rootNode.items contains 'set' blocks, it's paged mode
+ * - If rootNode.items contains non-set blocks directly, it's pageless mode
+ * @param rootNode The survey root node
+ * @returns The detected survey mode
+ */
+export function detectSurveyMode(rootNode: NodeData): SurveyMode {
+  if (!rootNode.items || rootNode.items.length === 0) {
+    return 'paged'; // Default to paged mode
+  }
+
+  // Check if any item is a 'set' (page) block
+  const hasSetBlocks = rootNode.items.some(item => item.type === 'set');
+
+  // If we have set blocks, it's paged mode; otherwise it's pageless mode
+  return hasSetBlocks ? 'paged' : 'pageless';
+}
 
 /**
  * Extracts all pages/sections from a survey
  * @param rootNode The survey root node
+ * @param mode Optional explicit mode override (if not provided, auto-detects)
  * @returns Array of page blocks
+ *
+ * In paged mode: Returns array where each element is an array of blocks in a page (set)
+ * In pageless mode: Returns array where each element is a single-block array (each block is its own "page")
  */
-export function getSurveyPages(rootNode: NodeData): Array<BlockData[]> {
+export function getSurveyPages(rootNode: NodeData, mode?: SurveyMode): Array<BlockData[]> {
   const pages: Array<BlockData[]> = [];
 
   // If there are no nodes or items, return empty array
@@ -13,26 +36,36 @@ export function getSurveyPages(rootNode: NodeData): Array<BlockData[]> {
     return pages;
   }
 
+  // Auto-detect mode if not provided
+  const surveyMode = mode ?? detectSurveyMode(rootNode);
+
   // Process items at the root level
   if (rootNode.items && rootNode.items.length > 0) {
-    // Check for 'set' blocks at the root level which should be treated as pages
-    const setBlocks = rootNode.items.filter(item => item.type === 'set');
-
-    if (setBlocks.length > 0) {
-      // Each 'set' block becomes a separate page
-      setBlocks.forEach(setBlock => {
-        if (setBlock.items && setBlock.items.length > 0) {
-          pages.push(setBlock.items);
-        }
+    if (surveyMode === 'pageless') {
+      // Pageless mode: each block is its own "page"
+      rootNode.items.forEach(block => {
+        pages.push([block]);
       });
     } else {
-      // If no 'set' blocks, treat all items as a single page
-      pages.push(rootNode.items);
+      // Paged mode: check for 'set' blocks at the root level which should be treated as pages
+      const setBlocks = rootNode.items.filter(item => item.type === 'set');
+
+      if (setBlocks.length > 0) {
+        // Each 'set' block becomes a separate page
+        setBlocks.forEach(setBlock => {
+          if (setBlock.items && setBlock.items.length > 0) {
+            pages.push(setBlock.items);
+          }
+        });
+      } else {
+        // If no 'set' blocks, treat all items as a single page
+        pages.push(rootNode.items);
+      }
     }
   }
 
-  // Process child nodes (sections)
-  if (rootNode.nodes && rootNode.nodes.length > 0) {
+  // Process child nodes (sections) - only in paged mode
+  if (surveyMode === 'paged' && rootNode.nodes && rootNode.nodes.length > 0) {
     rootNode.nodes.forEach(nodeRef => {
       // Handle both node reference and inline node
       const node = typeof nodeRef === 'string' ? { type: 'section', uuid: nodeRef } : nodeRef;
@@ -61,7 +94,7 @@ export function getSurveyPages(rootNode: NodeData): Array<BlockData[]> {
 
       // Recursively process child nodes
       if (node.nodes && node.nodes.length > 0) {
-        const childPages = getSurveyPages(node);
+        const childPages = getSurveyPages(node, surveyMode);
         pages.push(...childPages);
       }
     });
@@ -77,24 +110,42 @@ export function getSurveyPages(rootNode: NodeData): Array<BlockData[]> {
 
 /**
  * Returns an array of page UUIDs in the same order as getSurveyPages
+ * @param rootNode The survey root node
+ * @param mode Optional explicit mode override (if not provided, auto-detects)
+ * @returns Array of UUIDs
+ *
+ * In paged mode: Returns UUIDs of set/page nodes
+ * In pageless mode: Returns UUIDs of individual blocks (each block is its own "page")
  */
-export function getSurveyPageIds(rootNode: NodeData): string[] {
+export function getSurveyPageIds(rootNode: NodeData, mode?: SurveyMode): string[] {
   const ids: string[] = [];
+
+  // Auto-detect mode if not provided
+  const surveyMode = mode ?? detectSurveyMode(rootNode);
 
   const processNode = (node: NodeData) => {
     if (node.items && node.items.length > 0) {
-      const setBlocks = node.items.filter(item => item.type === 'set');
-
-      if (setBlocks.length > 0) {
-        setBlocks.forEach(setBlock => {
-          ids.push(setBlock.uuid || '');
+      if (surveyMode === 'pageless') {
+        // Pageless mode: each block's UUID is a "page" ID
+        node.items.forEach(block => {
+          ids.push(block.uuid || '');
         });
       } else {
-        ids.push(node.uuid || '');
+        // Paged mode: check for set blocks
+        const setBlocks = node.items.filter(item => item.type === 'set');
+
+        if (setBlocks.length > 0) {
+          setBlocks.forEach(setBlock => {
+            ids.push(setBlock.uuid || '');
+          });
+        } else {
+          ids.push(node.uuid || '');
+        }
       }
     }
 
-    if (node.nodes && node.nodes.length > 0) {
+    // Process child nodes - only in paged mode
+    if (surveyMode === 'paged' && node.nodes && node.nodes.length > 0) {
       node.nodes.forEach(n => {
         const child = typeof n === 'string' ? { type: 'section', uuid: n } : n;
         if (child.type === 'section') {

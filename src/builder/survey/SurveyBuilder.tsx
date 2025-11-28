@@ -7,7 +7,7 @@ import { LocalizationEditor } from "./helpers/LocalizationEditor";
 import { v4 as uuidv4 } from "uuid";
 import { BlockLibrary } from "./panels/BlockLibrary";
 import { JsonEditor } from "./helpers/JsonEditor";
-import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition, LayoutProps } from "../../types";
+import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition, LayoutProps, SurveyMode } from "../../types";
 import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
@@ -28,6 +28,13 @@ interface SurveyBuilderProps {
   previewLayout?: string | React.FC<LayoutProps>;
   customData?: any;
   logo?: any;
+  /**
+   * Survey structure mode - determines how the survey data is organized
+   * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+   * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
+   * @default 'paged'
+   */
+  mode?: SurveyMode;
 }
 
 // The main component wrapped with provider
@@ -41,9 +48,10 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   previewLayout,
   customData,
   logo = null,
+  mode = 'paged',
 }) => {
   return (
-    <SurveyBuilderProvider initialData={initialData} customData={customData}>
+    <SurveyBuilderProvider initialData={initialData} customData={customData} mode={mode}>
       <SurveyBuilderContent
         onDataChange={onDataChange}
         blockDefinitions={blockDefinitions}
@@ -52,6 +60,7 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
         customThemes={customThemes}
         previewLayout={previewLayout}
         logo={logo}
+        mode={mode}
       />
     </SurveyBuilderProvider>
   );
@@ -66,6 +75,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   customThemes = {},
   previewLayout,
   logo = null,
+  mode = 'paged',
 }) => {
   const {
     state,

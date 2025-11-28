@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../../components/ui/button";
 import { ChevronLeft, ArrowRight, History } from "lucide-react";
 import { cn } from '../../lib/utils';
-import { getSurveyPages } from "../../utils/surveyUtils";
+import { getSurveyPages, detectSurveyMode } from "../../utils/surveyUtils";
 import { AnalyticsTrackedLayout } from './AnalyticsTrackedLayout';
 
 interface RenderPageSurveyLayoutProps {
@@ -93,8 +93,9 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // Get the current page blocks from the surveyData in context
-  const pages = getSurveyPages(surveyData.rootNode);
+  // Detect survey mode and get the current page blocks from the surveyData in context
+  const surveyMode = detectSurveyMode(surveyData.rootNode);
+  const pages = getSurveyPages(surveyData.rootNode, surveyMode);
   const currentPageBlocks = currentPage < pages.length ? pages[currentPage] : [];
   const visibleCurrentPageBlocks = getVisibleBlocks(currentPageBlocks);
 

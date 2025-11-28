@@ -20,7 +20,8 @@ import {
   getSurveyPageIds,
   getLocalized,
   getThemeClass,
-  formatFieldName
+  formatFieldName,
+  detectSurveyMode
 } from './utils/surveyUtils';
 
 import {
@@ -87,7 +88,8 @@ export {
   calculateBMI,
   supportsConditionalRendering,
   supportsBranchingLogic,
-  getSurveyPageIds
+  getSurveyPageIds,
+  detectSurveyMode
 };
 
 // Export public types

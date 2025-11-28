@@ -46,6 +46,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   abTestPreviewMode = false,
   analytics,
   customData,
+  mode,
 }) => {
   // Track render count to diagnose re-render issues
   const renderCountRef = React.useRef(0);
@@ -218,6 +219,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
             abTestPreviewMode={abTestPreviewMode}
             analytics={analytics}
             customData={customData}
+            mode={mode ?? survey.mode}
           >
             <LayoutComponent {...layoutProps} />
           </SurveyFormProvider>

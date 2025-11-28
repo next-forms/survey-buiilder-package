@@ -2,6 +2,13 @@ import type { JSX, ReactNode } from "react";
 
 export type UUID = string;
 
+/**
+ * Survey structure mode:
+ * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+ * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages/sets)
+ */
+export type SurveyMode = 'paged' | 'pageless';
+
 export interface NavigationRule {
   condition: string;
   target: UUID | string;
@@ -222,6 +229,12 @@ export interface SurveyBuilderState {
   enableDebug?: boolean;
   globalCustomFields?: GlobalCustomField[];
   customData?: any;
+  /**
+   * Survey structure mode - determines how the survey data is organized
+   * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+   * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
+   */
+  mode: SurveyMode;
 }
 
 export interface SurveyBuilderAction {
@@ -241,7 +254,15 @@ export interface SurveyFormRendererProps {
     rootNode: NodeData;
     localizations?: LocalizationMap;
     theme?: ThemeDefinition;
+    mode?: SurveyMode;
   };
+  /**
+   * Survey structure mode - determines how the survey data is organized
+   * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
+   * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
+   * @default 'paged'
+   */
+  mode?: SurveyMode;
   onSubmit?: (data: Record<string, any>) => void;
   onChange?: (data: Record<string, any>) => void;
   onPageChange?: (pageIndex: number, totalPages: number) => void;
