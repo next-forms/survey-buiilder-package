@@ -178,11 +178,11 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
           Flow Builder
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" onEscapeKeyDown={(event) => {event.preventDefault();}}>
+      <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" hideCloseButton onEscapeKeyDown={(event) => {event.preventDefault();}}>
         <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
           <div className="survey-flow h-full">
             {state.rootNode ? (
-              mode === 'pageless' ? <FlowV2Builder /> : <FlowBuilder />
+              mode === 'pageless' ? <FlowV2Builder onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
             ) : (
               <div className="text-center p-12 bg-muted rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>

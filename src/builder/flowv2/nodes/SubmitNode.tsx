@@ -9,19 +9,21 @@ export const SubmitNode = memo(({ data, selected }: NodeProps<SubmitNodeType>) =
   return (
     <div
       className={`
-        px-4 py-3 rounded-full
+        relative
+        px-5 py-3 rounded-xl
         bg-gradient-to-r from-blue-500 to-indigo-500
         text-white font-semibold text-sm
         shadow-lg shadow-blue-500/30
         flex items-center gap-2 justify-center
-        min-w-[100px]
+        min-w-[140px]
         transition-all duration-200
         ${selected ? "ring-2 ring-blue-300 ring-offset-2" : ""}
       `}
     >
+      {/* Input handle - LEFT side for horizontal layout */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!w-3 !h-3 !bg-white !border-2 !border-blue-500"
       />
       <CheckCircle2 className="w-4 h-4" />

@@ -38,16 +38,5 @@ export type FlowV2Edge = Edge<ConditionalEdgeData>;
 // Flow modes
 export type FlowV2Mode = "select" | "connect" | "pan";
 
-// Node dimensions for layout
-export const NODE_DIMENSIONS = {
-  start: { width: 120, height: 50 },
-  block: { width: 280, height: 100 },
-  submit: { width: 120, height: 50 },
-} as const;
-
-// Layout constants
-export const LAYOUT_CONFIG = {
-  startY: 50,
-  nodeSpacingY: 140,
-  centerX: 400,
-} as const;
+// Re-export LAYOUT_CONFIG from transforms for convenience
+export { LAYOUT_CONFIG } from "./utils/flowV2Transforms";

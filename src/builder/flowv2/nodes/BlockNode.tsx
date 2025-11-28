@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useState } from "react";
-import { Handle, Position, type NodeProps, type Node, useReactFlow } from "@xyflow/react";
+import React, { memo, useCallback, useState, useRef, useEffect } from "react";
+import { Handle, Position, type NodeProps, type Node, useReactFlow, useUpdateNodeInternals } from "@xyflow/react";
 import type { BlockNodeData } from "../types";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import { BlockData } from "../../../types";
@@ -9,10 +9,12 @@ import {
   Trash2,
   ArrowRight,
   CircleDot,
-  GitBranch,
   ChevronDown,
   ChevronRight
 } from "lucide-react";
+
+// Output handle positions for horizontal layout (distributed vertically on the right side)
+const OUTPUT_HANDLE_POSITIONS = [20, 35, 50, 65, 80]; // percentages from top
 
 type BlockNodeType = Node<BlockNodeData, "block">;
 
@@ -23,8 +25,15 @@ export const BlockNode = memo(({
 }: NodeProps<BlockNodeType>) => {
   const { state, updateNode } = useSurveyBuilder();
   const { deleteElements } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
+  const nodeRef = useRef<HTMLDivElement>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { block, index } = data;
+
+  // Update node internals when collapse state changes (handle positions change)
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, isCollapsed, updateNodeInternals]);
 
   // Get block definition
   const blockDefinition = state.definitions.blocks[block.type];
@@ -66,6 +75,7 @@ export const BlockNode = memo(({
 
   return (
     <div
+      ref={nodeRef}
       className={`
         relative group
         bg-white dark:bg-slate-800
@@ -79,11 +89,12 @@ export const BlockNode = memo(({
         }
       `}
     >
-      {/* Input handle */}
+      {/* Input handle - LEFT side for horizontal layout */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white"
+        style={{ top: "50%" }}
       />
 
       {/* Block header */}
@@ -171,23 +182,19 @@ export const BlockNode = memo(({
         {index + 1}
       </div>
 
-      {/* Output handles - Distributed for better edge routing */}
-      {/* We provide multiple handles to allow edges to fan out */}
-      <div className="absolute bottom-0 left-0 w-full h-0 flex justify-center z-50 pointer-events-none">
-        {[15, 35, 50, 65, 85].map((percent, i) => (
-          <div
-            key={`handle-container-${i}`}
-            className="absolute pointer-events-auto group-hover:opacity-100 opacity-0 transition-opacity duration-200"
-            style={{ left: `${percent}%`, bottom: -6 }}
-          >
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              id={`source-${i}`}
-              className="!w-3.5 !h-3.5 !bg-slate-400 !border-2 !border-white hover:!bg-blue-500 hover:!w-4 hover:!h-4 transition-all cursor-crosshair"
-              title="Drag to connect"
-            />
-          </div>
+      {/* Output handles - RIGHT side for horizontal layout */}
+      {/* Multiple handles distributed vertically for better edge routing */}
+      <div className="absolute top-0 right-0 h-full w-0 z-50 pointer-events-none">
+        {OUTPUT_HANDLE_POSITIONS.map((percent, i) => (
+          <Handle
+            key={`source-${i}`}
+            type="source"
+            position={Position.Right}
+            id={`source-${i}`}
+            className="!w-3 !h-3 !bg-slate-400 !border-2 !border-white hover:!bg-blue-500 hover:!w-4 hover:!h-4 transition-all cursor-crosshair pointer-events-auto opacity-0 group-hover:opacity-100"
+            style={{ top: `${percent}%`, right: -6 }}
+            title="Drag to connect"
+          />
         ))}
       </div>
     </div>

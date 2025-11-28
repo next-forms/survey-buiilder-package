@@ -1,7 +1,6 @@
 import React from "react";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { ScrollArea } from "../../components/ui/scroll-area";
 import { CircleDot } from "lucide-react";
 
 interface FlowV2SidebarProps {
@@ -71,42 +70,47 @@ export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart }) => 
   );
 
   return (
-    <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h3 className="font-semibold text-slate-800 dark:text-slate-200">
+    <div
+      className="border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col h-full flex-shrink-0"
+      style={{ width: 256 }}
+    >
+      <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
           Add Blocks
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Drag blocks to the canvas
         </p>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        {hasCustomBlocks ? (
-          <Tabs defaultValue="default" className="w-fit">
-            <TabsList className="w-fit mb-3 grid grid-cols-2">
-              <TabsTrigger value="default" className="text-xs">
-                Default
-              </TabsTrigger>
-              <TabsTrigger value="custom" className="text-xs">
-                Custom
-              </TabsTrigger>
-            </TabsList>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="p-3">
+          {hasCustomBlocks ? (
+            <Tabs defaultValue="default" className="w-full">
+              <TabsList className="w-full mb-3 grid grid-cols-2">
+                <TabsTrigger value="default" className="text-xs">
+                  Default
+                </TabsTrigger>
+                <TabsTrigger value="custom" className="text-xs">
+                  Custom
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="default" className="mt-0 space-y-2">
+              <TabsContent value="default" className="mt-0 space-y-2">
+                {defaultBlocks.map(renderBlockItem)}
+              </TabsContent>
+
+              <TabsContent value="custom" className="mt-0 space-y-2">
+                {customBlocks.map(renderBlockItem)}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="space-y-2">
               {defaultBlocks.map(renderBlockItem)}
-            </TabsContent>
-
-            <TabsContent value="custom" className="mt-0 space-y-2">
-              {customBlocks.map(renderBlockItem)}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="space-y-2">
-            {defaultBlocks.map(renderBlockItem)}
-          </div>
-        )}
-      </ScrollArea>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

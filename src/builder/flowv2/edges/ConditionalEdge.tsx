@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -7,8 +7,15 @@ import {
   type Edge,
 } from "@xyflow/react";
 import type { ConditionalEdgeData } from "../types";
+import { useEdgeLabelContextOptional } from "../context";
 
 type ConditionalEdgeType = Edge<ConditionalEdgeData, "conditional">;
+
+// Estimate label width based on text length
+function estimateLabelWidth(text: string): number {
+  // Approximate: ~7px per character + padding
+  return Math.min(Math.max(text.length * 7 + 16, 50), 150);
+}
 
 export const ConditionalEdge: React.FC<EdgeProps<ConditionalEdgeType>> = ({
   id,
@@ -22,6 +29,9 @@ export const ConditionalEdge: React.FC<EdgeProps<ConditionalEdgeType>> = ({
   selected,
   markerEnd,
 }) => {
+  const labelContext = useEdgeLabelContextOptional();
+  const labelRef = useRef<HTMLDivElement>(null);
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -36,25 +46,43 @@ export const ConditionalEdge: React.FC<EdgeProps<ConditionalEdgeType>> = ({
   const isConditional = edgeData && !edgeData.isSequential && !edgeData.isDefault;
   const condition = edgeData?.condition || edgeData?.label;
 
-  // Calculate offset for parallel edges to avoid label overlap
-  let offsetY = 0;
-  if (edgeData?.parallelTotal && edgeData.parallelTotal > 1) {
-    const index = edgeData.parallelIndex || 0;
-    const total = edgeData.parallelTotal;
-    // Center the stack of labels
-    // e.g. 2 items: -10, +10
-    // e.g. 3 items: -20, 0, +20
-    offsetY = (index - (total - 1) / 2) * 24;
-  }
-
   // Truncate condition for display
   const displayLabel = condition
     ? condition.length > 30
       ? condition.substring(0, 27) + "..."
       : condition
-    : edgeData?.isDefault
-    ? "default"
     : "";
+
+  // Only show label for conditional edges (not default/sequential)
+  const shouldShowLabel = displayLabel && isConditional;
+
+  // Calculate label offset for collision avoidance
+  const labelOffset = useMemo(() => {
+    if (!shouldShowLabel || !labelContext) {
+      return { offsetX: 0, offsetY: 0 };
+    }
+    const estimatedWidth = estimateLabelWidth(displayLabel);
+    return labelContext.getOffset(id, labelX, labelY, estimatedWidth);
+  }, [id, labelX, labelY, displayLabel, shouldShowLabel, labelContext]);
+
+  // Register/update label position for collision detection
+  useEffect(() => {
+    if (!shouldShowLabel || !labelContext) return;
+
+    const finalX = labelX + labelOffset.offsetX;
+    const finalY = labelY + labelOffset.offsetY;
+    const width = labelRef.current?.offsetWidth || estimateLabelWidth(displayLabel);
+    const height = labelRef.current?.offsetHeight || 22;
+
+    labelContext.registerLabel(id, finalX, finalY, width, height);
+
+    return () => {
+      labelContext.unregisterLabel(id);
+    };
+  }, [id, labelX, labelY, labelOffset, displayLabel, shouldShowLabel, labelContext]);
+
+  const finalLabelX = labelX + labelOffset.offsetX;
+  const finalLabelY = labelY + labelOffset.offsetY;
 
   return (
     <>
@@ -68,46 +96,28 @@ export const ConditionalEdge: React.FC<EdgeProps<ConditionalEdgeType>> = ({
           strokeDasharray: edgeData?.isSequential && !isConditional ? "none" : "5,5",
         }}
       />
-      {displayLabel && (
+      {shouldShowLabel && (
         <EdgeLabelRenderer>
-          {edgeData?.isDefault ? (
-            <></>
-            // <div
-            //   style={{
-            //     position: "absolute",
-            //     transform: `translate(-50%, -50%) translate(${labelX}px,${labelY + offsetY}px)`,
-            //     pointerEvents: "all",
-            //     zIndex: 1000,
-            //   }}
-            //   className="w-3 h-3 rounded-full bg-slate-400 border-2 border-white shadow-sm cursor-help hover:bg-slate-600 transition-colors"
-            //   title="Default flow"
-            // />
-          ) : (
-            <div
-              style={{
-                position: "absolute",
-                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY + offsetY}px)`,
-                pointerEvents: "all",
-                zIndex: 1000,
-              }}
-              className={`
-                px-2 py-0.5 rounded-full text-[10px] font-medium
-                shadow-sm border backdrop-blur-sm
-                ${
-                  isConditional
-                    ? "bg-amber-50/90 text-amber-800 border-amber-200"
-                    : "bg-slate-50/90 text-slate-600 border-slate-200"
-                }
-                ${edgeData?.isDefault ? "" : ""}
-                ${selected ? "ring-1 ring-blue-400" : ""}
-                cursor-pointer hover:shadow-md transition-all
-                max-w-[150px] truncate
-              `}
-              title={condition || ""}
-            >
-              {displayLabel}
-            </div>
-          )}
+          <div
+            ref={labelRef}
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${finalLabelX}px,${finalLabelY}px)`,
+              pointerEvents: "all",
+              zIndex: 1000,
+            }}
+            className={`
+              px-2 py-0.5 rounded-full text-[10px] font-medium
+              shadow-sm border backdrop-blur-sm
+              bg-amber-50/90 text-amber-800 border-amber-200
+              ${selected ? "ring-1 ring-blue-400" : ""}
+              cursor-pointer hover:shadow-md transition-all
+              max-w-[150px] truncate whitespace-nowrap
+            `}
+            title={condition || ""}
+          >
+            {displayLabel}
+          </div>
         </EdgeLabelRenderer>
       )}
     </>

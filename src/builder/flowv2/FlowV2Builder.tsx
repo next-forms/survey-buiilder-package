@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -6,7 +6,6 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
   type Connection,
   type NodeTypes,
   type EdgeTypes,
@@ -26,11 +25,15 @@ import { StartNode, BlockNode, SubmitNode } from "./nodes";
 import { ConditionalEdge } from "./edges";
 import { FlowV2Sidebar } from "./FlowV2Sidebar";
 import { FlowV2Toolbar } from "./FlowV2Toolbar";
-import { pagelessToFlow, recalculatePositions } from "./utils/flowV2Transforms";
+import {
+  pagelessToFlow,
+  layoutWithMeasuredDimensions,
+} from "./utils/flowV2Transforms";
 import type { FlowV2Mode, BlockNodeData, FlowV2Node, FlowV2Edge } from "./types";
 import { BlockData } from "../../types";
 import { v4 as uuidv4 } from "uuid";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
+import { EdgeLabelProvider } from "./context";
 
 // Define custom node types
 const nodeTypes: NodeTypes = {
@@ -55,15 +58,22 @@ const defaultEdgeOptions = {
   },
 };
 
+interface FlowV2BuilderProps {
+  onClose?: () => void;
+}
+
 // Inner component that uses React Flow hooks
-const FlowV2BuilderInner: React.FC = () => {
+const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   const { state, updateNode } = useSurveyBuilder();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, screenToFlowPosition, getNodes } = useReactFlow();
 
   const [mode, setMode] = useState<FlowV2Mode>("select");
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const [showNodeConfig, setShowNodeConfig] = useState(false);
+  const previousNodeCountRef = useRef<number>(0);
+  const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialRenderRef = useRef(true);
 
   // Convert survey data to flow nodes/edges
   const initialFlow = useMemo(() => {
@@ -73,11 +83,78 @@ const FlowV2BuilderInner: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
 
+  // Handle initial render - apply layout once nodes are measured
+  useEffect(() => {
+    if (!isInitialRenderRef.current) return;
+
+    const checkAndLayout = () => {
+      const currentNodes = getNodes();
+      const allMeasured = currentNodes.every(
+        (n) => n.measured?.width && n.measured?.height
+      );
+
+      if (allMeasured && currentNodes.length > 0) {
+        const layoutedNodes = layoutWithMeasuredDimensions(
+          currentNodes as FlowV2Node[],
+          edges as FlowV2Edge[]
+        );
+        setNodes(layoutedNodes as Node[]);
+        previousNodeCountRef.current = currentNodes.length;
+        isInitialRenderRef.current = false;
+
+        // Fit view to show all nodes after layout
+        setTimeout(() => {
+          fitView({ padding: 0.15, duration: 200 });
+        }, 50);
+      }
+    };
+
+    // Small delay to allow React Flow to measure nodes
+    const timeout = setTimeout(checkAndLayout, 80);
+    return () => clearTimeout(timeout);
+  }, [nodes, edges, getNodes, setNodes, fitView]);
+
+  // Re-layout when node count changes (new nodes added/removed)
+  useEffect(() => {
+    if (isInitialRenderRef.current) return;
+
+    const currentNodeCount = nodes.length;
+    if (currentNodeCount !== previousNodeCountRef.current) {
+      // Debounce layout to avoid rapid successive layouts
+      if (layoutTimeoutRef.current) {
+        clearTimeout(layoutTimeoutRef.current);
+      }
+
+      layoutTimeoutRef.current = setTimeout(() => {
+        const currentNodes = getNodes();
+        const allMeasured = currentNodes.every(
+          (n) => n.measured?.width && n.measured?.height
+        );
+
+        if (allMeasured) {
+          const layoutedNodes = layoutWithMeasuredDimensions(
+            currentNodes as FlowV2Node[],
+            edges as FlowV2Edge[]
+          );
+          setNodes(layoutedNodes as Node[]);
+          previousNodeCountRef.current = currentNodeCount;
+        }
+      }, 100);
+    }
+
+    return () => {
+      if (layoutTimeoutRef.current) {
+        clearTimeout(layoutTimeoutRef.current);
+      }
+    };
+  }, [nodes.length, edges, getNodes, setNodes]);
+
   // Sync nodes when survey data changes
-  React.useEffect(() => {
+  useEffect(() => {
     const flow = pagelessToFlow(state.rootNode);
     setNodes(flow.nodes as Node[]);
     setEdges(flow.edges as Edge[]);
+    isInitialRenderRef.current = true;
   }, [state.rootNode, setNodes, setEdges]);
 
   // Handle new connection
@@ -249,13 +326,17 @@ const FlowV2BuilderInner: React.FC = () => {
     [state.rootNode, updateNode]
   );
 
-  // Reset layout
+  // Reset layout - uses measured dimensions and resolves overlaps
   const handleResetLayout = useCallback(() => {
-    // Use recalculatePositions with current nodes to leverage measured dimensions (e.g. collapsed state)
-    const layoutedNodes = recalculatePositions(nodes as FlowV2Node[], edges as FlowV2Edge[]);
+    const currentNodes = getNodes();
+    const layoutedNodes = layoutWithMeasuredDimensions(
+      currentNodes as FlowV2Node[],
+      edges as FlowV2Edge[]
+    );
     setNodes(layoutedNodes as Node[]);
+    previousNodeCountRef.current = layoutedNodes.length;
     setTimeout(() => fitView({ padding: 0.2 }), 50);
-  }, [nodes, edges, setNodes, fitView]);
+  }, [edges, getNodes, setNodes, fitView]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -318,37 +399,39 @@ const FlowV2BuilderInner: React.FC = () => {
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onResetLayout={handleResetLayout}
+        onClose={onClose}
       />
 
       <div className="flex-1 flex overflow-hidden">
         <FlowV2Sidebar />
 
         <div ref={reactFlowWrapper} className="flex-1 relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onNodeDoubleClick={onNodeDoubleClick}
-            onNodesDelete={onNodesDelete}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            defaultEdgeOptions={defaultEdgeOptions}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            panOnDrag={mode === "pan" || mode === "select"}
-            selectionOnDrag={mode === "select"}
-            connectOnClick={mode === "connect"}
-            deleteKeyCode={["Backspace", "Delete"]}
-            multiSelectionKeyCode={["Shift"]}
-            className="bg-slate-50 dark:bg-slate-950"
-            // Ensure edges render above nodes
-            style={{ zIndex: 0 }}
-            elevateEdgesOnSelect
-          >
+          <EdgeLabelProvider>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onNodeDoubleClick={onNodeDoubleClick}
+              onNodesDelete={onNodesDelete}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              defaultEdgeOptions={defaultEdgeOptions}
+              minZoom={0.1}
+              maxZoom={2}
+              panOnDrag={mode === "pan" || mode === "select"}
+              selectionOnDrag={mode === "select"}
+              connectOnClick={mode === "connect"}
+              deleteKeyCode={["Backspace", "Delete"]}
+              multiSelectionKeyCode={["Shift"]}
+              className="bg-slate-50 dark:bg-slate-950"
+              // Ensure edges render above nodes
+              style={{ zIndex: 0 }}
+              elevateEdgesOnSelect
+            >
             <Background
               variant={BackgroundVariant.Dots}
               gap={20}
@@ -409,7 +492,8 @@ const FlowV2BuilderInner: React.FC = () => {
                 </div>
               </div>
             </Panel>
-          </ReactFlow>
+            </ReactFlow>
+          </EdgeLabelProvider>
         </div>
 
         {/* Node configuration panel */}
@@ -426,10 +510,10 @@ const FlowV2BuilderInner: React.FC = () => {
 };
 
 // Wrapper component with ReactFlowProvider
-export const FlowV2Builder: React.FC = () => {
+export const FlowV2Builder: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   return (
     <ReactFlowProvider>
-      <FlowV2BuilderInner />
+      <FlowV2BuilderInner onClose={onClose} />
     </ReactFlowProvider>
   );
 };

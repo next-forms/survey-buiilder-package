@@ -10,6 +10,7 @@ import {
   ZoomOut,
   Undo,
   Redo,
+  X,
 } from "lucide-react";
 import type { FlowV2Mode } from "./types";
 
@@ -20,6 +21,7 @@ interface FlowV2ToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetLayout: () => void;
+  onClose?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -33,6 +35,7 @@ export const FlowV2Toolbar: React.FC<FlowV2ToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onResetLayout,
+  onClose,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -40,8 +43,24 @@ export const FlowV2Toolbar: React.FC<FlowV2ToolbarProps> = ({
 }) => {
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-      {/* Mode selection */}
-      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
+      {/* Left side - Close button and mode selection */}
+      <div className="flex items-center gap-3">
+        {/* Close button */}
+        {onClose && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
+            title="Close flow builder"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        )}
+
+        {/* Mode selection */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
         <Button
           type="button"
           variant={mode === "select" ? "default" : "ghost"}
@@ -75,6 +94,7 @@ export const FlowV2Toolbar: React.FC<FlowV2ToolbarProps> = ({
           <Hand className="w-4 h-4 mr-1.5" />
           Pan
         </Button>
+        </div>
       </div>
 
       {/* View controls */}
