@@ -19,6 +19,9 @@ import { Badge } from "../../../components/ui/badge";
 // Output handle positions for horizontal layout (distributed vertically on the right side)
 const OUTPUT_HANDLE_POSITIONS = [20, 35, 50, 65, 80]; // percentages from top
 
+// Input handle positions for horizontal layout (distributed vertically on the left side)
+const INPUT_HANDLE_POSITIONS = [20, 35, 50, 65, 80]; // percentages from top
+
 type BlockNodeType = Node<BlockNodeData, "block">;
 
 export const BlockNode = memo(({
@@ -92,13 +95,21 @@ export const BlockNode = memo(({
         }
       `}
     >
-      {/* Input handle - LEFT side for horizontal layout */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white"
-        style={{ top: "50%" }}
-      />
+      {/* Input handles - LEFT side for horizontal layout */}
+      {/* Multiple handles distributed vertically for separate incoming connections */}
+      <div className="absolute top-0 left-0 h-full w-0 z-50 pointer-events-none">
+        {INPUT_HANDLE_POSITIONS.map((percent, i) => (
+          <Handle
+            key={`target-${i}`}
+            type="target"
+            position={Position.Left}
+            id={`target-${i}`}
+            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white hover:!bg-blue-600 hover:!w-4 hover:!h-4 transition-all cursor-crosshair pointer-events-auto"
+            style={{ top: `${percent}%`, left: -6 }}
+            title="Connection target"
+          />
+        ))}
+      </div>
 
       {/* Block header */}
       <div 

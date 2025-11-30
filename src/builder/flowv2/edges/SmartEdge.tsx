@@ -5,7 +5,7 @@ import {
   type EdgeProps,
   type Edge,
 } from "@xyflow/react";
-import { X } from "lucide-react";
+import { X, GripVertical } from "lucide-react";
 import type { ConditionalEdgeData } from "../types";
 import { useEdgeLabelContextOptional, useNodeBoundsContextOptional } from "../context";
 import type { NodeBounds } from "../context";
@@ -515,8 +515,15 @@ export const SmartEdge: React.FC<EdgeProps<SmartEdgeType>> = ({
 
   const strokeWidth = selected && !isSequential ? 5 : isConditional ? 2.5 : 2;
 
-  // State to track hover for showing delete button
+  // Larger interaction width for conditional edges to make them easier to select
+  const interactionWidthValue = isConditional ? 30 : 20;
+
+  // State to track hover for showing delete button and edge hover
   const [isHovered, setIsHovered] = useState(false);
+  const [isEdgeHovered, setIsEdgeHovered] = useState(false);
+
+  // Calculate endpoint positions for grab handles
+  const { sourceX, sourceY, targetX, targetY } = connectionPoints;
 
   // Handle delete navigation rule
   const handleDelete = useCallback((e: React.MouseEvent) => {
@@ -537,20 +544,63 @@ export const SmartEdge: React.FC<EdgeProps<SmartEdgeType>> = ({
 
   return (
     <>
+      {/* Invisible wider path for better edge selection on conditional edges */}
+      {isConditional && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={40}
+          style={{ cursor: "grab", pointerEvents: "stroke" }}
+          onMouseEnter={() => setIsEdgeHovered(true)}
+          onMouseLeave={() => setIsEdgeHovered(false)}
+        />
+      )}
       <BaseEdge
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
         style={{
-          stroke: edgeColor,
-          strokeWidth,
+          stroke: isEdgeHovered && isConditional ? "#d97706" : edgeColor,
+          strokeWidth: isEdgeHovered && isConditional ? strokeWidth + 1 : strokeWidth,
           strokeDasharray,
           strokeLinecap: "round",
           strokeLinejoin: "round",
-          transition: "stroke-width 0.2s ease, stroke 0.2s ease",
+          transition: "stroke-width 0.15s ease, stroke 0.15s ease",
+          cursor: isConditional ? "grab" : "pointer",
         }}
         className={selected ? "react-flow__edge-selected" : ""}
+        interactionWidth={interactionWidthValue}
       />
+      {/* Endpoint grab indicator for conditional edges */}
+      {isConditional && (isEdgeHovered || selected) && (
+        <EdgeLabelRenderer>
+          {/* Source endpoint grab handle */}
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${sourceX}px,${sourceY}px)`,
+              pointerEvents: "none",
+              zIndex: 1001,
+            }}
+            className="w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow-md flex items-center justify-center animate-pulse"
+          >
+            <GripVertical className="w-2.5 h-2.5 text-white" />
+          </div>
+          {/* Target endpoint grab handle */}
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${targetX}px,${targetY}px)`,
+              pointerEvents: "none",
+              zIndex: 1001,
+            }}
+            className="w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow-md flex items-center justify-center animate-pulse"
+          >
+            <GripVertical className="w-2.5 h-2.5 text-white" />
+          </div>
+        </EdgeLabelRenderer>
+      )}
       {shouldShowLabel && (
         <EdgeLabelRenderer>
           <div

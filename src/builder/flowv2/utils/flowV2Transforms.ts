@@ -76,27 +76,35 @@ export function pagelessToFlow(rootNode: NodeData | null): {
   });
 
   // --- 2. Generate Edges ---
+  // First pass: collect all edge configurations
+  interface EdgeConfig {
+    id: string;
+    source: string;
+    target: string;
+    type: "sequential" | "rule";
+    rule?: any;
+    ruleIndex?: number;
+    hasNavRules?: boolean;
+  }
+
+  const allEdgeConfigs: EdgeConfig[] = [];
 
   if (blocks.length === 0) {
     // Empty survey: Start -> Submit
-    edges.push({
+    allEdgeConfigs.push({
       id: "start-to-submit",
       source: "start",
       target: "submit",
-      type: "smart",
-      animated: true,
-      data: { isSequential: true },
+      type: "sequential",
     });
   } else {
     // Start -> First Block
     const firstBlockId = blocks[0].uuid || "block-0";
-    edges.push({
+    allEdgeConfigs.push({
       id: "start-to-first",
       source: "start",
       target: firstBlockId,
-      type: "smart",
-      animated: true,
-      data: { isSequential: true },
+      type: "sequential",
     });
 
     // Block Connections
@@ -108,25 +116,18 @@ export function pagelessToFlow(rootNode: NodeData | null): {
           ? blocks[index + 1].uuid || `block-${index + 1}`
           : "submit";
 
-      // Collect all edges to be created for this block
-      const edgesByTarget: Record<string, any[]> = {};
-
-      const addEdgeConfig = (config: any) => {
-        if (!edgesByTarget[config.targetId]) {
-          edgesByTarget[config.targetId] = [];
-        }
-        edgesByTarget[config.targetId].push(config);
-      };
-
       // 1. Navigation Rules (Conditional)
       navRules.forEach((rule, ruleIndex) => {
         const targetId = resolveNavigationTarget(rule.target, blocks);
         if (targetId) {
-          addEdgeConfig({
+          allEdgeConfigs.push({
+            id: `${blockId}-nav-${ruleIndex}`,
+            source: blockId,
+            target: targetId,
             type: "rule",
-            targetId,
             rule,
             ruleIndex,
+            hasNavRules: true,
           });
         }
       });
@@ -134,84 +135,121 @@ export function pagelessToFlow(rootNode: NodeData | null): {
       // 2. Check if we need a default/sequential fallback
       const hasDefaultRule = navRules.some((r) => r.isDefault);
       if (!hasDefaultRule) {
-        addEdgeConfig({
+        allEdgeConfigs.push({
+          id: `${blockId}-seq-${nextBlockId}`,
+          source: blockId,
+          target: nextBlockId,
           type: "sequential",
-          targetId: nextBlockId,
+          hasNavRules: navRules.length > 0,
         });
       }
-
-      // Flatten and assign handles
-      const allEdgesForBlock: any[] = [];
-      Object.values(edgesByTarget).forEach((group) => {
-        group.forEach((config, idx) => {
-           allEdgesForBlock.push({
-             ...config,
-             parallelIndex: idx,
-             parallelTotal: group.length
-           });
-        });
-      });
-      
-      // Distribute handles
-      const edgeCount = allEdgesForBlock.length;
-      let handleIndices: number[] = [];
-
-      if (edgeCount === 1) handleIndices = [2];
-      else if (edgeCount === 2) handleIndices = [1, 3];
-      else if (edgeCount === 3) handleIndices = [1, 2, 3];
-      else if (edgeCount === 4) handleIndices = [0, 1, 3, 4];
-      else handleIndices = allEdgesForBlock.map((_, i) => i % 5);
-
-      // Create the actual edge objects
-      allEdgesForBlock.forEach((edgeConfig, i) => {
-        const sourceHandle = `source-${handleIndices[i]}`;
-        const isSequential = edgeConfig.type === "sequential";
-        const rule = edgeConfig.rule;
-
-        if (isSequential) {
-          edges.push({
-            id: `${blockId}-seq-${edgeConfig.targetId}`,
-            source: blockId,
-            sourceHandle,
-            target: edgeConfig.targetId,
-            type: "smart",
-            label: navRules.length > 0 ? "Else" : undefined,
-            data: {
-              isSequential: true,
-              isDefault: true,
-              parallelIndex: edgeConfig.parallelIndex,
-              parallelTotal: edgeConfig.parallelTotal,
-            },
-            style: {
-              stroke: "#94a3b8",
-              strokeDasharray: "5,5",
-            },
-          });
-        } else {
-          edges.push({
-            id: `${blockId}-nav-${edgeConfig.ruleIndex}`,
-            source: blockId,
-            sourceHandle,
-            target: edgeConfig.targetId,
-            type: "smart",
-            animated: !rule.isDefault,
-            label: rule.isDefault ? undefined : truncateLabel(rule.condition),
-            data: {
-              condition: rule.condition,
-              isDefault: rule.isDefault,
-              navigationRule: rule,
-              parallelIndex: edgeConfig.parallelIndex,
-              parallelTotal: edgeConfig.parallelTotal,
-            },
-            style: {
-              stroke: rule.isDefault ? "#94a3b8" : "#3b82f6",
-              strokeWidth: rule.isDefault ? 1 : 2,
-            },
-          });
-        }
-      });
     });
   }
+
+  // Second pass: group edges by source and target for handle assignment
+  // Group by source for source handle assignment
+  const edgesBySource: Record<string, EdgeConfig[]> = {};
+  // Group by target for target handle assignment
+  const edgesByTarget: Record<string, EdgeConfig[]> = {};
+
+  allEdgeConfigs.forEach((config) => {
+    if (!edgesBySource[config.source]) {
+      edgesBySource[config.source] = [];
+    }
+    edgesBySource[config.source].push(config);
+
+    if (!edgesByTarget[config.target]) {
+      edgesByTarget[config.target] = [];
+    }
+    edgesByTarget[config.target].push(config);
+  });
+
+  // Helper to distribute handles
+  const getHandleIndices = (count: number): number[] => {
+    if (count === 1) return [2];
+    if (count === 2) return [1, 3];
+    if (count === 3) return [1, 2, 3];
+    if (count === 4) return [0, 1, 3, 4];
+    return Array.from({ length: count }, (_, i) => i % 5);
+  };
+
+  // Create source handle mapping
+  const sourceHandleMap: Record<string, string> = {};
+  Object.entries(edgesBySource).forEach(([sourceId, sourceEdges]) => {
+    const handleIndices = getHandleIndices(sourceEdges.length);
+    sourceEdges.forEach((edge, i) => {
+      sourceHandleMap[edge.id] = `source-${handleIndices[i]}`;
+    });
+  });
+
+  // Create target handle mapping
+  const targetHandleMap: Record<string, string> = {};
+  Object.entries(edgesByTarget).forEach(([targetId, targetEdges]) => {
+    const handleIndices = getHandleIndices(targetEdges.length);
+    targetEdges.forEach((edge, i) => {
+      targetHandleMap[edge.id] = `target-${handleIndices[i]}`;
+    });
+  });
+
+  // Third pass: create actual edge objects with handles
+  allEdgeConfigs.forEach((config) => {
+    const sourceHandle = sourceHandleMap[config.id];
+    const targetHandle = targetHandleMap[config.id];
+    const isSequential = config.type === "sequential";
+    const rule = config.rule;
+
+    // Calculate parallel edge info for edges going to the same target
+    const targetEdges = edgesByTarget[config.target];
+    const parallelIndex = targetEdges.findIndex((e) => e.id === config.id);
+    const parallelTotal = targetEdges.length;
+
+    if (isSequential) {
+      edges.push({
+        id: config.id,
+        source: config.source,
+        sourceHandle,
+        target: config.target,
+        targetHandle,
+        type: "smart",
+        animated: config.source === "start",
+        label: config.hasNavRules ? "Else" : undefined,
+        zIndex: 0, // Sequential edges render below conditional edges
+        data: {
+          isSequential: true,
+          isDefault: true,
+          parallelIndex,
+          parallelTotal,
+        },
+        style: {
+          stroke: "#94a3b8",
+          strokeDasharray: "5,5",
+        },
+      });
+    } else {
+      edges.push({
+        id: config.id,
+        source: config.source,
+        sourceHandle,
+        target: config.target,
+        targetHandle,
+        type: "smart",
+        animated: !rule.isDefault,
+        label: rule.isDefault ? undefined : truncateLabel(rule.condition),
+        zIndex: rule.isDefault ? 1 : 10, // Conditional edges render above sequential edges
+        data: {
+          condition: rule.condition,
+          isDefault: rule.isDefault,
+          navigationRule: rule,
+          parallelIndex,
+          parallelTotal,
+        },
+        style: {
+          stroke: rule.isDefault ? "#94a3b8" : "#3b82f6",
+          strokeWidth: rule.isDefault ? 1 : 2,
+        },
+      });
+    }
+  });
 
   // --- 3. Compute Layout using Dagre ---
   const layoutedNodes = computeDagreLayout(nodes, edges);

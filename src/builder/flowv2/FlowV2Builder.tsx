@@ -14,6 +14,7 @@ import {
   Panel,
   type OnConnect,
   type OnConnectEnd,
+  type OnReconnect,
   type Node,
   type Edge,
   BackgroundVariant,
@@ -29,7 +30,7 @@ import { FlowV2Sidebar } from "./FlowV2Sidebar";
 import { FlowV2Toolbar } from "./FlowV2Toolbar";
 import { pagelessToFlow } from "./utils/flowV2Transforms";
 import { useSmartLayout, analyzeFlowStructure } from "./hooks";
-import type { FlowV2Mode, BlockNodeData, FlowV2Node, FlowV2Edge } from "./types";
+import type { FlowV2Mode, BlockNodeData, FlowV2Node, FlowV2Edge, ConditionalEdgeData } from "./types";
 import { BlockData } from "../../types";
 import { v4 as uuidv4 } from "uuid";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
@@ -471,6 +472,180 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
     [nodes, state.rootNode, updateNode]
   );
 
+  // Track edge being reconnected
+  const edgeReconnectSuccessful = useRef(true);
+
+  // Handle edge reconnection start
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  // Handle edge reconnection - this fires when dragging an edge endpoint to a new node
+  const onReconnect: OnReconnect = useCallback(
+    (oldEdge, newConnection) => {
+      edgeReconnectSuccessful.current = true;
+
+      if (!state.rootNode || !newConnection.target) return;
+
+      const blocks = (state.rootNode.items || []) as BlockData[];
+
+      // Case 1: Reconnecting the start edge (change which block is first)
+      if (oldEdge.source === "start") {
+        // The start edge always goes to the first block
+        // Moving it means reordering blocks so the new target becomes first
+        const targetNode = nodes.find((n) => n.id === newConnection.target);
+        if (targetNode?.type !== "block") return;
+
+        const targetBlockIndex = blocks.findIndex(
+          (b) => b.uuid === newConnection.target
+        );
+        if (targetBlockIndex <= 0) return; // Already first or not found
+
+        // Move the target block to the beginning
+        const targetBlock = blocks[targetBlockIndex];
+        const updatedItems = [
+          targetBlock,
+          ...blocks.slice(0, targetBlockIndex),
+          ...blocks.slice(targetBlockIndex + 1),
+        ];
+
+        updateNode(state.rootNode.uuid!, {
+          ...state.rootNode,
+          items: updatedItems,
+        });
+        return;
+      }
+
+      // Case 2: Reconnecting a sequential/default edge (reorder blocks)
+      // Sequential edges have isSequential=true, no navigationRule
+      // We only reorder for truly sequential edges, not for conditional rules marked as default
+      const edgeDataForCheck = oldEdge.data as ConditionalEdgeData | undefined;
+      const isSequentialEdge = edgeDataForCheck?.isSequential === true;
+      const isSequentialFallback = edgeDataForCheck?.isDefault === true && !edgeDataForCheck?.navigationRule && !edgeDataForCheck?.condition;
+
+      if (isSequentialEdge || isSequentialFallback) {
+        const sourceNode = nodes.find((n) => n.id === oldEdge.source);
+        const targetNode = nodes.find((n) => n.id === newConnection.target);
+
+        if (sourceNode?.type !== "block") return;
+
+        // If connecting to submit, no reorder needed - sequential flow handles it
+        if (newConnection.target === "submit") {
+          // Move source block to be the last block
+          const sourceBlockIndex = blocks.findIndex(
+            (b) => b.uuid === oldEdge.source
+          );
+          if (sourceBlockIndex < 0 || sourceBlockIndex === blocks.length - 1) return;
+
+          const sourceBlock = blocks[sourceBlockIndex];
+          const updatedItems = [
+            ...blocks.slice(0, sourceBlockIndex),
+            ...blocks.slice(sourceBlockIndex + 1),
+            sourceBlock,
+          ];
+
+          updateNode(state.rootNode.uuid!, {
+            ...state.rootNode,
+            items: updatedItems,
+          });
+          return;
+        }
+
+        if (targetNode?.type !== "block") return;
+
+        // Reorder blocks so target comes immediately after source
+        const sourceBlockIndex = blocks.findIndex(
+          (b) => b.uuid === oldEdge.source
+        );
+        const targetBlockIndex = blocks.findIndex(
+          (b) => b.uuid === newConnection.target
+        );
+
+        if (sourceBlockIndex < 0 || targetBlockIndex < 0) return;
+        if (targetBlockIndex === sourceBlockIndex + 1) return; // Already in order
+
+        // Move target to be right after source
+        const targetBlock = blocks[targetBlockIndex];
+        const withoutTarget = blocks.filter((_, i) => i !== targetBlockIndex);
+        const newSourceIndex = withoutTarget.findIndex(
+          (b) => b.uuid === oldEdge.source
+        );
+        const updatedItems = [
+          ...withoutTarget.slice(0, newSourceIndex + 1),
+          targetBlock,
+          ...withoutTarget.slice(newSourceIndex + 1),
+        ];
+
+        updateNode(state.rootNode.uuid!, {
+          ...state.rootNode,
+          items: updatedItems,
+        });
+        return;
+      }
+
+      // Case 3: Reconnecting a conditional/navigation edge (update navigation rule target)
+      if (oldEdge.data?.navigationRule || oldEdge.data?.condition) {
+        const sourceBlock = blocks.find((b) => b.uuid === oldEdge.source);
+        if (!sourceBlock || !sourceBlock.navigationRules) return;
+
+        // Find the navigation rule to update
+        const edgeData = oldEdge.data as ConditionalEdgeData;
+        const ruleCondition = edgeData.condition || edgeData.navigationRule?.condition;
+        const oldTarget = oldEdge.target;
+
+        // Determine new target string
+        let newTargetString = "";
+        if (newConnection.target === "submit") {
+          newTargetString = "submit";
+        } else {
+          const targetBlock = blocks.find((b) => b.uuid === newConnection.target);
+          if (!targetBlock) return;
+          newTargetString = targetBlock.uuid || "";
+        }
+
+        // Update the navigation rule
+        const updatedRules = sourceBlock.navigationRules.map((rule) => {
+          // Match by condition and old target
+          const ruleTarget = rule.target;
+          const targetMatches =
+            ruleTarget === oldTarget ||
+            (ruleTarget === "submit" && oldTarget === "submit");
+          const conditionMatches = rule.condition === ruleCondition;
+
+          if (targetMatches && conditionMatches) {
+            return { ...rule, target: newTargetString };
+          }
+          return rule;
+        });
+
+        const updatedItems = blocks.map((block) =>
+          block.uuid === sourceBlock.uuid
+            ? { ...block, navigationRules: updatedRules }
+            : block
+        );
+
+        updateNode(state.rootNode.uuid!, {
+          ...state.rootNode,
+          items: updatedItems,
+        });
+      }
+    },
+    [nodes, state.rootNode, updateNode]
+  );
+
+  // Handle edge reconnection end - delete edge if dropped on empty space
+  const onReconnectEnd = useCallback(
+    (_event: MouseEvent | TouchEvent, _edge: Edge) => {
+      if (!edgeReconnectSuccessful.current) {
+        // Edge was dropped on empty space - this could optionally delete the rule
+        // For now, we don't delete on failed reconnect to prevent accidental deletions
+        // Users can use the X button on the edge label to delete
+      }
+      edgeReconnectSuccessful.current = true;
+    },
+    []
+  );
+
   // Handle drag over for dropping new blocks
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -795,6 +970,9 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
               onConnect={onConnect}
               onConnectStart={onConnectStart}
               onConnectEnd={onConnectEnd}
+              onReconnect={onReconnect}
+              onReconnectStart={onReconnectStart}
+              onReconnectEnd={onReconnectEnd}
               onDragOver={onDragOver}
               onDrop={onDrop}
               onNodeDoubleClick={onNodeDoubleClick}
@@ -898,7 +1076,7 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
                   <div className="w-10 h-0.5 bg-slate-400 rounded-full" style={{ backgroundImage: "repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)" }}></div>
                   <span className="text-slate-600 dark:text-slate-400">Default fallback</span>
                 </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500 space-y-1">
                   <div className="flex items-center gap-1">
                     <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[9px]">V</kbd>
                     <span>Select</span>
@@ -906,6 +1084,9 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
                     <span>Connect</span>
                     <kbd className="ml-2 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[9px]">H</kbd>
                     <span>Pan</span>
+                  </div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Drag edge endpoints to reconnect
                   </div>
                 </div>
               </div>
