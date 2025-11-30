@@ -574,6 +574,8 @@ export interface BlockData {
   /** A/B testing configuration */
   abTest?: ABTestConfig;
   isCustom?: boolean;
+  /** Explicitly define the next block to navigate to (overrides sequential flow) */
+  nextBlockId?: string;
   [key: string]: any;
 }
 

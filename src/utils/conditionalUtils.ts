@@ -673,6 +673,15 @@ export function getNextStepFromNavigationRules(
     // }
   }
 
+  // Check for explicit next block (overrides sequential flow)
+  if (block.nextBlockId) {
+    if (block.nextBlockId === 'submit') {
+      return 'submit';
+    }
+    const pos = findBlockPosition(pages, block.nextBlockId);
+    if (pos) return pos;
+  }
+
   return null;
 }
 

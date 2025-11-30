@@ -30,9 +30,11 @@ import { FlowV2Sidebar } from "../flowv2/FlowV2Sidebar";
 import { FlowV2Toolbar } from "../flowv2/FlowV2Toolbar";
 import type { FlowV2Mode } from "../flowv2/types";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
-import { Button } from "../../components/ui/button";
-import { Plus, Layout } from "lucide-react";
+import { BlockSelectorDialog } from "./BlockSelectorDialog";
 import { getHumanReadableCondition } from "./utils/conditionLabel";
+import { Button } from "../../components/ui/button";
+
+import { Plus } from "lucide-react";
 
 const nodeTypes = {
   "survey-node": SurveyNode,
@@ -59,11 +61,18 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const [showNodeConfig, setShowNodeConfig] = useState(false);
   const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
 
+  // Block Selector State
+  const [showBlockSelector, setShowBlockSelector] = useState(false);
+  const [branchSourceId, setBranchSourceId] = useState<string | null>(null);
+
   // Track if we are waiting for a layout update
   const [needsLayout, setNeedsLayout] = useState(false);
 
   // Track the "Insert Index" for the context menu/sidebar
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  const [insertTargetId, setInsertTargetId] = useState<string | null>(null);
+  const [insertSourceId, setInsertSourceId] = useState<string | null>(null);
+  const [insertRule, setInsertRule] = useState<any>(null);
 
   // Transform survey state to React Flow nodes/edges
   // We ONLY do this when the STRUCTURE changes, not on every render.
@@ -131,7 +140,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
          width: 'fit-content',
          textAlign: 'center',
          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-       }
+      }
     });
 
     // --- 2. Create Edges ---
@@ -142,7 +151,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         source: "start",
         target: "submit",
         type: "button-edge", // Use button edge to allow insert
-        data: { insertIndex: 0 },
+        data: { insertIndex: 0, weight: 2 },
         markerEnd: { type: MarkerType.ArrowClosed },
         style: { strokeWidth: 2, stroke: '#94a3b8' }
       });
@@ -154,7 +163,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         source: "start",
         target: firstBlockId,
         type: "button-edge",
-        data: { insertIndex: 0 },
+        data: { insertIndex: 0, weight: 2 },
         markerEnd: { type: MarkerType.ArrowClosed },
         style: { strokeWidth: 2, stroke: '#10b981' }
       });
@@ -166,6 +175,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         
         // Determine target for sequential flow first
         let nextBlockId = index < blocks.length - 1 ? blocks[index + 1].uuid || `block-${index + 1}` : "submit";
+        
+        if (block.nextBlockId) {
+            nextBlockId = block.nextBlockId;
+        }
+
         if (block.isEndBlock) {
             nextBlockId = "submit";
         }
@@ -193,8 +207,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
               },
               data: { 
                   rule,
-                  // Add insert index ONLY if it matches sequential path
-                  insertIndex: isSequentialPath ? index + 1 : undefined
+                  // ALWAYS provide insertIndex to allow insertion
+                  insertIndex: index + 1,
+                  targetBlockId: targetId,
+                  sourceBlockId: blockId,
+                  weight: isSequentialPath ? 2 : 1 // Give higher weight to sequential path
               }
             });
           }
@@ -215,7 +232,12 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             source: blockId,
             target: nextBlockId,
             type: "button-edge", // Allow insert on sequential edges
-            data: { insertIndex: index + 1 },
+            data: { 
+                insertIndex: index + 1, 
+                targetBlockId: nextBlockId,
+                sourceBlockId: blockId,
+                weight: 2 
+            },
             animated: false,
             // No "Else" label
             markerEnd: { type: MarkerType.ArrowClosed },
@@ -297,45 +319,112 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     (deletedNodes: Node[]) => {
       if (!state.rootNode || !state.rootNode.items) return;
 
-      // 1. Identify deleted block UUIDs
+      const items = state.rootNode.items as BlockData[];
+      
+      // 1. Identify deleted block UUIDs and objects
       const deletedBlockUuids = new Set<string>();
+      const deletedBlocks: BlockData[] = [];
+      
       deletedNodes.forEach(n => {
           if (n.type === 'survey-node') {
               const block = (n.data as any).block as BlockData;
-              if (block && block.uuid) deletedBlockUuids.add(block.uuid);
+              if (block && block.uuid) {
+                  deletedBlockUuids.add(block.uuid);
+                  deletedBlocks.push(block);
+              }
           }
       });
 
       if (deletedBlockUuids.size === 0) return;
 
-      // 2. Remove blocks from items list
-      let updatedItems = (state.rootNode.items as BlockData[]).filter(item => !deletedBlockUuids.has(item.uuid!));
-      
-      // 3. Clean up navigation rules in remaining blocks
-      updatedItems = updatedItems.map(item => {
-          if (!item.navigationRules || item.navigationRules.length === 0) return item;
-          
-          const hasBadRule = item.navigationRules.some(rule => rule.target && deletedBlockUuids.has(rule.target));
-          
-          if (!hasBadRule) return item;
-
-          const newRules = item.navigationRules.map(rule => {
-              if (rule.target && deletedBlockUuids.has(rule.target)) {
-                  // Reset target to empty (or 'submit' if preferred, but empty indicates 'needs config')
-                  return { ...rule, target: '' }; 
-              }
-              return rule;
+      // 2. Check for Prevention: "We should not allow deletion of a node if it has conditional rules and valid targets exists"
+      // Only prevent if the target is NOT also being deleted.
+      const hasActiveRules = deletedBlocks.some(block => {
+          return block.navigationRules && block.navigationRules.some(rule => {
+             return rule.target && 
+                    rule.target !== "submit" && 
+                    rule.target !== "end" && 
+                    !deletedBlockUuids.has(rule.target); // Target is still alive
           });
-          return { ...item, navigationRules: newRules };
       });
 
-      // 4. Update state
+      if (hasActiveRules) {
+          // Ideally show a toast/alert here. For now we just prevent.
+          console.warn("Cannot delete node with active navigation rules to valid targets.");
+          // We need to "undo" the deletion in UI because React Flow optimistically removes them? 
+          // Actually onNodesDelete is called *after* usually or we are responsible for state update. 
+          // React Flow 'useNodesState' handles the visual removal. 
+          // To "cancel", we would need to setNodes back to previous. 
+          // But since we drive nodes from `initialNodes` (which comes from `state`), 
+          // effectively doing nothing here *should* revert the deletion on next render 
+          // because `state` hasn't changed!
+          // We just need to trigger a re-render or ensure the nodes state syncs back.
+          // calling updateNode with same state *might* trigger it, but let's rely on the fact we don't update state.
+          
+          // Force a re-sync to restore nodes
+          setNodes(current => [...current]); 
+          return;
+      }
+
+      // 3. Calculate "Bridge" targets for each deleted node
+      const bridgeMap = new Map<string, string>(); // deletedUuid -> nextUuid (or "submit")
+
+      deletedBlocks.forEach(block => {
+          let nextId = "submit";
+          
+          // Priority 1: Explicit nextBlockId (if not deleted)
+          if (block.nextBlockId && !deletedBlockUuids.has(block.nextBlockId)) {
+              nextId = block.nextBlockId;
+          } 
+          // Priority 2: Sequential next (if not deleted)
+          else {
+              const currentIndex = items.findIndex(i => i.uuid === block.uuid);
+              if (currentIndex !== -1 && currentIndex < items.length - 1) {
+                  const nextItem = items[currentIndex + 1];
+                  if (nextItem.uuid && !deletedBlockUuids.has(nextItem.uuid)) {
+                      nextId = nextItem.uuid;
+                  }
+              }
+          }
+          bridgeMap.set(block.uuid!, nextId);
+      });
+
+      // 4. Filter out deleted items
+      let updatedItems = items.filter(item => !deletedBlockUuids.has(item.uuid!));
+      
+      // 5. Update remaining items to bridge the gap
+      updatedItems = updatedItems.map(item => {
+          const newItem = { ...item };
+          let modified = false;
+
+          // Update nextBlockId
+          if (newItem.nextBlockId && bridgeMap.has(newItem.nextBlockId)) {
+              newItem.nextBlockId = bridgeMap.get(newItem.nextBlockId);
+              modified = true;
+          }
+
+          // Update navigationRules
+          if (newItem.navigationRules && newItem.navigationRules.length > 0) {
+              const newRules = newItem.navigationRules.map(rule => {
+                  if (rule.target && bridgeMap.has(rule.target)) {
+                      modified = true;
+                      return { ...rule, target: bridgeMap.get(rule.target)! };
+                  }
+                  return rule;
+              });
+              if (modified) newItem.navigationRules = newRules;
+          }
+          
+          return newItem;
+      });
+
+      // 6. Update state
       updateNode(state.rootNode.uuid!, {
         ...state.rootNode,
         items: updatedItems,
       });
     },
-    [state.rootNode, updateNode]
+    [state.rootNode, updateNode, setNodes]
   );
 
   // Listen for delete edge events
@@ -440,7 +529,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   // Event Listener for "ButtonEdge" click
   useEffect(() => {
     const handleAddBlock = (e: Event) => {
-        const customEvent = e as CustomEvent<{ insertIndex: number }>;
+        const customEvent = e as CustomEvent<{ insertIndex: number; targetBlockId?: string; sourceBlockId?: string; rule?: any }>;
         // When "+" is clicked on edge, we want to show the sidebar or highlight it
         // For now, let's just set the insert index state and open sidebar
         // Or ideally, we want to drag from sidebar to that location?
@@ -451,6 +540,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         // Let's just expand the sidebar if collapsed and scroll to it? 
         // Better: We can use the 'insertIndex' state to control where the NEXT block dropped goes.
         setInsertIndex(customEvent.detail.insertIndex);
+        setInsertTargetId(customEvent.detail.targetBlockId || null);
+        setInsertSourceId(customEvent.detail.sourceBlockId || null);
+        setInsertRule(customEvent.detail.rule || null);
         
         // Also, maybe visually indicate "Ready to insert at index X"
     };
@@ -458,6 +550,76 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     window.addEventListener('flow-v3-add-block', handleAddBlock);
     return () => window.removeEventListener('flow-v3-add-block', handleAddBlock);
   }, []);
+
+  // Handle Add Branch Event
+  useEffect(() => {
+    const handleAddBranch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sourceBlockId: string }>;
+      const { sourceBlockId } = customEvent.detail;
+      
+      setBranchSourceId(sourceBlockId);
+      setShowBlockSelector(true);
+    };
+
+    window.addEventListener('flow-v3-add-branch', handleAddBranch);
+    return () => window.removeEventListener('flow-v3-add-branch', handleAddBranch);
+  }, []);
+
+  const handleBlockSelect = useCallback((blockType: string) => {
+    if (!state.rootNode || !branchSourceId) return;
+
+    const items = state.rootNode.items as BlockData[];
+    const sourceBlock = items.find(b => b.uuid === branchSourceId);
+    
+    if (!sourceBlock) return;
+
+    const blockDefinition = state.definitions.blocks[blockType];
+    
+    if (!blockDefinition) return;
+
+    const newBlockData = blockDefinition.generateDefaultData
+      ? blockDefinition.generateDefaultData()
+      : { ...blockDefinition.defaultData };
+    
+    const newBlock: BlockData = {
+      ...newBlockData,
+      uuid: uuidv4(),
+      isEndBlock: true, // Newly created branch end
+    };
+
+    // Add Navigation Rule to Source Block
+    const newRule = {
+      condition: `${sourceBlock.fieldName || "field"} == "value"`, // Placeholder condition
+      target: newBlock.uuid!,
+      isDefault: false,
+    };
+
+    const updatedSourceBlock = {
+      ...sourceBlock,
+      navigationRules: [...(sourceBlock.navigationRules || []), newRule],
+    };
+
+    // Update Items List: replace source, append new block
+    const updatedItems = items.map(item => 
+      item.uuid === branchSourceId ? updatedSourceBlock : item
+    ).concat(newBlock);
+
+    // Update State
+    updateNode(state.rootNode.uuid!, {
+      ...state.rootNode,
+      items: updatedItems,
+    });
+
+    // Trigger Layout and Config
+    setNeedsLayout(true);
+    setShowBlockSelector(false);
+    setBranchSourceId(null);
+    
+    // Open config for the source block to edit the rule immediately
+    setConfigNodeId(branchSourceId);
+    setConfigMode("navigation-only");
+    setShowNodeConfig(true);
+  }, [state.rootNode, branchSourceId, state.definitions.blocks, updateNode]);
 
   // Modified onDrop to respect insertIndex if set
   const onDropWithIndex = useCallback(
@@ -479,12 +641,54 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         const newBlock: BlockData = {
             ...newBlockData,
             uuid: uuidv4(),
+            nextBlockId: insertTargetId === 'submit' ? undefined : (insertTargetId || undefined), // Set next step if target is provided and not submit
+            isEndBlock: insertTargetId === 'submit' // Mark as end block if targeting submit
         };
 
-        const updatedItems = [
-            ...currentItems.slice(0, targetIndex),
+        // Create updated items array
+        let updatedItems = [...currentItems];
+
+        // If we are inserting between nodes, and we have a source
+        if (insertSourceId) {
+            const sourceIndex = updatedItems.findIndex(b => b.uuid === insertSourceId);
+            if (sourceIndex !== -1) {
+                const sourceBlock = { ...updatedItems[sourceIndex] };
+
+                // Check for rule update
+                if (insertRule && sourceBlock.navigationRules) {
+                    const ruleIndex = sourceBlock.navigationRules.findIndex(r => 
+                        r.condition === insertRule.condition && r.target === insertRule.target
+                    );
+                    
+                    if (ruleIndex !== -1) {
+                        const newRules = [...sourceBlock.navigationRules];
+                        newRules[ruleIndex] = { ...newRules[ruleIndex], target: newBlock.uuid! };
+                        sourceBlock.navigationRules = newRules;
+                        updatedItems[sourceIndex] = sourceBlock;
+                    }
+                }
+                // Check for nextBlockId update or End Block update
+                else {
+                     // If inserting before 'submit', and source was end block
+                     if (insertTargetId === 'submit' && sourceBlock.isEndBlock) {
+                         sourceBlock.isEndBlock = false;
+                         sourceBlock.nextBlockId = newBlock.uuid;
+                         updatedItems[sourceIndex] = sourceBlock;
+                     }
+                     // If source explicitly pointed to target
+                     else if (insertTargetId && sourceBlock.nextBlockId === insertTargetId) {
+                        sourceBlock.nextBlockId = newBlock.uuid;
+                        updatedItems[sourceIndex] = sourceBlock;
+                    }
+                }
+            }
+        }
+
+        // Insert the new block
+        updatedItems = [
+            ...updatedItems.slice(0, targetIndex),
             newBlock,
-            ...currentItems.slice(targetIndex)
+            ...updatedItems.slice(targetIndex)
         ];
 
         updateNode(state.rootNode.uuid!, {
@@ -493,9 +697,12 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         });
         
         setInsertIndex(null); // Reset
+        setInsertTargetId(null);
+        setInsertSourceId(null);
+        setInsertRule(null);
         setIsDragging(false);
     },
-    [state.rootNode, insertIndex, state.definitions.blocks, updateNode]
+    [state.rootNode, insertIndex, insertTargetId, insertSourceId, insertRule, state.definitions.blocks, updateNode]
   );
 
   // Track connection start for onConnectEnd
@@ -679,6 +886,12 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
           onUpdate={handleNodeUpdate}
           mode={configMode}
         />
+
+      <BlockSelectorDialog
+        open={showBlockSelector}
+        onOpenChange={setShowBlockSelector}
+        onSelect={handleBlockSelect}
+      />
     </div>
   );
 };

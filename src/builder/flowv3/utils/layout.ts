@@ -9,7 +9,12 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
   const isHorizontal = direction === "LR";
-  dagreGraph.setGraph({ rankdir: direction, align: 'UL', nodesep: 500, ranksep: 200 });
+  dagreGraph.setGraph({ 
+    rankdir: direction, 
+    nodesep: 100, // Reduced from 500 to bring branches closer
+    ranksep: 100, // Reduced from 200 for better vertical flow
+    ranker: 'network-simplex' // Explicitly set ranker algorithm
+  });
 
   nodes.forEach((node) => {
     // Prefer measured dimensions from React Flow v12
@@ -20,7 +25,9 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
   });
 
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    // Use weight from edge data if available to guide layout (higher weight = straighter/shorter edge)
+    const weight = (edge.data?.weight as number) || 1;
+    dagreGraph.setEdge(edge.source, edge.target, { weight });
   });
 
   dagre.layout(dagreGraph);

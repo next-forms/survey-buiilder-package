@@ -4,7 +4,7 @@ import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import type { FlowV3NodeData } from "../types";
 import { cn } from "../../../lib/utils";
 import { BlockData } from "../../../types";
-import { CircleDot, GripVertical, PieChart, Settings, Trash2 } from "lucide-react";
+import { CircleDot, GripVertical, PieChart, Settings, Trash2, GitBranch } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 
@@ -27,6 +27,13 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
     }));
   }, [id, block.uuid]);
 
+  const handleAddBranch = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('flow-v3-add-branch', {
+      detail: { sourceBlockId: block.uuid }
+    }));
+  }, [block.uuid]);
+
   const handleUpdate = useCallback((updatedBlockData: BlockData) => {
     if (!state.rootNode) return;
     
@@ -41,6 +48,11 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
     });
   }, [state.rootNode, block.uuid, updateNode]);
 
+
+  // Check if deletion should be prevented
+  const hasActiveRules = block.navigationRules && block.navigationRules.some(rule => 
+    rule.target && rule.target !== "submit" && rule.target !== "end"
+  );
 
   return (
     <div
@@ -95,20 +107,31 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
             variant="secondary"
             size="icon"
             className="h-7 w-7 rounded-full shadow-sm border border-slate-200 bg-white hover:bg-slate-100"
+            onClick={handleAddBranch}
+            title="Add Branch"
+        >
+            <GitBranch className="h-3.5 w-3.5 text-slate-600" />
+        </Button>
+        <Button
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7 rounded-full shadow-sm border border-slate-200 bg-white hover:bg-slate-100"
             onClick={handleConfigure}
             title="Configure Block"
         >
             <Settings className="h-3.5 w-3.5 text-slate-600" />
         </Button>
-        <Button
-            variant="destructive"
-            size="icon"
-            className="h-7 w-7 rounded-full shadow-sm border border-red-200 hover:bg-red-600"
-            onClick={handleDelete}
-            title="Delete Block"
-        >
-            <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {!hasActiveRules && (
+          <Button
+              variant="destructive"
+              size="icon"
+              className="h-7 w-7 rounded-full shadow-sm border border-red-200 hover:bg-red-600"
+              onClick={handleDelete}
+              title="Delete Block"
+          >
+              <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       <div className="p-4" onDoubleClick={handleConfigure}>

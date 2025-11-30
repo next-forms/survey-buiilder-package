@@ -40,7 +40,12 @@ export const ButtonEdge = ({
     const insertIndex = (data as any)?.insertIndex;
     if (typeof insertIndex === 'number') {
          window.dispatchEvent(new CustomEvent('flow-v3-add-block', {
-            detail: { insertIndex }
+            detail: { 
+                insertIndex,
+                targetBlockId: (data as any)?.targetBlockId,
+                sourceBlockId: (data as any)?.sourceBlockId,
+                rule: (data as any)?.rule
+            }
          }));
     }
   };
