@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
@@ -10,38 +10,17 @@ interface BlockSelectorDialogProps {
   onSelect: (blockType: string) => void;
 }
 
-export const BlockSelectorDialog: React.FC<BlockSelectorDialogProps> = ({
-  open,
-  onOpenChange,
-  onSelect,
+// Memoized block item component to prevent re-renders
+const BlockItem = memo(({ type, definition, onSelect }: {
+  type: string;
+  definition: any;
+  onSelect: (type: string) => void;
 }) => {
-  const { state } = useSurveyBuilder();
+  const handleClick = useCallback(() => onSelect(type), [type, onSelect]);
 
-  // Separate default and custom blocks
-  const defaultBlocks = Object.entries(state.definitions.blocks).filter(
-    ([_, definition]) => {
-      const defaultData = definition.generateDefaultData
-        ? definition.generateDefaultData()
-        : definition.defaultData;
-      return !defaultData?.isCustom;
-    }
-  );
-
-  const customBlocks = Object.entries(state.definitions.blocks).filter(
-    ([_, definition]) => {
-      const defaultData = definition.generateDefaultData
-        ? definition.generateDefaultData()
-        : definition.defaultData;
-      return defaultData?.isCustom === true;
-    }
-  );
-
-  const hasCustomBlocks = customBlocks.length > 0;
-
-  const renderBlockItem = ([type, definition]: [string, any]) => (
+  return (
     <div
-      key={type}
-      onClick={() => onSelect(type)}
+      onClick={handleClick}
       className="
         flex items-center gap-3 px-4 py-3
         bg-white dark:bg-slate-800
@@ -66,6 +45,48 @@ export const BlockSelectorDialog: React.FC<BlockSelectorDialogProps> = ({
       </div>
     </div>
   );
+});
+
+BlockItem.displayName = "BlockItem";
+
+const BlockSelectorDialogInner: React.FC<BlockSelectorDialogProps> = ({
+  open,
+  onOpenChange,
+  onSelect,
+}) => {
+  const { state } = useSurveyBuilder();
+
+  // Memoize block filtering - only recalculate when definitions change
+  const { defaultBlocks, customBlocks, hasCustomBlocks } = useMemo(() => {
+    const defaultBlocks = Object.entries(state.definitions.blocks).filter(
+      ([_, definition]) => {
+        const defaultData = definition.generateDefaultData
+          ? definition.generateDefaultData()
+          : definition.defaultData;
+        return !defaultData?.isCustom;
+      }
+    );
+
+    const customBlocks = Object.entries(state.definitions.blocks).filter(
+      ([_, definition]) => {
+        const defaultData = definition.generateDefaultData
+          ? definition.generateDefaultData()
+          : definition.defaultData;
+        return defaultData?.isCustom === true;
+      }
+    );
+
+    return {
+      defaultBlocks,
+      customBlocks,
+      hasCustomBlocks: customBlocks.length > 0
+    };
+  }, [state.definitions.blocks]);
+
+  // Stable render function using memoized component
+  const renderBlockItem = useCallback(([type, definition]: [string, any]) => (
+    <BlockItem key={type} type={type} definition={definition} onSelect={onSelect} />
+  ), [onSelect]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,3 +125,6 @@ export const BlockSelectorDialog: React.FC<BlockSelectorDialogProps> = ({
     </Dialog>
   );
 };
+
+// Export memoized component to prevent re-renders when parent state changes
+export const BlockSelectorDialog = memo(BlockSelectorDialogInner);

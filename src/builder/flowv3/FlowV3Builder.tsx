@@ -15,7 +15,6 @@ import {
   type OnConnectEnd,
   Connection,
   Panel,
-  useNodesInitialized,
   OnConnectStart
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -36,13 +35,15 @@ import { Button } from "../../components/ui/button";
 
 import { Plus, ArrowUpToLine, ArrowDownToLine, Pencil } from "lucide-react";
 
+// CRITICAL: Define nodeTypes and edgeTypes outside component to prevent re-creation
+// This is a key React Flow optimization - these objects must be stable references
 const nodeTypes = {
   "survey-node": SurveyNode,
-};
+} as const;
 
 const edgeTypes = {
   "button-edge": ButtonEdge,
-};
+} as const;
 
 interface FlowV3BuilderProps {
   onClose?: () => void;
@@ -53,7 +54,6 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const { fitView, zoomIn, zoomOut, getNodes, getEdges } = useReactFlow();
   
   const [mode, setMode] = useState<FlowV2Mode>("select");
-  const [isDragging, setIsDragging] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
   // Config Panel State
@@ -69,6 +69,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
   // Track if we are waiting for a layout update
   const [needsLayout, setNeedsLayout] = useState(false);
+
+  // Track newly added node to pan to after layout
+  const [pendingPanToNodeId, setPendingPanToNodeId] = useState<string | null>(null);
 
   // Track the "Insert Index" for the context menu/sidebar
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -88,11 +91,19 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     isExplicitRule: boolean;
   } | null>(null);
 
+  // Create a stable structural key that only changes when structure changes
+  // This prevents full re-computation on every text field edit
+  const structuralKey = useMemo(() => {
+    if (!state.rootNode?.items) return "";
+    const blocks = state.rootNode.items as BlockData[];
+    // Create a key based on: block count, UUIDs, navigation rules count, and isEndBlock flags
+    return blocks.map(b =>
+      `${b.uuid}:${b.type}:${(b.navigationRules || []).map(r => `${r.target}|${r.condition}`).join(',')}:${b.isEndBlock}:${b.nextBlockId || ''}`
+    ).join(';');
+  }, [state.rootNode?.items]);
+
   // Transform survey state to React Flow nodes/edges
-  // We ONLY do this when the STRUCTURE changes, not on every render.
-  // However, since state.rootNode changes on every edit, we need to be careful not to reset positions if we want manual drag.
-  // BUT, for a "Formity" style vertical builder, AUTO-LAYOUT is usually preferred.
-  // So we will aggressively re-layout on structure changes.
+  // This only runs when the STRUCTURE changes (not on every text edit)
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!state.rootNode || !state.rootNode.items) return { initialNodes: [], initialEdges: [] };
 
@@ -205,6 +216,13 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             // Check if this rule follows the sequential path
             const isSequentialPath = targetId === nextBlockId;
 
+            // Calculate how many nodes this edge skips (for routing around them)
+            const sourceIndex = index;
+            const targetIndex = targetId === "submit"
+              ? blocks.length
+              : blocks.findIndex(b => b.uuid === targetId);
+            const skippedNodeCount = targetIndex > sourceIndex ? targetIndex - sourceIndex - 1 : 0;
+
             edges.push({
               id: `${blockId}-nav-${ruleIndex}`,
               source: blockId,
@@ -226,7 +244,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                   insertIndex: index + 1,
                   targetBlockId: targetId,
                   sourceBlockId: blockId,
-                  weight: isSequentialPath ? 2 : 1 // Give higher weight to sequential path
+                  weight: isSequentialPath ? 2 : 1, // Give higher weight to sequential path
+                  skippedNodeCount, // Number of nodes this edge skips over
               }
             });
           }
@@ -267,12 +286,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     }
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [state.rootNode]); // Dependency on structure
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [structuralKey]); // Only recompute when structure actually changes, not on every field edit
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  
-  const nodesInitialized = useNodesInitialized();
 
   const hasInitialLayoutRef = useRef(false);
   
@@ -309,25 +327,45 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   useEffect(() => {
     // Wait for nodes to be initialized and have measurements
     const allMeasured = nodes.every(n => n.measured && n.measured.width && n.measured.height);
-    
+
     if (needsLayout && nodes.length > 0 && allMeasured) {
         const currentNodes = getNodes();
         const currentEdges = getEdges();
-        
+
         // Run layout with actual node sizes
         const layout = getLayoutedElements(currentNodes, currentEdges, "TB");
-        
+
         setNodes([...layout.nodes]);
         setEdges([...layout.edges]);
         setNeedsLayout(false);
-        
+
         // Only fit view on initial load
         if (!hasInitialLayoutRef.current) {
-          setTimeout(() => fitView({ padding: 0.2, duration: 500, maxZoom: 1 }), 50);
+          setTimeout(() => fitView({ padding: 0.3, duration: 500, maxZoom: 0.85 }), 50);
           hasInitialLayoutRef.current = true;
         }
     }
   }, [needsLayout, nodes, getNodes, getEdges, setNodes, setEdges, fitView]);
+
+  // Effect to pan to newly added node after it appears in the graph
+  useEffect(() => {
+    if (pendingPanToNodeId) {
+      // Delay to ensure the node has been rendered and positioned
+      const timer = setTimeout(() => {
+        const node = getNodes().find(n => n.id === pendingPanToNodeId);
+        if (node) {
+          fitView({
+            nodes: [node],
+            duration: 400,
+            padding: 0.5,
+            maxZoom: 0.85, // More relaxed zoom - don't zoom in too close
+          });
+          setPendingPanToNodeId(null);
+        }
+      }, 300); // Longer delay to ensure layout is complete
+      return () => clearTimeout(timer);
+    }
+  }, [pendingPanToNodeId, getNodes, fitView, nodes]); // Added nodes dependency to re-run when nodes update
 
   // Handle Node Deletion
   const onNodesDelete = useCallback(
@@ -442,82 +480,125 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     [state.rootNode, updateNode, setNodes]
   );
 
-  // Listen for edit edge events
+  // Use refs for state values that event handlers need - this prevents listener recreation
+  const stateRef = useRef(state);
+  const updateNodeRef = useRef(updateNode);
+
+  // Keep refs in sync
+  useEffect(() => {
+    stateRef.current = state;
+    updateNodeRef.current = updateNode;
+  }, [state, updateNode]);
+
+  // CONSOLIDATED EVENT LISTENERS - single effect, stable handlers via refs
+  // This prevents constant listener add/remove which causes memory churn
   useEffect(() => {
     const handleEditEdge = (e: Event) => {
       const customEvent = e as CustomEvent<{ source: string; ruleIndex: number }>;
       const { source, ruleIndex } = customEvent.detail;
+      const currentState = stateRef.current;
 
-      if (!state.rootNode || !source) return;
+      if (!currentState.rootNode || !source) return;
 
-      // Find the source block
-      const items = state.rootNode.items as BlockData[];
+      const items = currentState.rootNode.items as BlockData[];
       const sourceBlock = items.find(item => item.uuid === source || `block-${items.indexOf(item)}` === source);
 
       if (!sourceBlock) return;
 
-      // Open config panel for this specific rule in edit mode
       setConfigNodeId(sourceBlock.uuid || source);
       setConfigMode("navigation-only");
       setEditRuleIndex(ruleIndex);
-      setHideRemoveButton(true); // Hide remove button when editing existing rule
+      setHideRemoveButton(true);
       setShowNodeConfig(true);
     };
 
-    window.addEventListener('flow-v3-edit-edge', handleEditEdge);
-    return () => window.removeEventListener('flow-v3-edit-edge', handleEditEdge);
-  }, [state.rootNode]);
-
-  // Listen for delete edge events
-  useEffect(() => {
     const handleDeleteEdge = (e: Event) => {
       const customEvent = e as CustomEvent<{ id: string; source: string; target: string; rule: any }>;
       const { source, rule } = customEvent.detail;
-      
-      if (!state.rootNode || !source || !rule) return;
+      const currentState = stateRef.current;
 
-      // Find the source block
-      const items = state.rootNode.items as BlockData[];
+      if (!currentState.rootNode || !source || !rule) return;
+
+      const items = currentState.rootNode.items as BlockData[];
       const sourceBlock = items.find(item => item.uuid === source || `block-${items.indexOf(item)}` === source);
-      
+
       if (!sourceBlock || !sourceBlock.navigationRules) return;
 
-      // Remove the specific rule
-      // We match by target AND condition to be precise
-      const updatedRules = sourceBlock.navigationRules.filter(r => 
+      const updatedRules = sourceBlock.navigationRules.filter(r =>
           r.target !== rule.target || r.condition !== rule.condition
       );
 
-      const updatedItems = items.map(item => 
+      const updatedItems = items.map(item =>
           item.uuid === sourceBlock.uuid ? { ...item, navigationRules: updatedRules } : item
       );
 
-      updateNode(state.rootNode.uuid!, {
-          ...state.rootNode,
+      updateNodeRef.current(currentState.rootNode.uuid!, {
+          ...currentState.rootNode,
           items: updatedItems
       });
     };
 
-    window.addEventListener('flow-v3-delete-edge', handleDeleteEdge);
-    return () => window.removeEventListener('flow-v3-delete-edge', handleDeleteEdge);
-  }, [state.rootNode, updateNode]);
-
-  // Listen for custom configuration event from nodes
-  useEffect(() => {
     const handleConfigEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ nodeId: string; blockUuid?: string }>;
       if (customEvent.detail?.blockUuid) {
         setConfigNodeId(customEvent.detail.blockUuid);
         setConfigMode("full");
-        setEditRuleIndex(undefined); // Reset edit rule index for full mode
+        setEditRuleIndex(undefined);
         setHideRemoveButton(false);
         setShowNodeConfig(true);
       }
     };
 
+    const handleAddBlock = (e: Event) => {
+      const customEvent = e as CustomEvent<{ insertIndex: number; targetBlockId?: string; sourceBlockId?: string; rule?: any }>;
+      setInsertIndex(customEvent.detail.insertIndex);
+      setInsertTargetId(customEvent.detail.targetBlockId || null);
+      setInsertSourceId(customEvent.detail.sourceBlockId || null);
+      setInsertRule(customEvent.detail.rule || null);
+    };
+
+    const handleAddBranch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sourceBlockId: string }>;
+      setBranchSourceId(customEvent.detail.sourceBlockId);
+      setShowBlockSelector(true);
+    };
+
+    // NEW: Handle block updates from SurveyNode (avoids state.rootNode dependency in node)
+    const handleUpdateBlock = (e: Event) => {
+      const customEvent = e as CustomEvent<{ blockUuid: string; data: BlockData }>;
+      const { blockUuid, data } = customEvent.detail;
+      const currentState = stateRef.current;
+
+      if (!currentState.rootNode) return;
+
+      const updatedItems = (currentState.rootNode.items || []).map((item) =>
+        (item as BlockData).uuid === blockUuid ? data : item
+      );
+
+      updateNodeRef.current(currentState.rootNode.uuid!, {
+        ...currentState.rootNode,
+        items: updatedItems,
+      });
+    };
+
+    // Add all listeners once
+    window.addEventListener('flow-v3-edit-edge', handleEditEdge);
+    window.addEventListener('flow-v3-delete-edge', handleDeleteEdge);
     window.addEventListener('flow-v3-configure-node', handleConfigEvent);
-    return () => window.removeEventListener('flow-v3-configure-node', handleConfigEvent);
-  }, []);
+    window.addEventListener('flow-v3-add-block', handleAddBlock);
+    window.addEventListener('flow-v3-add-branch', handleAddBranch);
+    window.addEventListener('flow-v3-update-block', handleUpdateBlock);
+
+    // Cleanup all listeners
+    return () => {
+      window.removeEventListener('flow-v3-edit-edge', handleEditEdge);
+      window.removeEventListener('flow-v3-delete-edge', handleDeleteEdge);
+      window.removeEventListener('flow-v3-configure-node', handleConfigEvent);
+      window.removeEventListener('flow-v3-add-block', handleAddBlock);
+      window.removeEventListener('flow-v3-add-branch', handleAddBranch);
+      window.removeEventListener('flow-v3-update-block', handleUpdateBlock);
+    };
+  }, []); // Empty deps - listeners are stable, use refs for current values
 
 
   const handleResetLayout = useCallback(() => {
@@ -530,83 +611,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  // Handle Drop (Add new block)
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-
-      const blockType = event.dataTransfer.getData("application/reactflow");
-      if (!blockType || !state.rootNode) return;
-
-      const blockDefinition = state.definitions.blocks[blockType];
-      if (!blockDefinition) return;
-
-      const currentItems = (state.rootNode.items || []) as BlockData[];
-      
-      // Use the specific insert index if dropped on a "plus" button (via some state?)
-      // Or if just dropped on canvas, append to end.
-      // If dropped via "ButtonEdge", we handle that separately via event listener.
-      // This onDrop is for dragging from sidebar to canvas.
-      
-      const newBlockData = blockDefinition.generateDefaultData
-        ? blockDefinition.generateDefaultData()
-        : { ...blockDefinition.defaultData };
-
-      const newBlock: BlockData = {
-        ...newBlockData,
-        uuid: uuidv4(),
-      };
-
-      const updatedItems = [...currentItems, newBlock];
-
-      updateNode(state.rootNode.uuid!, {
-        ...state.rootNode,
-        items: updatedItems,
-      });
-      
-      setIsDragging(false);
-    },
-    [state.rootNode, state.definitions.blocks, updateNode]
-  );
-
-  // Event Listener for "ButtonEdge" click
-  useEffect(() => {
-    const handleAddBlock = (e: Event) => {
-        const customEvent = e as CustomEvent<{ insertIndex: number; targetBlockId?: string; sourceBlockId?: string; rule?: any }>;
-        // When "+" is clicked on edge, we want to show the sidebar or highlight it
-        // For now, let's just set the insert index state and open sidebar
-        // Or ideally, we want to drag from sidebar to that location?
-        // Formity usually opens a popover. 
-        // For this CLI task, let's set a mode or flag that the NEXT drag/drop goes to this index?
-        // Or simpler: Add a specific placeholder block that users can then configure?
-        
-        // Let's just expand the sidebar if collapsed and scroll to it? 
-        // Better: We can use the 'insertIndex' state to control where the NEXT block dropped goes.
-        setInsertIndex(customEvent.detail.insertIndex);
-        setInsertTargetId(customEvent.detail.targetBlockId || null);
-        setInsertSourceId(customEvent.detail.sourceBlockId || null);
-        setInsertRule(customEvent.detail.rule || null);
-        
-        // Also, maybe visually indicate "Ready to insert at index X"
-    };
-
-    window.addEventListener('flow-v3-add-block', handleAddBlock);
-    return () => window.removeEventListener('flow-v3-add-block', handleAddBlock);
-  }, []);
-
-  // Handle Add Branch Event
-  useEffect(() => {
-    const handleAddBranch = (e: Event) => {
-      const customEvent = e as CustomEvent<{ sourceBlockId: string }>;
-      const { sourceBlockId } = customEvent.detail;
-      
-      setBranchSourceId(sourceBlockId);
-      setShowBlockSelector(true);
-    };
-
-    window.addEventListener('flow-v3-add-branch', handleAddBranch);
-    return () => window.removeEventListener('flow-v3-add-branch', handleAddBranch);
-  }, []);
+  // Note: onDrop was removed - use onDropWithIndex instead which handles insert positions
 
   const handleBlockSelect = useCallback((blockType: string) => {
     if (!state.rootNode || !branchSourceId) return;
@@ -652,6 +657,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       ...state.rootNode,
       items: updatedItems,
     });
+
+    // Pan to the newly added branch node after layout
+    setPendingPanToNodeId(newBlock.uuid!);
 
     // Trigger Layout and Config
     setNeedsLayout(true);
@@ -742,12 +750,14 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             ...state.rootNode,
             items: updatedItems,
         });
-        
+
+        // Pan to the newly added node after layout settles
+        setPendingPanToNodeId(newBlock.uuid!);
+
         setInsertIndex(null); // Reset
         setInsertTargetId(null);
         setInsertSourceId(null);
         setInsertRule(null);
-        setIsDragging(false);
     },
     [state.rootNode, insertIndex, insertTargetId, insertSourceId, insertRule, state.definitions.blocks, updateNode]
   );
@@ -863,8 +873,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   );
 
 
-  const handleDragStart = useCallback(() => setIsDragging(true), []);
-  const handleDragEnd = useCallback(() => setIsDragging(false), []);
+  // Callbacks for sidebar drag events (kept as noop for sidebar compatibility)
+  const handleDragStart = useCallback(() => {}, []);
+  const handleDragEnd = useCallback(() => {}, []);
 
   // Handle edge click to show tooltip
   const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -903,8 +914,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     if (node) {
       fitView({
         nodes: [node],
-        duration: 500,
+        duration: 400,
         padding: 0.5,
+        maxZoom: 0.85, // More relaxed zoom level
       });
     }
     closeEdgeTooltip();
@@ -981,7 +993,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
        <FlowV2Toolbar
         mode={mode}
         onModeChange={setMode}
-        onFitView={() => fitView({ padding: 0.2 })}
+        onFitView={() => fitView({ padding: 0.3, maxZoom: 0.85 })}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onResetLayout={handleResetLayout}

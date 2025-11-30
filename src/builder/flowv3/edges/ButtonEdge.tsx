@@ -1,14 +1,68 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
+  getSmoothStepPath,
   type EdgeProps,
 } from "@xyflow/react";
 import { Plus, X, Pencil } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 
-export const ButtonEdge = ({
+// Edge data interface for type safety
+interface ButtonEdgeData {
+  insertIndex?: number;
+  targetBlockId?: string;
+  sourceBlockId?: string;
+  rule?: unknown;
+  ruleIndex?: number;
+  weight?: number;
+  skippedNodeCount?: number; // Number of nodes this edge skips over
+}
+
+// Custom path generator for edges that need to route around nodes
+// Creates a path that goes to the side, completely avoiding middle nodes
+const getAvoidingPath = (
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  skippedNodes: number = 1
+): { path: string; labelX: number; labelY: number } => {
+  // Calculate offset based on how many nodes we're skipping
+  // More skipped nodes = route further out to avoid them all
+  // Base offset covers half node width (~200-300px) plus margin
+  const baseOffset = 280;
+  const perNodeOffset = 40; // Additional offset per skipped node
+  const sideOffset = baseOffset + (skippedNodes * perNodeOffset);
+
+  // Always go to the right side
+  const sideX = Math.max(sourceX, targetX) + sideOffset;
+
+  const r = 10; // corner radius
+
+  // Create a clean rectangular path around the nodes
+  // Path: down from source -> right -> down along side -> left -> up to target
+  const path = [
+    `M ${sourceX} ${sourceY}`,
+    `L ${sourceX} ${sourceY + r}`,
+    `Q ${sourceX} ${sourceY + 2*r} ${sourceX + r} ${sourceY + 2*r}`,
+    `L ${sideX - r} ${sourceY + 2*r}`,
+    `Q ${sideX} ${sourceY + 2*r} ${sideX} ${sourceY + 3*r}`,
+    `L ${sideX} ${targetY - 3*r}`,
+    `Q ${sideX} ${targetY - 2*r} ${sideX - r} ${targetY - 2*r}`,
+    `L ${targetX + r} ${targetY - 2*r}`,
+    `Q ${targetX} ${targetY - 2*r} ${targetX} ${targetY - r}`,
+    `L ${targetX} ${targetY}`,
+  ].join(' ');
+
+  // Label position - on the vertical side portion, slightly to the right
+  const labelX = sideX + 15;
+  const labelY = (sourceY + targetY) / 2;
+
+  return { path, labelX, labelY };
+};
+
+const ButtonEdgeInner = ({
   id,
   source,
   target,
@@ -24,51 +78,71 @@ export const ButtonEdge = ({
   label,
   selected,
 }: EdgeProps) => {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  const edgeData = data as ButtonEdgeData | undefined;
 
-  const onInsertClick = (evt: React.MouseEvent) => {
+  // Determine if this edge skips over nodes and needs special routing
+  const skippedNodeCount = edgeData?.skippedNodeCount ?? 0;
+  const isSkipEdge = skippedNodeCount > 0;
+
+  const { edgePath, labelX, labelY } = useMemo(() => {
+    if (isSkipEdge) {
+      // Route around nodes for edges that skip over them
+      const avoiding = getAvoidingPath(sourceX, sourceY, targetX, targetY, skippedNodeCount);
+      return { edgePath: avoiding.path, labelX: avoiding.labelX, labelY: avoiding.labelY };
+    }
+
+    // For normal sequential edges, use smooth step path for cleaner routing
+    const [path, lx, ly] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+      borderRadius: 16,
+    });
+    return { edgePath: path, labelX: lx, labelY: ly };
+  }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isSkipEdge, skippedNodeCount]);
+
+  // Memoize data extraction to avoid recalculating on every render
+  const { isExplicitRule, hasRuleIndex, showInsertButton, insertIndex, ruleIndex } = useMemo(() => ({
+    isExplicitRule: !!edgeData?.rule,
+    hasRuleIndex: typeof edgeData?.ruleIndex === 'number',
+    showInsertButton: typeof edgeData?.insertIndex === 'number',
+    insertIndex: edgeData?.insertIndex,
+    ruleIndex: edgeData?.ruleIndex,
+  }), [edgeData?.rule, edgeData?.ruleIndex, edgeData?.insertIndex]);
+
+  // Stable callback references
+  const onInsertClick = useCallback((evt: React.MouseEvent) => {
     evt.stopPropagation();
-    const insertIndex = (data as any)?.insertIndex;
     if (typeof insertIndex === 'number') {
       window.dispatchEvent(new CustomEvent('flow-v3-add-block', {
         detail: {
           insertIndex,
-          targetBlockId: (data as any)?.targetBlockId,
-          sourceBlockId: (data as any)?.sourceBlockId,
-          rule: (data as any)?.rule
+          targetBlockId: edgeData?.targetBlockId,
+          sourceBlockId: edgeData?.sourceBlockId,
+          rule: edgeData?.rule
         }
       }));
     }
-  };
+  }, [insertIndex, edgeData?.targetBlockId, edgeData?.sourceBlockId, edgeData?.rule]);
 
-  const onDeleteClick = (evt: React.MouseEvent) => {
+  const onDeleteClick = useCallback((evt: React.MouseEvent) => {
     evt.stopPropagation();
-    // Dispatch delete event with edge identification
     window.dispatchEvent(new CustomEvent('flow-v3-delete-edge', {
-      detail: { id, source, target, rule: (data as any)?.rule }
+      detail: { id, source, target, rule: edgeData?.rule }
     }));
-  };
+  }, [id, source, target, edgeData?.rule]);
 
-  const onEditClick = (evt: React.MouseEvent) => {
+  const onEditClick = useCallback((evt: React.MouseEvent) => {
     evt.stopPropagation();
-    const ruleIndex = (data as any)?.ruleIndex;
     if (typeof ruleIndex === 'number') {
       window.dispatchEvent(new CustomEvent('flow-v3-edit-edge', {
         detail: { source, ruleIndex }
       }));
     }
-  };
-
-  const isExplicitRule = !!(data as any)?.rule;
-  const hasRuleIndex = typeof (data as any)?.ruleIndex === 'number';
-  const showInsertButton = typeof (data as any)?.insertIndex === 'number';
+  }, [source, ruleIndex]);
 
   // Highlight style when selected
   const edgeStyle = {
@@ -98,7 +172,7 @@ export const ButtonEdge = ({
                 ? `translate(-50%, -170%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: 1000,
+              zIndex: 5, // Below nodes (z-index 10) so labels don't overlap node content
               display: "flex",
               alignItems: "center",
               gap: "4px",
@@ -143,7 +217,7 @@ export const ButtonEdge = ({
                 ? `translate(-50%, 30%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: 1000,
+              zIndex: 5, // Below nodes (z-index 10) so buttons don't overlap node content
             }}
             className="nodrag nopan"
           >
@@ -162,3 +236,33 @@ export const ButtonEdge = ({
     </>
   );
 };
+
+// Custom areEqual function for edge memoization
+// Edges re-render frequently due to position changes, so we check only meaningful props
+const areEdgePropsEqual = (prevProps: EdgeProps, nextProps: EdgeProps): boolean => {
+  // Check selection state
+  if (prevProps.selected !== nextProps.selected) return false;
+
+  // Check label
+  if (prevProps.label !== nextProps.label) return false;
+
+  // Check critical position values (significant changes only)
+  // Allow small position changes without re-render
+  const posTolerance = 1;
+  if (Math.abs(prevProps.sourceX - nextProps.sourceX) > posTolerance) return false;
+  if (Math.abs(prevProps.sourceY - nextProps.sourceY) > posTolerance) return false;
+  if (Math.abs(prevProps.targetX - nextProps.targetX) > posTolerance) return false;
+  if (Math.abs(prevProps.targetY - nextProps.targetY) > posTolerance) return false;
+
+  // Check data object (shallow compare important fields)
+  const prevData = prevProps.data as ButtonEdgeData | undefined;
+  const nextData = nextProps.data as ButtonEdgeData | undefined;
+
+  if (prevData?.insertIndex !== nextData?.insertIndex) return false;
+  if (prevData?.ruleIndex !== nextData?.ruleIndex) return false;
+  if (prevData?.rule !== nextData?.rule) return false;
+
+  return true;
+};
+
+export const ButtonEdge = memo(ButtonEdgeInner, areEdgePropsEqual);

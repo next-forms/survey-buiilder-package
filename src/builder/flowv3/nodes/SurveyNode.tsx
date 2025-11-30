@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Handle, Position, type NodeProps, type Node, useReactFlow } from "@xyflow/react";
 import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import type { FlowV3NodeData } from "../types";
@@ -8,25 +8,34 @@ import { CircleDot, GripVertical, PieChart, Settings, Trash2, GitBranch } from "
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 
-// Custom Node Component
-export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>) => {
-  const { state, updateNode } = useSurveyBuilder();
+// Custom Node Component - Performance optimized
+// Using areEqual comparison to prevent unnecessary re-renders
+const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>) => {
+  const { state } = useSurveyBuilder();
   const { deleteElements } = useReactFlow();
   const { block } = data;
-  const blockDefinition = state.definitions.blocks[block.type];
 
+  // Memoize block definition lookup
+  const blockDefinition = useMemo(
+    () => state.definitions.blocks[block.type],
+    [state.definitions.blocks, block.type]
+  );
+
+  // Stable reference for delete - only depends on id and deleteElements
   const handleDelete = useCallback((e?: React.MouseEvent) => {
       e?.stopPropagation();
       deleteElements({ nodes: [{ id }] });
   }, [id, deleteElements]);
 
+  // Stable reference - only depends on id and block.uuid
   const handleConfigure = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('flow-v3-configure-node', { 
-      detail: { nodeId: id, blockUuid: block.uuid } 
+    window.dispatchEvent(new CustomEvent('flow-v3-configure-node', {
+      detail: { nodeId: id, blockUuid: block.uuid }
     }));
   }, [id, block.uuid]);
 
+  // Stable reference - only depends on block.uuid
   const handleAddBranch = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent('flow-v3-add-branch', {
@@ -34,19 +43,13 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
     }));
   }, [block.uuid]);
 
+  // Dispatch event for update instead of directly updating state
+  // This removes the dependency on state.rootNode which changes frequently
   const handleUpdate = useCallback((updatedBlockData: BlockData) => {
-    if (!state.rootNode) return;
-    
-    // Update the block in the global state
-    const updatedItems = (state.rootNode.items || []).map((item) =>
-      (item as BlockData).uuid === block.uuid ? updatedBlockData : item
-    );
-
-    updateNode(state.rootNode.uuid!, {
-      ...state.rootNode,
-      items: updatedItems,
-    });
-  }, [state.rootNode, block.uuid, updateNode]);
+    window.dispatchEvent(new CustomEvent('flow-v3-update-block', {
+      detail: { blockUuid: block.uuid, data: updatedBlockData }
+    }));
+  }, [block.uuid]);
 
 
   // Check if deletion should be prevented
@@ -60,6 +63,7 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
         "relative group bg-white dark:bg-slate-900 rounded-xl shadow-sm border-2 transition-all duration-200 min-w-[400px] max-w-[600px]",
         selected ? "border-blue-500 ring-2 ring-blue-500/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
       )}
+      style={{ zIndex: 10 }} // Ensure nodes appear above edge labels
     >
       {/* Target Handle (Top) */}
       <Handle
@@ -159,6 +163,39 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
       />
     </div>
   );
-});
+};
+
+// Custom areEqual function for deep comparison of node props
+// This prevents re-renders when only position changes or parent re-renders
+const areEqual = (
+  prevProps: NodeProps<Node<FlowV3NodeData>>,
+  nextProps: NodeProps<Node<FlowV3NodeData>>
+): boolean => {
+  // Check selected state
+  if (prevProps.selected !== nextProps.selected) return false;
+
+  // Check block data - deep compare critical fields
+  const prevBlock = prevProps.data.block;
+  const nextBlock = nextProps.data.block;
+
+  if (prevBlock.uuid !== nextBlock.uuid) return false;
+  if (prevBlock.type !== nextBlock.type) return false;
+  if (prevBlock.fieldName !== nextBlock.fieldName) return false;
+  if (prevBlock.label !== nextBlock.label) return false;
+  if (prevBlock.isEndBlock !== nextBlock.isEndBlock) return false;
+
+  // Check navigation rules (shallow compare length and targets)
+  const prevRules = prevBlock.navigationRules || [];
+  const nextRules = nextBlock.navigationRules || [];
+  if (prevRules.length !== nextRules.length) return false;
+
+  // Check A/B test state
+  if (prevBlock.abTest?.enabled !== nextBlock.abTest?.enabled) return false;
+  if (prevBlock.abTest?.variants?.length !== nextBlock.abTest?.variants?.length) return false;
+
+  return true;
+};
+
+export const SurveyNode = memo(SurveyNodeInner, areEqual);
 
 SurveyNode.displayName = "SurveyNode";
