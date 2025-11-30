@@ -1132,8 +1132,10 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 fitView
                 minZoom={0.1}
                 maxZoom={1.5}
-                panOnDrag={mode === "pan" || mode === "select"}
-                selectionOnDrag={mode === "select"}
+                panOnScroll
+                selectionOnDrag
+                // panOnDrag={mode === "pan" || mode === "select"}
+                // selectionOnDrag={mode === "select"}
                 connectOnClick={mode === "connect"}
                 proOptions={{ hideAttribution: true }}
             >
