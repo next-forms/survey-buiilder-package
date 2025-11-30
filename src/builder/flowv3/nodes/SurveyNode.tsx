@@ -4,8 +4,9 @@ import { useSurveyBuilder } from "../../../context/SurveyBuilderContext";
 import type { FlowV3NodeData } from "../types";
 import { cn } from "../../../lib/utils";
 import { BlockData } from "../../../types";
-import { Settings, Trash2 } from "lucide-react";
+import { CircleDot, GripVertical, PieChart, Settings, Trash2 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
 
 // Custom Node Component
 export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>) => {
@@ -54,6 +55,39 @@ export const SurveyNode = memo(({ id, data, selected }: NodeProps<Node<FlowV3Nod
         position={Position.Top}
         className="!w-3 !h-3 !bg-slate-400 !border-2 !border-white dark:!border-slate-900"
       />
+
+      <div 
+        className={`flex items-center gap-2 px-3 py-2 border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-xl border-b'}`}
+      >
+        <div className="cursor-grab opacity-50 hover:opacity-100">
+          <GripVertical className="w-4 h-4 text-slate-400" />
+        </div>
+
+
+        <div className="flex-shrink-0 w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+          {blockDefinition?.icon || <CircleDot className="w-3.5 h-3.5" />}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 truncate block">
+            {blockDefinition?.name || block.type}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {block.abTest?.enabled && (
+            <Badge variant="secondary" className="gap-1">
+              <PieChart className="h-3 w-3" />
+              A/B Testing ({block.abTest.variants.length} variants)
+            </Badge>
+          )}
+        </div>
+            <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+              {block.fieldName}
+            </div>
+
+      </div>
+
 
       {/* Node Actions Toolbar (Visible on Hover) */}
       <div className="absolute -top-3 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">

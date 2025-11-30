@@ -9,7 +9,7 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
   const isHorizontal = direction === "LR";
-  dagreGraph.setGraph({ rankdir: direction, align: 'UL', nodesep: 100, ranksep: 200 });
+  dagreGraph.setGraph({ rankdir: direction, align: 'UL', nodesep: 500, ranksep: 200 });
 
   nodes.forEach((node) => {
     // Prefer measured dimensions from React Flow v12

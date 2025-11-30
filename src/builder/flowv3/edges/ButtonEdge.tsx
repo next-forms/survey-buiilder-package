@@ -60,7 +60,7 @@ export const ButtonEdge = ({
   const edgeStyle = {
     ...style,
     stroke: selected ? "#3b82f6" : style.stroke,
-    strokeWidth: selected ? 3 : style.strokeWidth,
+    strokeWidth: selected ? 5 : style.strokeWidth,
     zIndex: selected ? 100 : 0,
   };
 

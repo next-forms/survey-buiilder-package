@@ -15,7 +15,8 @@ import {
   type OnConnectEnd,
   Connection,
   Panel,
-  useNodesInitialized
+  useNodesInitialized,
+  OnConnectStart
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
@@ -31,6 +32,7 @@ import type { FlowV2Mode } from "../flowv2/types";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
 import { Button } from "../../components/ui/button";
 import { Plus, Layout } from "lucide-react";
+import { getHumanReadableCondition } from "./utils/conditionLabel";
 
 const nodeTypes = {
   "survey-node": SurveyNode,
@@ -179,7 +181,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
               id: `${blockId}-nav-${ruleIndex}`,
               source: blockId,
               target: targetId,
-              label: rule.condition || "Default",
+              // Use human readable label
+              label: rule.isDefault ? "Default" : getHumanReadableCondition(rule.condition, blocks),
               // ALWAYS use button-edge to show labels/delete buttons
               type: "button-edge",
               animated: !rule.isDefault,
