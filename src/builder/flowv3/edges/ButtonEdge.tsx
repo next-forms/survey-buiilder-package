@@ -3,10 +3,9 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
-  useReactFlow,
   type EdgeProps,
 } from "@xyflow/react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Pencil } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 
 export const ButtonEdge = ({
@@ -25,7 +24,6 @@ export const ButtonEdge = ({
   label,
   selected,
 }: EdgeProps) => {
-  const { setEdges, getNodes, setNodes } = useReactFlow();
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -39,26 +37,37 @@ export const ButtonEdge = ({
     evt.stopPropagation();
     const insertIndex = (data as any)?.insertIndex;
     if (typeof insertIndex === 'number') {
-         window.dispatchEvent(new CustomEvent('flow-v3-add-block', {
-            detail: { 
-                insertIndex,
-                targetBlockId: (data as any)?.targetBlockId,
-                sourceBlockId: (data as any)?.sourceBlockId,
-                rule: (data as any)?.rule
-            }
-         }));
+      window.dispatchEvent(new CustomEvent('flow-v3-add-block', {
+        detail: {
+          insertIndex,
+          targetBlockId: (data as any)?.targetBlockId,
+          sourceBlockId: (data as any)?.sourceBlockId,
+          rule: (data as any)?.rule
+        }
+      }));
     }
   };
 
   const onDeleteClick = (evt: React.MouseEvent) => {
-      evt.stopPropagation();
-      // Dispatch delete event with edge identification
-      window.dispatchEvent(new CustomEvent('flow-v3-delete-edge', {
-          detail: { id, source, target, rule: (data as any)?.rule }
+    evt.stopPropagation();
+    // Dispatch delete event with edge identification
+    window.dispatchEvent(new CustomEvent('flow-v3-delete-edge', {
+      detail: { id, source, target, rule: (data as any)?.rule }
+    }));
+  };
+
+  const onEditClick = (evt: React.MouseEvent) => {
+    evt.stopPropagation();
+    const ruleIndex = (data as any)?.ruleIndex;
+    if (typeof ruleIndex === 'number') {
+      window.dispatchEvent(new CustomEvent('flow-v3-edit-edge', {
+        detail: { source, ruleIndex }
       }));
+    }
   };
 
   const isExplicitRule = !!(data as any)?.rule;
+  const hasRuleIndex = typeof (data as any)?.ruleIndex === 'number';
   const showInsertButton = typeof (data as any)?.insertIndex === 'number';
 
   // Highlight style when selected
@@ -71,9 +80,15 @@ export const ButtonEdge = ({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
+      <BaseEdge
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={edgeStyle}
+        interactionWidth={25}
+      />
+
       <EdgeLabelRenderer>
-        {/* Label / Delete Container */}
+        {/* Label / Edit / Delete Container - Always visible when there's a label or explicit rule */}
         {(label || isExplicitRule) && (
           <div
             style={{
@@ -95,42 +110,53 @@ export const ButtonEdge = ({
                 {label}
               </div>
             )}
-            
+
+            {/* Edit button for explicit rules */}
+            {isExplicitRule && hasRuleIndex && (
+              <button
+                className="h-4 w-4 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-amber-500 hover:border-amber-500 flex items-center justify-center shadow-sm transition-colors"
+                onClick={onEditClick}
+                title="Edit Rule"
+              >
+                <Pencil className="h-2.5 w-2.5" />
+              </button>
+            )}
+
             {isExplicitRule && (
-                <button
-                    className="h-4 w-4 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 flex items-center justify-center shadow-sm transition-colors"
-                    onClick={onDeleteClick}
-                    title="Delete Connection"
-                >
-                    <X className="h-3 w-3" />
-                </button>
+              <button
+                className="h-4 w-4 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 flex items-center justify-center shadow-sm transition-colors"
+                onClick={onDeleteClick}
+                title="Delete Connection"
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
           </div>
         )}
-        
+
         {/* Insert Button Container */}
         {showInsertButton && (
-            <div
+          <div
             style={{
-                position: "absolute",
-                transform: (label || isExplicitRule)
-                ? `translate(-50%, 30%) translate(${labelX}px,${labelY}px)` 
+              position: "absolute",
+              transform: (label || isExplicitRule)
+                ? `translate(-50%, 30%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-                pointerEvents: "all",
-                zIndex: 1000,
+              pointerEvents: "all",
+              zIndex: 1000,
             }}
             className="nodrag nopan"
-            >
+          >
             <Button
-                variant="outline"
-                size="icon"
-                className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600'}`}
-                onClick={onInsertClick}
-                title="Insert Block"
+              variant="outline"
+              size="icon"
+              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600'}`}
+              onClick={onInsertClick}
+              title="Insert Block"
             >
-                <Plus className="h-3.5 w-3.5 text-current" />
+              <Plus className="h-3.5 w-3.5 text-current" />
             </Button>
-            </div>
+          </div>
         )}
       </EdgeLabelRenderer>
     </>

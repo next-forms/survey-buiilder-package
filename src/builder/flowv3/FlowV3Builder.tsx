@@ -34,7 +34,7 @@ import { BlockSelectorDialog } from "./BlockSelectorDialog";
 import { getHumanReadableCondition } from "./utils/conditionLabel";
 import { Button } from "../../components/ui/button";
 
-import { Plus } from "lucide-react";
+import { Plus, ArrowUpToLine, ArrowDownToLine, Pencil } from "lucide-react";
 
 const nodeTypes = {
   "survey-node": SurveyNode,
@@ -60,6 +60,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const [showNodeConfig, setShowNodeConfig] = useState(false);
   const [configMode, setConfigMode] = useState<"full" | "navigation-only">("full");
+  const [editRuleIndex, setEditRuleIndex] = useState<number | undefined>(undefined);
+  const [hideRemoveButton, setHideRemoveButton] = useState(false);
 
   // Block Selector State
   const [showBlockSelector, setShowBlockSelector] = useState(false);
@@ -73,6 +75,18 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const [insertTargetId, setInsertTargetId] = useState<string | null>(null);
   const [insertSourceId, setInsertSourceId] = useState<string | null>(null);
   const [insertRule, setInsertRule] = useState<any>(null);
+
+  // Edge tooltip state
+  const [edgeTooltip, setEdgeTooltip] = useState<{
+    edgeId: string;
+    x: number;
+    y: number;
+    sourceId: string;
+    targetId: string;
+    label?: string;
+    ruleIndex?: number;
+    isExplicitRule: boolean;
+  } | null>(null);
 
   // Transform survey state to React Flow nodes/edges
   // We ONLY do this when the STRUCTURE changes, not on every render.
@@ -201,12 +215,13 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
               type: "button-edge",
               animated: !rule.isDefault,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: { 
-                  stroke: rule.isDefault ? '#94a3b8' : '#3b82f6', 
-                  strokeWidth: rule.isDefault ? 1 : 2 
+              style: {
+                  stroke: rule.isDefault ? '#94a3b8' : '#3b82f6',
+                  strokeWidth: rule.isDefault ? 1 : 2
               },
-              data: { 
+              data: {
                   rule,
+                  ruleIndex, // Include rule index for editing
                   // ALWAYS provide insertIndex to allow insertion
                   insertIndex: index + 1,
                   targetBlockId: targetId,
@@ -308,7 +323,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         
         // Only fit view on initial load
         if (!hasInitialLayoutRef.current) {
-          setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 50);
+          setTimeout(() => fitView({ padding: 0.2, duration: 500, maxZoom: 1 }), 50);
           hasInitialLayoutRef.current = true;
         }
     }
@@ -427,6 +442,32 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     [state.rootNode, updateNode, setNodes]
   );
 
+  // Listen for edit edge events
+  useEffect(() => {
+    const handleEditEdge = (e: Event) => {
+      const customEvent = e as CustomEvent<{ source: string; ruleIndex: number }>;
+      const { source, ruleIndex } = customEvent.detail;
+
+      if (!state.rootNode || !source) return;
+
+      // Find the source block
+      const items = state.rootNode.items as BlockData[];
+      const sourceBlock = items.find(item => item.uuid === source || `block-${items.indexOf(item)}` === source);
+
+      if (!sourceBlock) return;
+
+      // Open config panel for this specific rule in edit mode
+      setConfigNodeId(sourceBlock.uuid || source);
+      setConfigMode("navigation-only");
+      setEditRuleIndex(ruleIndex);
+      setHideRemoveButton(true); // Hide remove button when editing existing rule
+      setShowNodeConfig(true);
+    };
+
+    window.addEventListener('flow-v3-edit-edge', handleEditEdge);
+    return () => window.removeEventListener('flow-v3-edit-edge', handleEditEdge);
+  }, [state.rootNode]);
+
   // Listen for delete edge events
   useEffect(() => {
     const handleDeleteEdge = (e: Event) => {
@@ -467,7 +508,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       const customEvent = e as CustomEvent<{ nodeId: string; blockUuid?: string }>;
       if (customEvent.detail?.blockUuid) {
         setConfigNodeId(customEvent.detail.blockUuid);
-        setConfigMode("full"); 
+        setConfigMode("full");
+        setEditRuleIndex(undefined); // Reset edit rule index for full mode
+        setHideRemoveButton(false);
         setShowNodeConfig(true);
       }
     };
@@ -614,10 +657,14 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     setNeedsLayout(true);
     setShowBlockSelector(false);
     setBranchSourceId(null);
-    
-    // Open config for the source block to edit the rule immediately
+
+    // Open config for the source block to edit ONLY the newly added rule
+    // The new rule is the last one in the array
+    const newRuleIndex = (sourceBlock.navigationRules || []).length; // Index of the newly added rule
     setConfigNodeId(branchSourceId);
     setConfigMode("navigation-only");
+    setEditRuleIndex(newRuleIndex);
+    setHideRemoveButton(false); // Allow removing the newly created rule
     setShowNodeConfig(true);
   }, [state.rootNode, branchSourceId, state.definitions.blocks, updateNode]);
 
@@ -747,9 +794,12 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             items: updatedItems,
           });
 
-          // Open Config
+          // Open Config for ONLY the newly added rule
+          const newRuleIndex = (blockData.navigationRules || []).length; // Index of the newly added rule
           setConfigNodeId(sourceNode.id);
           setConfigMode("navigation-only");
+          setEditRuleIndex(newRuleIndex);
+          setHideRemoveButton(false); // Allow removing the newly created rule
           setShowNodeConfig(true);
   }, [getNodes, state.rootNode, updateNode]);
 
@@ -816,6 +866,116 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const handleDragStart = useCallback(() => setIsDragging(true), []);
   const handleDragEnd = useCallback(() => setIsDragging(false), []);
 
+  // Handle edge click to show tooltip
+  const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    event.stopPropagation();
+
+    // Get position relative to the react flow wrapper
+    const wrapper = reactFlowWrapper.current;
+    if (!wrapper) return;
+
+    const rect = wrapper.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const edgeData = edge.data as any;
+
+    setEdgeTooltip({
+      edgeId: edge.id,
+      x,
+      y,
+      sourceId: edge.source,
+      targetId: edge.target,
+      label: edge.label as string | undefined,
+      ruleIndex: edgeData?.ruleIndex,
+      isExplicitRule: !!edgeData?.rule,
+    });
+  }, []);
+
+  // Close edge tooltip
+  const closeEdgeTooltip = useCallback(() => {
+    setEdgeTooltip(null);
+  }, []);
+
+  // Handle pan to node from tooltip
+  const handlePanToNode = useCallback((nodeId: string) => {
+    const node = getNodes().find(n => n.id === nodeId);
+    if (node) {
+      fitView({
+        nodes: [node],
+        duration: 500,
+        padding: 0.5,
+      });
+    }
+    closeEdgeTooltip();
+  }, [getNodes, fitView, closeEdgeTooltip]);
+
+  // Handle edit rule from tooltip
+  const handleEditRuleFromTooltip = useCallback((sourceId: string, ruleIndex: number) => {
+    if (!state.rootNode) return;
+
+    const items = state.rootNode.items as BlockData[];
+    const sourceBlock = items.find(item => item.uuid === sourceId);
+
+    if (!sourceBlock) return;
+
+    setConfigNodeId(sourceBlock.uuid || sourceId);
+    setConfigMode("navigation-only");
+    setEditRuleIndex(ruleIndex);
+    setHideRemoveButton(true);
+    setShowNodeConfig(true);
+    closeEdgeTooltip();
+  }, [state.rootNode, closeEdgeTooltip]);
+
+  // Get node display name
+  const getNodeDisplayName = useCallback((nodeId: string) => {
+    const node = getNodes().find(n => n.id === nodeId);
+    if (!node) return nodeId;
+
+    if (node.type === 'survey-node') {
+      const block = (node.data as any)?.block;
+      return block?.fieldName || block?.label || 'Block';
+    }
+    if (nodeId === 'start') return 'Start';
+    if (nodeId === 'submit') return 'Submit';
+    return nodeId;
+  }, [getNodes]);
+
+  // Close tooltip on click outside or scroll
+  useEffect(() => {
+    if (!edgeTooltip) return;
+
+    const handleClickOutside = (evt: MouseEvent) => {
+      const target = evt.target as HTMLElement;
+      // Check if click is inside the tooltip
+      if (target.closest('[data-edge-tooltip]')) return;
+      closeEdgeTooltip();
+    };
+
+    const handleScroll = () => closeEdgeTooltip();
+
+    // Handle pane click (ReactFlow canvas click)
+    const handlePaneClick = () => closeEdgeTooltip();
+
+    // Use capture phase to catch events before they're stopped
+    document.addEventListener('click', handleClickOutside, true);
+    document.addEventListener('wheel', handleScroll, true);
+
+    // Also listen to ReactFlow pane clicks
+    const pane = document.querySelector('.react-flow__pane');
+    if (pane) {
+      pane.addEventListener('click', handlePaneClick);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+      document.removeEventListener('wheel', handleScroll, true);
+      if (pane) {
+        pane.removeEventListener('click', handlePaneClick);
+      }
+    };
+  }, [edgeTooltip, closeEdgeTooltip]);
+
   return (
     <div className="h-full flex flex-col">
        <FlowV2Toolbar
@@ -860,6 +1020,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 onDragOver={onDragOver}
                 onDrop={onDropWithIndex}
                 onNodeDoubleClick={onNodeDoubleClick}
+                onEdgeClick={handleEdgeClick}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
@@ -873,18 +1034,104 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
                 <Controls showInteractive={false} position="bottom-right" />
                 <Panel position="top-right" className="bg-white/80 p-2 rounded shadow-sm border text-xs text-slate-500">
-                    Double-click nodes to edit. Click + on lines to insert.
+                    Double-click nodes to edit. Click lines to see options.
                 </Panel>
             </ReactFlow>
+
+            {/* Edge Tooltip - rendered outside ReactFlow for proper positioning */}
+            {edgeTooltip && (
+              <div
+                data-edge-tooltip="true"
+                style={{
+                  position: "absolute",
+                  left: edgeTooltip.x,
+                  top: edgeTooltip.y,
+                  transform: "translate(-50%, -100%)",
+                  zIndex: 9999,
+                }}
+                className="pointer-events-auto"
+              >
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-3 min-w-[220px] mb-2">
+                  {/* Connection Info */}
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">From:</span>
+                      <span className="truncate max-w-[150px]">{getNodeDisplayName(edgeTooltip.sourceId)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">To:</span>
+                      <span className="truncate max-w-[150px]">{getNodeDisplayName(edgeTooltip.targetId)}</span>
+                    </div>
+                  </div>
+
+                  {/* Rule Condition */}
+                  {edgeTooltip.label && (
+                    <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Condition</div>
+                      <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                        {edgeTooltip.label}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => handlePanToNode(edgeTooltip.sourceId)}
+                      title={`Pan to ${getNodeDisplayName(edgeTooltip.sourceId)}`}
+                    >
+                      <ArrowUpToLine className="h-3 w-3 mr-1" />
+                      Source
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => handlePanToNode(edgeTooltip.targetId)}
+                      title={`Pan to ${getNodeDisplayName(edgeTooltip.targetId)}`}
+                    >
+                      <ArrowDownToLine className="h-3 w-3 mr-1" />
+                      Target
+                    </Button>
+
+                    {/* Edit button for explicit rules */}
+                    {edgeTooltip.isExplicitRule && edgeTooltip.ruleIndex !== undefined && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/30"
+                        onClick={() => handleEditRuleFromTooltip(edgeTooltip.sourceId, edgeTooltip.ruleIndex!)}
+                        title="Edit Rule"
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
 
       <NodeConfigPanel
           nodeId={configNodeId}
           open={showNodeConfig}
-          onOpenChange={setShowNodeConfig}
+          onOpenChange={(open) => {
+            setShowNodeConfig(open);
+            if (!open) {
+              // Reset edit mode state when dialog closes
+              setEditRuleIndex(undefined);
+              setHideRemoveButton(false);
+            }
+          }}
           onUpdate={handleNodeUpdate}
           mode={configMode}
+          editRuleIndex={editRuleIndex}
+          hideRemoveButton={hideRemoveButton}
         />
 
       <BlockSelectorDialog

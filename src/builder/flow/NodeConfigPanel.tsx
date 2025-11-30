@@ -18,6 +18,10 @@ interface NodeConfigPanelProps {
   onOpenChange: (open: boolean) => void;
   onUpdate: (nodeId: string, data: any) => void;
   mode?: "full" | "navigation-only"; // Add mode prop to control what's shown
+  /** If provided in navigation-only mode, only edit this specific rule index */
+  editRuleIndex?: number;
+  /** If true, hides the remove button for the rule being edited */
+  hideRemoveButton?: boolean;
 }
 
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
@@ -25,7 +29,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   open,
   onOpenChange,
   onUpdate,
-  mode = "full"
+  mode = "full",
+  editRuleIndex,
+  hideRemoveButton
 }) => {
   const { state } = useSurveyBuilder();
   
@@ -125,18 +131,25 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
     
     // If in navigation-only mode, only show NavigationRulesEditor
     if (mode === "navigation-only") {
+      const isEditing = hideRemoveButton && editRuleIndex !== undefined;
       return (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-            <div className="text-sm text-blue-800 font-medium">Creating Navigation Rule</div>
-            <div className="text-xs text-blue-600 mt-1">
-              Configure when this block should navigate to the connected target.
+          <div className={`border rounded-md p-3 mb-4 ${isEditing ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+            <div className={`text-sm font-medium ${isEditing ? 'text-amber-800' : 'text-blue-800'}`}>
+              {isEditing ? 'Editing Navigation Rule' : 'Creating Navigation Rule'}
+            </div>
+            <div className={`text-xs mt-1 ${isEditing ? 'text-amber-600' : 'text-blue-600'}`}>
+              {isEditing
+                ? 'Modify the condition for this navigation rule.'
+                : 'Configure when this block should navigate to the connected target.'}
             </div>
           </div>
-          
+
           <NavigationRulesEditor
             data={blockData}
             onUpdate={handleBlockUpdate}
+            editRuleIndex={editRuleIndex}
+            hideRemoveButton={hideRemoveButton}
           />
         </div>
       );
@@ -240,7 +253,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
               <>
                 {mode === "navigation-only" && isBlockData(nodeData) ? (
                   <>
-                    Create Navigation Rule
+                    {hideRemoveButton && editRuleIndex !== undefined ? 'Edit Navigation Rule' : 'Create Navigation Rule'}
                     <span className="text-sm font-normal text-muted-foreground ml-2">
                       From: {nodeData.fieldName || nodeData.label || "Block"}
                     </span>

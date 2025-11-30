@@ -24,6 +24,10 @@ import { Plus } from "lucide-react";
 interface Props {
   data: BlockData;
   onUpdate?: (data: BlockData) => void;
+  /** If provided, only show and edit this specific rule index (0-based). Used for single-rule editing mode. */
+  editRuleIndex?: number;
+  /** If true, hides the "Remove Rule" button. Used when editing an existing rule from the edge. */
+  hideRemoveButton?: boolean;
 }
 
 interface RuleState extends EnhancedNavigationRule {
@@ -50,7 +54,7 @@ function buildRule(state: RuleState): NavigationRule {
   };
 }
 
-export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
+export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRuleIndex, hideRemoveButton }) => {
   const { state, getAvailableFieldsUptoCurrent } = useSurveyBuilder();
 
   // Initialize rules state early, before any conditional returns
@@ -574,20 +578,22 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => removeRule(index)}
-            >
-              Remove Rule
-            </Button>
-          </div>
+          {!hideRemoveButton && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeRule(index)}
+              >
+                Remove Rule
+              </Button>
+            </div>
+          )}
         </div>
 
     );
-  }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type, findBlockByFieldName, getBlockOptions]);
+  }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type, findBlockByFieldName, getBlockOptions, hideRemoveButton]);
 
   // Don't render the editor if there's only one page or one block
   if (!shouldShowEditor) {
@@ -624,22 +630,36 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
         </div>
       )}
 
-      {rules.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p className="text-sm">No Navigation rules defined</p>
-          <p className="text-xs">Click "Add Rule" to create custom navigation flows</p>
+      {/* Single rule editing mode when editRuleIndex is provided */}
+      {editRuleIndex !== undefined ? (
+        <div className="space-y-4">
+          {rules[editRuleIndex] && renderRuleEditor(rules[editRuleIndex], editRuleIndex)}
+          {!rules[editRuleIndex] && (
+            <div className="text-center py-4 text-muted-foreground">
+              <p className="text-sm">Rule not found</p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {rules.map((rule, index) => renderRuleEditor(rule, index))}
-        </div>
+        <>
+          {rules.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No Navigation rules defined</p>
+              <p className="text-xs">Click "Add Rule" to create custom navigation flows</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {rules.map((rule, index) => renderRuleEditor(rule, index))}
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <Button type="button" onClick={addRule} size="sm" variant="outline">
+              <Plus className="h-3 w-3 mr-1" />
+              Add Rule
+            </Button>
+          </div>
+        </>
       )}
-      <div className="flex items-center justify-between">
-        <Button type="button" onClick={addRule} size="sm" variant="outline">
-          <Plus className="h-3 w-3 mr-1" />
-          Add Rule
-        </Button>
-      </div>
 
     </div>
   );
