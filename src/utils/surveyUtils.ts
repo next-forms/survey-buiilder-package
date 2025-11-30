@@ -36,15 +36,24 @@ export function getSurveyPages(rootNode: NodeData, mode?: SurveyMode): Array<Blo
     return pages;
   }
 
-  // Auto-detect mode if not provided
+  // Use explicit mode if provided, otherwise auto-detect
   const surveyMode = mode ?? detectSurveyMode(rootNode);
 
   // Process items at the root level
   if (rootNode.items && rootNode.items.length > 0) {
     if (surveyMode === 'pageless') {
       // Pageless mode: each block is its own "page"
-      rootNode.items.forEach(block => {
-        pages.push([block]);
+      // Handle case where data might have 'set' blocks from paged mode - flatten them
+      rootNode.items.forEach(item => {
+        if (item.type === 'set' && item.items && item.items.length > 0) {
+          // Flatten set blocks: each block inside the set becomes its own page
+          item.items.forEach(block => {
+            pages.push([block]);
+          });
+        } else {
+          // Regular block, treat as its own page
+          pages.push([item]);
+        }
       });
     } else {
       // Paged mode: check for 'set' blocks at the root level which should be treated as pages
@@ -120,15 +129,24 @@ export function getSurveyPages(rootNode: NodeData, mode?: SurveyMode): Array<Blo
 export function getSurveyPageIds(rootNode: NodeData, mode?: SurveyMode): string[] {
   const ids: string[] = [];
 
-  // Auto-detect mode if not provided
+  // Use explicit mode if provided, otherwise auto-detect
   const surveyMode = mode ?? detectSurveyMode(rootNode);
 
   const processNode = (node: NodeData) => {
     if (node.items && node.items.length > 0) {
       if (surveyMode === 'pageless') {
         // Pageless mode: each block's UUID is a "page" ID
-        node.items.forEach(block => {
-          ids.push(block.uuid || '');
+        // Handle case where data might have 'set' blocks from paged mode - flatten them
+        node.items.forEach(item => {
+          if (item.type === 'set' && item.items && item.items.length > 0) {
+            // Flatten set blocks: each block inside becomes its own "page"
+            item.items.forEach(block => {
+              ids.push(block.uuid || '');
+            });
+          } else {
+            // Regular block
+            ids.push(item.uuid || '');
+          }
         });
       } else {
         // Paged mode: check for set blocks

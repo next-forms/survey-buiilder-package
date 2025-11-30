@@ -433,7 +433,9 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
 
   const initSurvey = () => {
     // Create root node structure based on mode
-    const rootNode = state.mode === 'pageless'
+    // Use the mode prop directly to avoid stale closure issues with state.mode
+    const isPageless = mode === 'pageless';
+    const rootNode = isPageless
       ? {
           // Pageless mode: blocks directly in rootNode.items (no pages/sets)
           type: "section",

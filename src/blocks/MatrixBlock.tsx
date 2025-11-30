@@ -431,12 +431,19 @@ const MatrixRenderer: React.FC<MatrixRendererProps> = ({
   const options: MatrixOption[] = block.options || [];
 
   // Initialize responses from value prop or empty object
-  const [responses, setResponses] = useState<Record<string, string>>(value || {});
+  const [responses, setResponses] = useState<Record<string, string>>(() => value || {});
 
-  // Update local state when props change
+  // Update local state when props change - only if value has actual entries
+  // Use JSON comparison to avoid infinite loops from object reference changes
+  const valueRef = React.useRef(value);
   useEffect(() => {
-    if (value) {
-      setResponses(value);
+    if (value && Object.keys(value).length > 0) {
+      const prevValue = JSON.stringify(valueRef.current);
+      const newValue = JSON.stringify(value);
+      if (prevValue !== newValue) {
+        valueRef.current = value;
+        setResponses(value);
+      }
     }
   }, [value]);
 

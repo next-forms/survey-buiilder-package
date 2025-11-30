@@ -17,6 +17,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout, logo = nul
       {state.rootNode ? (
         <SurveyForm
           survey={state}
+          mode={state.mode}
           enableDebug={false}
           abTestPreviewMode={true}
           layout={layout}

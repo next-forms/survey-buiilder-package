@@ -219,13 +219,31 @@ const CheckboxBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
-        <Checkbox
-          id={data.fieldName}
-          name={data.fieldName}
-          defaultChecked={!!data.defaultValue}
-          value={data.value || "true"}
-        />
-        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
+        {data.label&& (
+          <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
+        )}
+      </div>
+
+      <div className="flex items-center space-x-2">
+          {data.options.map((option: CheckboxOption, index: number) => {
+            const optionValue = option.value;
+            const id = `${data.fieldName}-${index}`;
+
+            return (
+              <div key={option.id || id} className="flex items-center space-x-2 py-1">
+                <Checkbox
+                  id={id}
+                  name={`${data.fieldName}[]`}
+                />
+                <Label
+                  htmlFor={id}
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  {option.label}
+                </Label>
+              </div>
+            );
+          })}
       </div>
 
       {data.description && (
@@ -269,8 +287,9 @@ const CheckboxRenderer = forwardRef<HTMLButtonElement, CheckboxRendererProps>(
     const themeConfig = theme ?? themes.default;
 
     // Get labels and values arrays from the block
-    const labels = block.labels || [];
-    const values = block.values || labels.map((_, i) => i);
+    const label = block.label || [];
+    const options = block.options || [];
+    const values = block.values || options.map((_: any, i: any) => i);
 
     // Handle checkbox change
     const handleChange = (optionValue: string | number, checked: boolean) => {
@@ -296,9 +315,9 @@ const CheckboxRenderer = forwardRef<HTMLButtonElement, CheckboxRendererProps>(
     return (
       <div className="survey-checkbox space-y-3 w-full min-w-0">
         {/* Label */}
-        {block.label && (
+        {label&& (
           <Label className={cn("text-base block", themeConfig.field.label)}>
-            {block.label}
+            {label}
           </Label>
         )}
 
@@ -311,15 +330,15 @@ const CheckboxRenderer = forwardRef<HTMLButtonElement, CheckboxRendererProps>(
 
         {/* Checkbox options */}
         <div className="space-y-2 mt-2">
-          {labels.map((label, index) => {
-            const optionValue = values[index];
+          {options.map((option: CheckboxOption, index: number) => {
+            const optionValue = option.value ?? values[index];
             const id = `${block.fieldName}-${index}`;
-            const isChecked = (typeof optionValue === 'string' || typeof optionValue === 'number') 
-            ? value?.includes(optionValue) || false 
+            const isChecked = (typeof optionValue === 'string' || typeof optionValue === 'number')
+            ? value?.includes(optionValue) || false
             : false;
 
             return (
-              <div key={id} className="flex items-center space-x-2 py-1">
+              <div key={option.id || id} className="flex items-center space-x-2 py-1">
                 <Checkbox
                   id={id}
                   name={`${block.fieldName}[]`}
@@ -333,7 +352,7 @@ const CheckboxRenderer = forwardRef<HTMLButtonElement, CheckboxRendererProps>(
                   htmlFor={id}
                   className="text-sm font-normal cursor-pointer"
                 >
-                  {label}
+                  {option.label}
                 </Label>
               </div>
             );

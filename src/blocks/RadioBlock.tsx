@@ -219,6 +219,8 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
 const RadioBlockItem: React.FC<ContentBlockItemProps> = ({
   data,
 }) => {
+  const options: RadioOption[] = data.options || [];
+
   return (
     <div className="space-y-4">
       {data.label && (
@@ -230,15 +232,18 @@ const RadioBlockItem: React.FC<ContentBlockItemProps> = ({
       )}
 
       <RadioGroup defaultValue={data.defaultValue as string} className="grid gap-2">
-        {(data.labels || []).map((label, index) => (
-          <div key={index} className="flex items-center space-x-2">
-            <RadioGroupItem
-              value={(data.values || [])[index] as string}
-              id={`${data.fieldName}-${index}`}
-            />
-            <Label className="text-sm" htmlFor={`${data.fieldName}-${index}`}>{label}</Label>
-          </div>
-        ))}
+        {options.map((option: RadioOption, index: number) => {
+          const id = `${data.fieldName}-${index}`;
+          return (
+            <div key={option.id || id} className="flex items-center space-x-2">
+              <RadioGroupItem
+                value={option.value}
+                id={id}
+              />
+              <Label className="text-sm" htmlFor={id}>{option.label}</Label>
+            </div>
+          );
+        })}
       </RadioGroup>
     </div>
   );
@@ -283,12 +288,11 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
 }) => {
   const themeConfig = theme ?? themes.default;
 
-  // Get labels and values arrays from the block
-  const labels = block.labels || [];
-  const values = block.values || labels.map((_, i) => i);
+  // Get options array from the block
+  const options: RadioOption[] = block.options || [];
 
   // Handle radio button change
-  const handleChange = (selectedValue: string | number | boolean) => {
+  const handleChange = (selectedValue: string) => {
     if (onChange) {
       onChange(selectedValue);
     }
@@ -316,28 +320,18 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
       {/* Radio options */}
       <RadioGroup
         value={value?.toString()}
-        onValueChange={(val: string) => {
-          // Convert back to original type if needed
-          const originalValue = values[labels.findIndex(
-            (_: any, i: number) => values[i].toString() === val
-          )];
-          handleChange(originalValue);
-        }}
+        onValueChange={handleChange}
         className="space-y-1 mt-2"
         disabled={disabled}
       >
-        {labels.map((label: any, index: string | number) => {
-          const optionValue = values[index as any];
+        {options.map((option: RadioOption, index: number) => {
           const id = `${block.fieldName}-${index}`;
-          const stringValue = typeof optionValue === 'string'
-            ? optionValue
-            : optionValue.toString();
 
           return (
-            <div key={id} className="flex items-center space-x-2">
+            <div key={option.id || id} className="flex items-center space-x-2">
               <RadioGroupItem
                 id={id}
-                value={stringValue}
+                value={option.value}
                 disabled={disabled}
                 aria-invalid={!!error}
               />
@@ -345,7 +339,7 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
                 htmlFor={id}
                 className="text-sm font-normal cursor-pointer"
               >
-                {label}
+                {option.label}
               </Label>
             </div>
           );
