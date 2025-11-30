@@ -60,7 +60,7 @@ export const FlowV2Toolbar: React.FC<FlowV2ToolbarProps> = ({
         )}
 
         {/* Mode selection */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
+        {/* <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
         <Button
           type="button"
           variant={mode === "select" ? "default" : "ghost"}
@@ -94,7 +94,7 @@ export const FlowV2Toolbar: React.FC<FlowV2ToolbarProps> = ({
           <Hand className="w-4 h-4 mr-1.5" />
           Pan
         </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* View controls */}

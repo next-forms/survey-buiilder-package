@@ -15,7 +15,8 @@ import {
   type OnConnectEnd,
   Connection,
   Panel,
-  OnConnectStart
+  OnConnectStart,
+  type OnSelectionChangeFunc
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
@@ -95,6 +96,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     targetBlockId?: string;
     rule?: any;
   } | null>(null);
+
+  // Track selected nodes to highlight connected edges
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
   // Create a stable structural key that only changes when structure changes
   // This prevents full re-computation on every text field edit
@@ -325,15 +329,16 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   useEffect(() => {
       setNodes((currentNodes) => {
         const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
-        
+
         return initialNodes.map(node => {
           const existing = nodeMap.get(node.id);
           if (existing) {
-             // Preserve position and measured dimensions
+             // Preserve position, measured dimensions, and selection state
              return {
                ...node,
                position: existing.position,
                measured: existing.measured,
+               selected: existing.selected,
                // Ensure data is updated
                data: node.data
              };
@@ -341,8 +346,18 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
           return node;
         });
       });
-      setEdges(initialEdges);
-      
+      // Preserve isHighlighted state when updating edges
+      setEdges((currentEdges) => {
+        const edgeMap = new Map(currentEdges.map(e => [e.id, e]));
+        return initialEdges.map(edge => {
+          const existing = edgeMap.get(edge.id);
+          if (existing && existing.data?.isHighlighted) {
+            return { ...edge, data: { ...edge.data, isHighlighted: true } };
+          }
+          return edge;
+        });
+      });
+
       // Only trigger layout if structure changed (count diff)
       // Or if it's the very first load
       if (nodes.length !== initialNodes.length || edges.length !== initialEdges.length || initialNodes.length === 0) {
@@ -904,6 +919,63 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const handleDragStart = useCallback(() => {}, []);
   const handleDragEnd = useCallback(() => {}, []);
 
+  // Handle selection changes to highlight connected edges
+  const onSelectionChange: OnSelectionChangeFunc = useCallback(({ nodes: selectedNodes }) => {
+    const newSelectedIds = new Set(selectedNodes.map(n => n.id));
+    setSelectedNodeIds(newSelectedIds);
+  }, []);
+
+  // Create a stable key for node selection state that changes when selection changes
+  const nodeSelectionKey = useMemo(() => {
+    return nodes
+      .filter(n => n.selected)
+      .map(n => n.id)
+      .sort()
+      .join(',');
+  }, [nodes]);
+
+  // Update edges with highlighting based on selected nodes
+  // This effect runs when selection changes and updates edge data
+  useEffect(() => {
+    // Build the set of selected node IDs from the key
+    const selectedIds = new Set(nodeSelectionKey ? nodeSelectionKey.split(',') : []);
+
+    // Also include any IDs from onSelectionChange
+    selectedNodeIds.forEach(id => selectedIds.add(id));
+
+    // Remove empty string if present
+    selectedIds.delete('');
+
+    if (selectedIds.size === 0) {
+      // Clear all highlighting
+      setEdges(currentEdges => {
+        const hasAnyHighlighted = currentEdges.some(e => e.data?.isHighlighted);
+        if (!hasAnyHighlighted) return currentEdges;
+
+        return currentEdges.map(edge => {
+          if (edge.data?.isHighlighted) {
+            return { ...edge, data: { ...edge.data, isHighlighted: false } };
+          }
+          return edge;
+        });
+      });
+      return;
+    }
+
+    // Mark edges connected to selected nodes as highlighted
+    setEdges(currentEdges =>
+      currentEdges.map(edge => {
+        const isConnected = selectedIds.has(edge.source) || selectedIds.has(edge.target);
+        const currentHighlight = edge.data?.isHighlighted ?? false;
+
+        if (isConnected !== currentHighlight) {
+          return { ...edge, data: { ...edge.data, isHighlighted: isConnected } };
+        }
+        return edge;
+      })
+    );
+  }, [nodeSelectionKey, selectedNodeIds, setEdges]);
+
   // Handle edge click to show tooltip
   const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation();
@@ -1081,6 +1153,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 onDrop={onDropWithIndex}
                 onNodeDoubleClick={onNodeDoubleClick}
                 onEdgeClick={handleEdgeClick}
+                onSelectionChange={onSelectionChange}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView

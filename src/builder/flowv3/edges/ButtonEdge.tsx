@@ -19,6 +19,7 @@ interface ButtonEdgeData {
   skippedNodeCount?: number; // Number of nodes this edge skips over
   edgeIndex?: number; // Index of this edge among parallel edges from same source
   totalParallelEdges?: number; // Total number of edges from the same source
+  isHighlighted?: boolean; // Whether this edge is connected to a selected node
 }
 
 // Custom path generator for edges that need to route around nodes
@@ -175,12 +176,15 @@ const ButtonEdgeInner = ({
     }
   }, [source, ruleIndex]);
 
-  // Highlight style when selected
+  // Check if edge is highlighted (connected to selected node)
+  const isHighlighted = edgeData?.isHighlighted ?? false;
+
+  // Highlight style when selected or connected to selected node
   const edgeStyle = {
     ...style,
-    stroke: selected ? "#3b82f6" : style.stroke,
-    strokeWidth: selected ? 5 : style.strokeWidth,
-    zIndex: selected ? 100 : 0,
+    stroke: selected ? "#3b82f6" : isHighlighted ? "#8b5cf6" : style.stroke, // Purple for highlighted
+    strokeWidth: selected ? 5 : isHighlighted ? 3 : style.strokeWidth,
+    zIndex: selected ? 100 : isHighlighted ? 50 : 0,
   };
 
   return (
@@ -211,7 +215,7 @@ const ButtonEdgeInner = ({
             className="nodrag nopan"
           >
             {label && (
-              <div className={`px-2 py-1 border rounded text-[10px] font-medium whitespace-nowrap shadow-sm ${selected ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'}`}>
+              <div className={`px-2 py-1 border rounded text-[10px] font-medium whitespace-nowrap shadow-sm ${selected ? 'bg-blue-50 border-blue-200 text-blue-700' : isHighlighted ? 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'}`}>
                 {label}
               </div>
             )}
@@ -255,7 +259,7 @@ const ButtonEdgeInner = ({
             <Button
               variant="outline"
               size="icon"
-              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600'}`}
+              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : isHighlighted ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600'}`}
               onClick={onInsertClick}
               title="Insert Block"
             >
@@ -340,6 +344,7 @@ const areEdgePropsEqual = (prevProps: EdgeProps, nextProps: EdgeProps): boolean 
   if (prevData?.insertIndex !== nextData?.insertIndex) return false;
   if (prevData?.ruleIndex !== nextData?.ruleIndex) return false;
   if (prevData?.rule !== nextData?.rule) return false;
+  if (prevData?.isHighlighted !== nextData?.isHighlighted) return false;
 
   return true;
 };
