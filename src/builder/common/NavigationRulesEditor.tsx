@@ -52,11 +52,68 @@ function buildRule(state: RuleState): NavigationRule {
 
 export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
   const { state, getAvailableFieldsUptoCurrent } = useSurveyBuilder();
-  
+
   // Initialize rules state early, before any conditional returns
   const [rules, setRules] = React.useState<RuleState[]>(() => {
     return (data.navigationRules || []).map(parseRule);
   });
+
+  // Helper function to find a block by field name
+  const findBlockByFieldName = React.useCallback((fieldName: string): BlockData | null => {
+    if (!state.rootNode || !fieldName) return null;
+
+    const traverse = (node: any): BlockData | null => {
+      // Check if this node matches
+      if (node.fieldName === fieldName) {
+        return node as BlockData;
+      }
+
+      // Check items array
+      if (Array.isArray(node.items)) {
+        for (const item of node.items) {
+          const result = traverse(item);
+          if (result) return result;
+        }
+      }
+
+      // Check nodes array
+      if (Array.isArray(node.nodes)) {
+        for (const childNode of node.nodes) {
+          if (typeof childNode !== "string") {
+            const result = traverse(childNode);
+            if (result) return result;
+          }
+        }
+      }
+
+      return null;
+    };
+
+    return traverse(state.rootNode);
+  }, [state.rootNode]);
+
+  // Helper function to extract options from a block
+  const getBlockOptions = React.useCallback((block: BlockData | null): Array<{ label: string; value: string }> => {
+    if (!block) return [];
+
+    // Check for options array (new format used by radio, select, checkbox blocks)
+    if (Array.isArray(block.options)) {
+      return block.options.map((opt: any) => ({
+        label: opt.label || opt.value || String(opt),
+        value: opt.value || opt.label || String(opt),
+      }));
+    }
+
+    // Check for labels/values arrays (legacy format)
+    if (Array.isArray(block.labels)) {
+      return block.labels.map((label: string, index: number) => ({
+        label,
+        value: Array.isArray(block.values) ? String(block.values[index]) : label,
+      }));
+    }
+
+    return [];
+  }, []);
 
   const findBlockPath = React.useCallback((node: any, targetUuid: string, currentPath: any[] = []): any[] | null => {
     if (!node) return null;
@@ -473,6 +530,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
                 operator={OPERATORS.find(op => op.value === rule.operator) || OPERATORS[0]}
                 availableVariables={fieldOptions}
                 fieldType={data.type === 'number' ? 'number' : 'text'}
+                fieldOptions={getBlockOptions(findBlockByFieldName(rule.field))}
               />
             </div>
           </div>
@@ -529,7 +587,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate }) => {
         </div>
 
     );
-  }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type]);
+  }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type, findBlockByFieldName, getBlockOptions]);
 
   // Don't render the editor if there's only one page or one block
   if (!shouldShowEditor) {

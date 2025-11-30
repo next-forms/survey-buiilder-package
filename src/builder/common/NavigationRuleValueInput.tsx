@@ -12,12 +12,19 @@ import {
 import { X, Plus, Variable } from "lucide-react";
 import type { OperatorDefinition } from "./navigation-rules-types";
 
+interface FieldOption {
+  label: string;
+  value: string;
+}
+
 interface Props {
   value: string | string[];
   onChange: (value: string | string[]) => void;
   operator: OperatorDefinition;
   availableVariables: string[];
   fieldType?: 'text' | 'number' | 'select' | 'radio' | 'checkbox';
+  /** Options from the selected field (e.g., radio, select, checkbox options) */
+  fieldOptions?: FieldOption[];
 }
 
 export const NavigationRuleValueInput: React.FC<Props> = ({
@@ -25,7 +32,8 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
   onChange,
   operator,
   availableVariables,
-  fieldType = 'text'
+  fieldType = 'text',
+  fieldOptions = []
 }) => {
   // Check for logical operators first, before any hooks
   const isLogicalOperator = operator.value === 'isEmpty' || operator.value === 'isNotEmpty' ||
@@ -37,6 +45,9 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
   }
 
   const [inputMode, setInputMode] = React.useState<'literal' | 'variable'>('literal');
+  const [valueMode, setValueMode] = React.useState<'options' | 'custom'>('options');
+
+  const hasFieldOptions = fieldOptions.length > 0;
 
   // Handle array values for operators that support them
   const isArrayOperator = operator.valueType === 'array' || operator.value === 'between' || operator.value === 'notBetween';
@@ -151,13 +162,36 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
         </div>
         {arrayValue.map((item, index) => (
           <div key={index} className="flex items-center gap-2">
-            <Input
-              type={getInputType()}
-              value={item}
-              onChange={(e) => handleArrayItemChange(index, e.target.value)}
-              placeholder={`Value ${index + 1}`}
-              className="flex-1"
-            />
+            {hasFieldOptions ? (
+              <Select
+                value={item}
+                onValueChange={(val) => handleArrayItemChange(index, val)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={`Select value ${index + 1}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {fieldOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                      {option.label !== option.value && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({option.value})
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type={getInputType()}
+                value={item}
+                onChange={(e) => handleArrayItemChange(index, e.target.value)}
+                placeholder={`Value ${index + 1}`}
+                className="flex-1"
+              />
+            )}
             {arrayValue.length > 1 && (
               <Button
                 type="button"
@@ -180,14 +214,25 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
+          {hasFieldOptions && (
+            <Button
+              type="button"
+              variant={inputMode === 'literal' && valueMode === 'options' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setInputMode('literal'); setValueMode('options'); }}
+              className="h-7 px-2 text-xs"
+            >
+              Options
+            </Button>
+          )}
           <Button
             type="button"
-            variant={inputMode === 'literal' ? 'default' : 'outline'}
+            variant={inputMode === 'literal' && (!hasFieldOptions || valueMode === 'custom') ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setInputMode('literal')}
+            onClick={() => { setInputMode('literal'); setValueMode('custom'); }}
             className="h-7 px-2 text-xs"
           >
-            Value
+            {hasFieldOptions ? 'Custom' : 'Value'}
           </Button>
           <Button
             type="button"
@@ -200,14 +245,34 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
             Variable
           </Button>
         </div>
-        
+
         {inputMode === 'literal' ? (
-          <Input
-            type={getInputType()}
-            value={stringValue}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Enter value"
-          />
+          hasFieldOptions && valueMode === 'options' ? (
+            <Select value={stringValue} onValueChange={onChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select from options" />
+              </SelectTrigger>
+              <SelectContent>
+                {fieldOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                    {option.label !== option.value && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({option.value})
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              type={getInputType()}
+              value={stringValue}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={hasFieldOptions ? "Enter custom value" : "Enter value"}
+            />
+          )
         ) : (
           <Select value={stringValue} onValueChange={onChange}>
             <SelectTrigger>
@@ -226,7 +291,62 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
     );
   }
   
-  // Default single value input
+  // Default single value input - with field options support
+  if (hasFieldOptions) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={valueMode === 'options' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setValueMode('options')}
+            className="h-7 px-2 text-xs"
+          >
+            Options
+          </Button>
+          <Button
+            type="button"
+            variant={valueMode === 'custom' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setValueMode('custom')}
+            className="h-7 px-2 text-xs"
+          >
+            Custom
+          </Button>
+        </div>
+
+        {valueMode === 'options' ? (
+          <Select value={stringValue} onValueChange={onChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select from options" />
+            </SelectTrigger>
+            <SelectContent>
+              {fieldOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                  {option.label !== option.value && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({option.value})
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            type={getInputType()}
+            value={stringValue}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Enter custom value"
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Default single value input (no field options)
   return (
     <Input
       type={getInputType()}
