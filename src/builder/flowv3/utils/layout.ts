@@ -11,8 +11,8 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
   const isHorizontal = direction === "LR";
   dagreGraph.setGraph({ 
     rankdir: direction, 
-    nodesep: 100, // Reduced from 500 to bring branches closer
-    ranksep: 100, // Reduced from 200 for better vertical flow
+    nodesep: 1200, 
+    ranksep: 200, // Reduced from 200 for better vertical flow
     ranker: 'network-simplex' // Explicitly set ranker algorithm
   });
 
