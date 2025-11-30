@@ -89,6 +89,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     label?: string;
     ruleIndex?: number;
     isExplicitRule: boolean;
+    // Insert block data
+    insertIndex?: number;
+    sourceBlockId?: string;
+    targetBlockId?: string;
+    rule?: any;
   } | null>(null);
 
   // Create a stable structural key that only changes when structure changes
@@ -193,14 +198,17 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         style: { strokeWidth: 2, stroke: '#10b981' }
       });
 
+      // Track edges from each source to assign parallel offsets
+      const sourceEdgeCount: Record<string, number> = {};
+
       // Block Connections
       blocks.forEach((block, index) => {
         const blockId = block.uuid || `block-${index}`;
         const navRules = block.navigationRules || [];
-        
+
         // Determine target for sequential flow first
         let nextBlockId = index < blocks.length - 1 ? blocks[index + 1].uuid || `block-${index + 1}` : "submit";
-        
+
         if (block.nextBlockId) {
             nextBlockId = block.nextBlockId;
         }
@@ -208,6 +216,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         if (block.isEndBlock) {
             nextBlockId = "submit";
         }
+
+        // Count total edges from this source (for parallel offset calculation)
+        const totalEdgesFromSource = navRules.length +
+          (navRules.some((r) => r.isDefault || !r.condition) ||
+           navRules.some(rule => resolveNavigationTarget(rule.target) === nextBlockId) ? 0 : 1);
 
         // Explicit Navigation Rules
         navRules.forEach((rule, ruleIndex) => {
@@ -222,6 +235,10 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
               ? blocks.length
               : blocks.findIndex(b => b.uuid === targetId);
             const skippedNodeCount = targetIndex > sourceIndex ? targetIndex - sourceIndex - 1 : 0;
+
+            // Track edge index from this source for parallel offset
+            const edgeIndexFromSource = sourceEdgeCount[blockId] || 0;
+            sourceEdgeCount[blockId] = edgeIndexFromSource + 1;
 
             edges.push({
               id: `${blockId}-nav-${ruleIndex}`,
@@ -246,6 +263,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                   sourceBlockId: blockId,
                   weight: isSequentialPath ? 2 : 1, // Give higher weight to sequential path
                   skippedNodeCount, // Number of nodes this edge skips over
+                  // Parallel edge info for offset calculation
+                  edgeIndex: edgeIndexFromSource,
+                  totalParallelEdges: totalEdgesFromSource,
               }
             });
           }
@@ -253,7 +273,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
         // Implicit Sequential Fallback
         const hasDefaultRule = navRules.some((r) => r.isDefault || !r.condition);
-        
+
         // Check if we already have a rule pointing to the next block
         const hasRuleToNextBlock = navRules.some(rule => {
              const targetId = resolveNavigationTarget(rule.target);
@@ -261,24 +281,31 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         });
 
         if (!hasDefaultRule && !hasRuleToNextBlock) {
+           // Track edge index from this source for parallel offset
+           const edgeIndexFromSource = sourceEdgeCount[blockId] || 0;
+           sourceEdgeCount[blockId] = edgeIndexFromSource + 1;
+
            edges.push({
             id: `${blockId}-seq-${nextBlockId}`,
             source: blockId,
             target: nextBlockId,
             type: "button-edge", // Allow insert on sequential edges
-            data: { 
-                insertIndex: index + 1, 
+            data: {
+                insertIndex: index + 1,
                 targetBlockId: nextBlockId,
                 sourceBlockId: blockId,
-                weight: 2 
+                weight: 2,
+                // Parallel edge info for offset calculation
+                edgeIndex: edgeIndexFromSource,
+                totalParallelEdges: totalEdgesFromSource,
             },
             animated: false,
             // No "Else" label
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { 
-                stroke: '#94a3b8', 
+            style: {
+                stroke: '#94a3b8',
                 strokeWidth: 2,
-                strokeDasharray: '5,5' 
+                strokeDasharray: '5,5'
             },
           });
         }
@@ -900,6 +927,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       label: edge.label as string | undefined,
       ruleIndex: edgeData?.ruleIndex,
       isExplicitRule: !!edgeData?.rule,
+      // Insert block data
+      insertIndex: edgeData?.insertIndex,
+      sourceBlockId: edgeData?.sourceBlockId,
+      targetBlockId: edgeData?.targetBlockId,
+      rule: edgeData?.rule,
     });
   }, []);
 
@@ -938,6 +970,22 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     setShowNodeConfig(true);
     closeEdgeTooltip();
   }, [state.rootNode, closeEdgeTooltip]);
+
+  // Handle insert block from tooltip - dispatches the same event as the + button
+  const handleInsertFromTooltip = useCallback(() => {
+    if (!edgeTooltip || typeof edgeTooltip.insertIndex !== 'number') return;
+
+    window.dispatchEvent(new CustomEvent('flow-v3-add-block', {
+      detail: {
+        insertIndex: edgeTooltip.insertIndex,
+        targetBlockId: edgeTooltip.targetBlockId,
+        sourceBlockId: edgeTooltip.sourceBlockId,
+        rule: edgeTooltip.rule
+      }
+    }));
+
+    closeEdgeTooltip();
+  }, [edgeTooltip, closeEdgeTooltip]);
 
   // Get node display name
   const getNodeDisplayName = useCallback((nodeId: string) => {
@@ -1108,6 +1156,20 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                       <ArrowDownToLine className="h-3 w-3 mr-1" />
                       Target
                     </Button>
+
+                    {/* Insert Block button */}
+                    {typeof edgeTooltip.insertIndex === 'number' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30"
+                        onClick={handleInsertFromTooltip}
+                        title="Insert a new block on this path"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Insert
+                      </Button>
+                    )}
 
                     {/* Edit button for explicit rules */}
                     {edgeTooltip.isExplicitRule && edgeTooltip.ruleIndex !== undefined && (

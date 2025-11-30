@@ -17,6 +17,8 @@ interface ButtonEdgeData {
   ruleIndex?: number;
   weight?: number;
   skippedNodeCount?: number; // Number of nodes this edge skips over
+  edgeIndex?: number; // Index of this edge among parallel edges from same source
+  totalParallelEdges?: number; // Total number of edges from the same source
 }
 
 // Custom path generator for edges that need to route around nodes
@@ -26,14 +28,23 @@ const getAvoidingPath = (
   sourceY: number,
   targetX: number,
   targetY: number,
-  skippedNodes: number = 1
+  skippedNodes: number = 1,
+  edgeIndex: number = 0,
+  totalEdges: number = 1
 ): { path: string; labelX: number; labelY: number } => {
   // Calculate offset based on how many nodes we're skipping
   // More skipped nodes = route further out to avoid them all
   // Base offset covers half node width (~200-300px) plus margin
   const baseOffset = 280;
   const perNodeOffset = 40; // Additional offset per skipped node
-  const sideOffset = baseOffset + (skippedNodes * perNodeOffset);
+  const parallelOffset = 50; // Offset between parallel edges
+
+  // Calculate parallel edge offset (spread edges out)
+  const parallelShift = totalEdges > 1
+    ? (edgeIndex - (totalEdges - 1) / 2) * parallelOffset
+    : 0;
+
+  const sideOffset = baseOffset + (skippedNodes * perNodeOffset) + Math.abs(parallelShift);
 
   // Always go to the right side
   const sideX = Math.max(sourceX, targetX) + sideOffset;
@@ -55,9 +66,9 @@ const getAvoidingPath = (
     `L ${targetX} ${targetY}`,
   ].join(' ');
 
-  // Label position - on the vertical side portion, slightly to the right
+  // Label position - on the vertical side portion, offset vertically for parallel edges
   const labelX = sideX + 15;
-  const labelY = (sourceY + targetY) / 2;
+  const labelY = (sourceY + targetY) / 2 + (edgeIndex * 30); // Offset labels vertically
 
   return { path, labelX, labelY };
 };
@@ -84,25 +95,41 @@ const ButtonEdgeInner = ({
   const skippedNodeCount = edgeData?.skippedNodeCount ?? 0;
   const isSkipEdge = skippedNodeCount > 0;
 
+  // Parallel edge info for offsetting overlapping edges
+  const edgeIndex = edgeData?.edgeIndex ?? 0;
+  const totalParallelEdges = edgeData?.totalParallelEdges ?? 1;
+
   const { edgePath, labelX, labelY } = useMemo(() => {
     if (isSkipEdge) {
       // Route around nodes for edges that skip over them
-      const avoiding = getAvoidingPath(sourceX, sourceY, targetX, targetY, skippedNodeCount);
+      const avoiding = getAvoidingPath(
+        sourceX, sourceY, targetX, targetY,
+        skippedNodeCount, edgeIndex, totalParallelEdges
+      );
       return { edgePath: avoiding.path, labelX: avoiding.labelX, labelY: avoiding.labelY };
     }
 
     // For normal sequential edges, use smooth step path for cleaner routing
+    // Apply offset for parallel edges sharing the same path
+    const parallelOffset = totalParallelEdges > 1
+      ? (edgeIndex - (totalParallelEdges - 1) / 2) * 30
+      : 0;
+
     const [path, lx, ly] = getSmoothStepPath({
-      sourceX,
+      sourceX: sourceX + parallelOffset,
       sourceY,
       sourcePosition,
-      targetX,
+      targetX: targetX + parallelOffset,
       targetY,
       targetPosition,
       borderRadius: 16,
     });
-    return { edgePath: path, labelX: lx, labelY: ly };
-  }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isSkipEdge, skippedNodeCount]);
+
+    // Offset label position for parallel edges
+    const adjustedLabelY = ly + (edgeIndex * 25);
+
+    return { edgePath: path, labelX: lx, labelY: adjustedLabelY };
+  }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isSkipEdge, skippedNodeCount, edgeIndex, totalParallelEdges]);
 
   // Memoize data extraction to avoid recalculating on every render
   const { isExplicitRule, hasRuleIndex, showInsertButton, insertIndex, ruleIndex } = useMemo(() => ({
@@ -112,6 +139,10 @@ const ButtonEdgeInner = ({
     insertIndex: edgeData?.insertIndex,
     ruleIndex: edgeData?.ruleIndex,
   }), [edgeData?.rule, edgeData?.ruleIndex, edgeData?.insertIndex]);
+
+  // Only show start/end + buttons when this is the only edge from source
+  // This prevents confusion when multiple edges share the same origin point
+  const showEndpointButtons = showInsertButton && totalParallelEdges <= 1;
 
   // Stable callback references
   const onInsertClick = useCallback((evt: React.MouseEvent) => {
@@ -208,7 +239,7 @@ const ButtonEdgeInner = ({
           </div>
         )}
 
-        {/* Insert Button Container */}
+        {/* Insert Button Container - Center */}
         {showInsertButton && (
           <div
             style={{
@@ -217,7 +248,7 @@ const ButtonEdgeInner = ({
                 ? `translate(-50%, 30%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: 5, // Below nodes (z-index 10) so buttons don't overlap node content
+              zIndex: 5,
             }}
             className="nodrag nopan"
           >
@@ -229,6 +260,54 @@ const ButtonEdgeInner = ({
               title="Insert Block"
             >
               <Plus className="h-3.5 w-3.5 text-current" />
+            </Button>
+          </div>
+        )}
+
+        {/* Insert Button - Near Source (appears on hover) */}
+        {/* Only shown when this is the only edge from source to avoid ambiguity */}
+        {showEndpointButtons && (
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${sourceX}px,${sourceY + 40}px)`,
+              pointerEvents: "all",
+              zIndex: 5,
+            }}
+            className="nodrag nopan group/start"
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/start:opacity-100 hover:!opacity-100 border-emerald-500 bg-white hover:bg-emerald-50 hover:text-emerald-600 hover:scale-110"
+              onClick={onInsertClick}
+              title="Insert Block After Source"
+            >
+              <Plus className="h-3 w-3 text-current" />
+            </Button>
+          </div>
+        )}
+
+        {/* Insert Button - Near Target (appears on hover) */}
+        {/* Only shown when this is the only edge from source to avoid ambiguity */}
+        {showEndpointButtons && (
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${targetX}px,${targetY - 40}px)`,
+              pointerEvents: "all",
+              zIndex: 5,
+            }}
+            className="nodrag nopan group/end"
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/end:opacity-100 hover:!opacity-100 border-amber-500 bg-white hover:bg-amber-50 hover:text-amber-600 hover:scale-110"
+              onClick={onInsertClick}
+              title="Insert Block Before Target"
+            >
+              <Plus className="h-3 w-3 text-current" />
             </Button>
           </div>
         )}
