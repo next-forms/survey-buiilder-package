@@ -61,7 +61,7 @@ const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>
     <div
       className={cn(
         "relative group bg-white dark:bg-slate-900 rounded-xl shadow-sm border-2 transition-all duration-200 min-w-[400px] max-w-[600px]",
-        selected ? "border-blue-500 ring-2 ring-blue-500/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+        selected ? "border-primary ring-2 ring-primary/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
       )}
       style={{ zIndex: 10 }} // Ensure nodes appear above edge labels
     >
@@ -80,7 +80,7 @@ const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>
         </div>
 
 
-        <div className="flex-shrink-0 w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+        <div className="flex-shrink-0 w-6 h-6 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary">
           {blockDefinition?.icon || <CircleDot className="w-3.5 h-3.5" />}
         </div>
 
@@ -110,26 +110,26 @@ const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>
         <Button
             variant="secondary"
             size="icon"
-            className="h-7 w-7 rounded-full shadow-sm border border-slate-200 bg-white hover:bg-slate-100"
+            className="h-7 w-7 rounded-full shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
             onClick={handleAddBranch}
             title="Add Branch"
         >
-            <GitBranch className="h-3.5 w-3.5 text-slate-600" />
+            <GitBranch className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
         </Button>
         <Button
             variant="secondary"
             size="icon"
-            className="h-7 w-7 rounded-full shadow-sm border border-slate-200 bg-white hover:bg-slate-100"
+            className="h-7 w-7 rounded-full shadow-sm border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
             onClick={handleConfigure}
             title="Configure Block"
         >
-            <Settings className="h-3.5 w-3.5 text-slate-600" />
+            <Settings className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
         </Button>
         {!hasActiveRules && (
           <Button
               variant="destructive"
               size="icon"
-              className="h-7 w-7 rounded-full shadow-sm border border-red-200 hover:bg-red-600"
+              className="h-7 w-7 rounded-full shadow-sm border border-red-200 dark:border-red-800 hover:bg-red-600 dark:hover:bg-red-700"
               onClick={handleDelete}
               title="Delete Block"
           >

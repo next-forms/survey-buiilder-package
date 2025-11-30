@@ -26,11 +26,11 @@ const BlockItem = memo(({ type, definition, onSelect }: {
         bg-white dark:bg-slate-800
         border border-slate-200 dark:border-slate-700
         rounded-lg cursor-pointer
-        hover:border-blue-500 hover:ring-1 hover:ring-blue-500/20 hover:shadow-sm
+        hover:border-primary hover:ring-1 hover:ring-primary/20 hover:shadow-sm
         transition-all duration-150
       "
     >
-      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary">
         {definition.icon || <CircleDot className="w-5 h-5" />}
       </div>
       <div className="flex-1 min-w-0">

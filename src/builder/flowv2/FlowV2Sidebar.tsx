@@ -51,23 +51,23 @@ export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart, onDra
       onDragEnd={handleDragEnd}
       className="
         flex items-center gap-2 px-3 py-2
-        bg-white dark:bg-slate-800
-        border border-slate-200 dark:border-slate-700
+        bg-white dark:bg-sidebar
+        border border-slate-200 dark:border-sidebar-border
         rounded-lg cursor-grab
-        hover:border-blue-300 hover:shadow-sm
+        hover:border-primary/50 hover:shadow-sm
         active:cursor-grabbing
         transition-all duration-150
       "
     >
-      <div className="flex-shrink-0 w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+      <div className="flex-shrink-0 w-7 h-7 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary">
         {definition.icon || <CircleDot className="w-4 h-4" />}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+        <div className="text-sm font-medium text-slate-700 dark:text-sidebar-foreground truncate">
           {definition.name}
         </div>
         {definition.description && (
-          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+          <div className="text-xs text-slate-500 dark:text-muted-foreground truncate">
             {definition.description}
           </div>
         )}
@@ -77,14 +77,14 @@ export const FlowV2Sidebar: React.FC<FlowV2SidebarProps> = ({ onDragStart, onDra
 
   return (
     <div
-      className="border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col h-full flex-shrink-0"
+      className="border-r border-slate-200 dark:border-sidebar-border bg-slate-50 dark:bg-sidebar flex flex-col h-full flex-shrink-0"
       style={{ width: 256 }}
     >
-      <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-        <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+      <div className="p-3 border-b border-slate-200 dark:border-sidebar-border flex-shrink-0">
+        <h3 className="font-semibold text-slate-800 dark:text-sidebar-foreground text-sm">
           Add Blocks
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5">
           Drag blocks to the canvas
         </p>
       </div>

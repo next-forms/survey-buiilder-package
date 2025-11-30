@@ -20,7 +20,29 @@ interface ButtonEdgeData {
   edgeIndex?: number; // Index of this edge among parallel edges from same source
   totalParallelEdges?: number; // Total number of edges from the same source
   isHighlighted?: boolean; // Whether this edge is connected to a selected node
+  edgeType?: 'default' | 'start' | 'conditional' | 'sequential'; // Type for styling
 }
+
+// Edge colors that work in both light and dark modes
+// Using CSS custom properties would be ideal but React Flow styles need inline values
+const EDGE_COLORS = {
+  light: {
+    default: '#64748b',      // slate-500
+    start: '#10b981',        // emerald-500
+    conditional: '#0ea5e9',  // sky-500 (less harsh than blue-500)
+    sequential: '#94a3b8',   // slate-400
+    selected: '#6366f1',     // indigo-500
+    highlighted: '#a855f7',  // purple-500
+  },
+  dark: {
+    default: '#94a3b8',      // slate-400
+    start: '#34d399',        // emerald-400
+    conditional: '#38bdf8',  // sky-400
+    sequential: '#64748b',   // slate-500
+    selected: '#818cf8',     // indigo-400
+    highlighted: '#c084fc',  // purple-400
+  }
+};
 
 // Custom path generator for edges that need to route around nodes
 // Creates a path that goes to the side, completely avoiding middle nodes
@@ -74,6 +96,31 @@ const getAvoidingPath = (
   return { path, labelX, labelY };
 };
 
+// Hook to detect dark mode
+const useIsDarkMode = () => {
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          setIsDark(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+};
+
 const ButtonEdgeInner = ({
   id,
   source,
@@ -91,6 +138,7 @@ const ButtonEdgeInner = ({
   selected,
 }: EdgeProps) => {
   const edgeData = data as ButtonEdgeData | undefined;
+  const isDarkMode = useIsDarkMode();
 
   // Determine if this edge skips over nodes and needs special routing
   const skippedNodeCount = edgeData?.skippedNodeCount ?? 0;
@@ -178,12 +226,41 @@ const ButtonEdgeInner = ({
 
   // Check if edge is highlighted (connected to selected node)
   const isHighlighted = edgeData?.isHighlighted ?? false;
+  const edgeType = edgeData?.edgeType ?? 'default';
+
+  // Get colors based on dark mode
+  const colors = isDarkMode ? EDGE_COLORS.dark : EDGE_COLORS.light;
+
+  // Determine base stroke color based on edge type
+  const getBaseStrokeColor = () => {
+    switch (edgeType) {
+      case 'start': return colors.start;
+      case 'conditional': return colors.conditional;
+      case 'sequential': return colors.sequential;
+      default: return colors.default;
+    }
+  };
+
+  // Determine stroke width based on edge type
+  const getBaseStrokeWidth = () => {
+    switch (edgeType) {
+      case 'conditional': return 2;
+      case 'sequential': return 2;
+      default: return 2;
+    }
+  };
+
+  // Get stroke dash array for sequential edges
+  const getStrokeDashArray = () => {
+    return edgeType === 'sequential' ? '5,5' : undefined;
+  };
 
   // Highlight style when selected or connected to selected node
   const edgeStyle = {
     ...style,
-    stroke: selected ? "#3b82f6" : isHighlighted ? "#8b5cf6" : style.stroke, // Purple for highlighted
-    strokeWidth: selected ? 5 : isHighlighted ? 3 : style.strokeWidth,
+    stroke: selected ? colors.selected : isHighlighted ? colors.highlighted : getBaseStrokeColor(),
+    strokeWidth: selected ? 5 : isHighlighted ? 3 : getBaseStrokeWidth(),
+    strokeDasharray: getStrokeDashArray(),
     zIndex: selected ? 100 : isHighlighted ? 50 : 0,
   };
 
@@ -215,7 +292,7 @@ const ButtonEdgeInner = ({
             className="nodrag nopan"
           >
             {label && (
-              <div className={`px-2 py-1 border rounded text-[10px] font-medium whitespace-nowrap shadow-sm ${selected ? 'bg-blue-50 border-blue-200 text-blue-700' : isHighlighted ? 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'}`}>
+              <div className={`px-2 py-1 border rounded text-[10px] font-medium whitespace-nowrap shadow-sm ${selected ? 'bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40' : isHighlighted ? 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
                 {label}
               </div>
             )}
@@ -223,7 +300,7 @@ const ButtonEdgeInner = ({
             {/* Edit button for explicit rules */}
             {isExplicitRule && hasRuleIndex && (
               <button
-                className="h-4 w-4 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-amber-500 hover:border-amber-500 flex items-center justify-center shadow-sm transition-colors"
+                className="h-4 w-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-amber-500 hover:border-amber-500 dark:hover:text-amber-400 dark:hover:border-amber-400 flex items-center justify-center shadow-sm transition-colors"
                 onClick={onEditClick}
                 title="Edit Rule"
               >
@@ -233,7 +310,7 @@ const ButtonEdgeInner = ({
 
             {isExplicitRule && (
               <button
-                className="h-4 w-4 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 flex items-center justify-center shadow-sm transition-colors"
+                className="h-4 w-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:border-red-500 dark:hover:text-red-400 dark:hover:border-red-400 flex items-center justify-center shadow-sm transition-colors"
                 onClick={onDeleteClick}
                 title="Delete Connection"
               >
@@ -259,7 +336,7 @@ const ButtonEdgeInner = ({
             <Button
               variant="outline"
               size="icon"
-              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : isHighlighted ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-blue-500 bg-white hover:bg-blue-50 hover:text-blue-600'}`}
+              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20' : isHighlighted ? 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'border-primary/60 bg-white dark:bg-slate-800 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20'}`}
               onClick={onInsertClick}
               title="Insert Block"
             >
@@ -283,7 +360,7 @@ const ButtonEdgeInner = ({
             <Button
               variant="outline"
               size="icon"
-              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/start:opacity-100 hover:!opacity-100 border-emerald-500 bg-white hover:bg-emerald-50 hover:text-emerald-600 hover:scale-110"
+              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/start:opacity-100 hover:!opacity-100 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 hover:scale-110"
               onClick={onInsertClick}
               title="Insert Block After Source"
             >
@@ -307,7 +384,7 @@ const ButtonEdgeInner = ({
             <Button
               variant="outline"
               size="icon"
-              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/end:opacity-100 hover:!opacity-100 border-amber-500 bg-white hover:bg-amber-50 hover:text-amber-600 hover:scale-110"
+              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/end:opacity-100 hover:!opacity-100 border-amber-500 dark:border-amber-400 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 hover:scale-110"
               onClick={onInsertClick}
               title="Insert Block Before Target"
             >

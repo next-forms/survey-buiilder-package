@@ -129,23 +129,13 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
     // --- 1. Create Nodes ---
 
-    // Start Node
+    // Start Node - Uses emerald green, works well in both light and dark modes
     nodes.push({
       id: "start",
-      type: "input", 
+      type: "input",
       data: { label: "Start Survey" },
       position: { x: 0, y: 0 },
-      style: { 
-        background: '#10b981', 
-        color: 'white', 
-        border: 'none', 
-        borderRadius: '8px', 
-        padding: '10px 20px', 
-        fontWeight: 'bold',
-        width: 'fit-content',
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-      }
+      className: 'flow-start-node',
     });
 
     // Block Nodes
@@ -158,23 +148,13 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       });
     });
 
-    // Submit Node
+    // Submit Node - Uses primary color that adapts to dark mode
     nodes.push({
       id: "submit",
       type: "output",
       data: { label: "Submit / End" },
       position: { x: 0, y: 0 },
-       style: { 
-         background: '#3b82f6', 
-         color: 'white', 
-         border: 'none', 
-         borderRadius: '8px', 
-         padding: '10px 20px', 
-         fontWeight: 'bold',
-         width: 'fit-content',
-         textAlign: 'center',
-         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-      }
+      className: 'flow-submit-node',
     });
 
     // --- 2. Create Edges ---
@@ -185,9 +165,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         source: "start",
         target: "submit",
         type: "button-edge", // Use button edge to allow insert
-        data: { insertIndex: 0, weight: 2 },
+        data: { insertIndex: 0, weight: 2, edgeType: 'default' },
         markerEnd: { type: MarkerType.ArrowClosed },
-        style: { strokeWidth: 2, stroke: '#94a3b8' }
       });
     } else {
       // Start -> First Block
@@ -197,9 +176,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         source: "start",
         target: firstBlockId,
         type: "button-edge",
-        data: { insertIndex: 0, weight: 2 },
+        data: { insertIndex: 0, weight: 2, edgeType: 'start' },
         markerEnd: { type: MarkerType.ArrowClosed },
-        style: { strokeWidth: 2, stroke: '#10b981' }
       });
 
       // Track edges from each source to assign parallel offsets
@@ -254,10 +232,6 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
               type: "button-edge",
               animated: !rule.isDefault,
               markerEnd: { type: MarkerType.ArrowClosed },
-              style: {
-                  stroke: rule.isDefault ? '#94a3b8' : '#3b82f6',
-                  strokeWidth: rule.isDefault ? 1 : 2
-              },
               data: {
                   rule,
                   ruleIndex, // Include rule index for editing
@@ -270,6 +244,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                   // Parallel edge info for offset calculation
                   edgeIndex: edgeIndexFromSource,
                   totalParallelEdges: totalEdgesFromSource,
+                  // Edge type for styling
+                  edgeType: rule.isDefault ? 'default' : 'conditional',
               }
             });
           }
@@ -302,15 +278,12 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 // Parallel edge info for offset calculation
                 edgeIndex: edgeIndexFromSource,
                 totalParallelEdges: totalEdgesFromSource,
+                // Edge type for styling
+                edgeType: 'sequential',
             },
             animated: false,
             // No "Else" label
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: {
-                stroke: '#94a3b8',
-                strokeWidth: 2,
-                strokeDasharray: '5,5'
-            },
           });
         }
       });
@@ -1126,13 +1099,13 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         <div ref={reactFlowWrapper} className="flex-1 relative bg-slate-50 dark:bg-slate-950">
              {/* Visual indicator for Insert Mode */}
              {insertIndex !== null && (
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center animate-bounce pointer-events-none">
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg z-50 flex items-center animate-bounce pointer-events-none">
                     <Plus className="w-4 h-4 mr-2" />
                     <span>Drag a block to insert at position {insertIndex + 1}</span>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="ml-2 h-6 w-6 p-0 hover:bg-blue-700 rounded-full text-white pointer-events-auto"
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-6 w-6 p-0 hover:bg-white/20 rounded-full text-current pointer-events-auto"
                         onClick={() => setInsertIndex(null)}
                     >
                         &times;
@@ -1166,7 +1139,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             >
                 <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
                 <Controls showInteractive={false} position="bottom-right" />
-                <Panel position="top-right" className="bg-white/80 p-2 rounded shadow-sm border text-xs text-slate-500">
+                <Panel position="top-right" className="bg-white/80 dark:bg-slate-900/80 p-2 rounded shadow-sm border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
                     Double-click nodes to edit. Click lines to see options.
                 </Panel>
             </ReactFlow>
@@ -1201,7 +1174,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                   {edgeTooltip.label && (
                     <div className="mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                       <div className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Condition</div>
-                      <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                      <div className="text-xs font-medium text-primary bg-primary/10 dark:bg-primary/20 px-2 py-1 rounded">
                         {edgeTooltip.label}
                       </div>
                     </div>
@@ -1235,7 +1208,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30"
+                        className="h-7 px-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
                         onClick={handleInsertFromTooltip}
                         title="Insert a new block on this path"
                       >
@@ -1249,7 +1222,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/30"
+                        className="h-7 px-2 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/30 dark:hover:text-amber-300"
                         onClick={() => handleEditRuleFromTooltip(edgeTooltip.sourceId, edgeTooltip.ruleIndex!)}
                         title="Edit Rule"
                       >
