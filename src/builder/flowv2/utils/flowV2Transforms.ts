@@ -1,6 +1,6 @@
 import type { NodeData, BlockData } from "../../../types";
 import type { FlowV2Node, FlowV2Edge, BlockNodeData } from "../types";
-import dagre from "dagre";
+import dagre from "@dagrejs/dagre";
 
 // Layout configuration for horizontal flow
 export const LAYOUT_CONFIG = {

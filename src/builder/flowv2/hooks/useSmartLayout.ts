@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
 import type { FlowV2Node, FlowV2Edge, BlockNodeData } from "../types";
-import dagre from "dagre";
+import dagre from "@dagrejs/dagre";
 
 // ============================================================================
 // SMART LAYOUT CONFIGURATION
