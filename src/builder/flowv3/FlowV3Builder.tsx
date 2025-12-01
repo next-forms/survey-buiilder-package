@@ -900,11 +900,26 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const handleDragStart = useCallback(() => {}, []);
   const handleDragEnd = useCallback(() => {}, []);
 
-  // Handle selection changes to highlight connected edges
-  const onSelectionChange: OnSelectionChangeFunc = useCallback(({ nodes: selectedNodes }) => {
+  // Handle selection changes to highlight connected edges and update z-index for selected edges
+  const onSelectionChange: OnSelectionChangeFunc = useCallback(({ nodes: selectedNodes, edges: selectedEdges }) => {
     const newSelectedIds = new Set(selectedNodes.map(n => n.id));
     setSelectedNodeIds(newSelectedIds);
-  }, []);
+
+    // Update z-index for selected edges so they render above nodes
+    const selectedEdgeIds = new Set(selectedEdges.map(e => e.id));
+    setEdges(currentEdges =>
+      currentEdges.map(edge => {
+        const isSelected = selectedEdgeIds.has(edge.id);
+        const currentZIndex = edge.zIndex ?? 0;
+        const newZIndex = isSelected ? 1000 : 0;
+
+        if (currentZIndex !== newZIndex) {
+          return { ...edge, zIndex: newZIndex };
+        }
+        return edge;
+      })
+    );
+  }, [setEdges]);
 
   // Create a stable key for node selection state that changes when selection changes
   const nodeSelectionKey = useMemo(() => {
@@ -928,14 +943,15 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     selectedIds.delete('');
 
     if (selectedIds.size === 0) {
-      // Clear all highlighting
+      // Clear all highlighting and reset z-index
       setEdges(currentEdges => {
         const hasAnyHighlighted = currentEdges.some(e => e.data?.isHighlighted);
         if (!hasAnyHighlighted) return currentEdges;
 
         return currentEdges.map(edge => {
           if (edge.data?.isHighlighted) {
-            return { ...edge, data: { ...edge.data, isHighlighted: false } };
+            // Remove highlight and selection state used for elevation
+            return { ...edge, selected: false, zIndex: 0, data: { ...edge.data, isHighlighted: false } };
           }
           return edge;
         });
@@ -943,14 +959,24 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       return;
     }
 
-    // Mark edges connected to selected nodes as highlighted
+    // Mark edges connected to selected nodes as highlighted and elevate them
+    // We set selected: true on highlighted edges so elevateEdgesOnSelect works
     setEdges(currentEdges =>
       currentEdges.map(edge => {
         const isConnected = selectedIds.has(edge.source) || selectedIds.has(edge.target);
         const currentHighlight = edge.data?.isHighlighted ?? false;
+        const currentZIndex = edge.zIndex ?? 0;
+        const targetZIndex = isConnected ? 1000 : 0;
 
-        if (isConnected !== currentHighlight) {
-          return { ...edge, data: { ...edge.data, isHighlighted: isConnected } };
+        // Update if highlight state changed OR if z-index needs correction
+        if (isConnected !== currentHighlight || currentZIndex !== targetZIndex) {
+          // Highlighted edges get selected: true for elevation + z-index 1000
+          return {
+            ...edge,
+            selected: isConnected,
+            zIndex: targetZIndex,
+            data: { ...edge.data, isHighlighted: isConnected }
+          };
         }
         return edge;
       })
@@ -1145,6 +1171,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 // panOnDrag={mode === "pan" || mode === "select"}
                 // selectionOnDrag={mode === "select"}
                 connectOnClick={mode === "connect"}
+                elevateEdgesOnSelect={true}
                 proOptions={{ hideAttribution: true }}
             >
                 <Background variant={BackgroundVariant.Dots} gap={20} size={1} />

@@ -256,15 +256,18 @@ const ButtonEdgeInner = ({
   };
 
   // Highlight style when selected or connected to selected node
+  // Note: z-index is set on the edge object in FlowV3Builder, not here in styles
+  // SVG elements don't respect CSS z-index - React Flow uses edge.zIndex for rendering order
   const edgeStyle = {
     ...style,
     stroke: selected ? colors.selected : isHighlighted ? colors.highlighted : getBaseStrokeColor(),
     strokeWidth: selected ? 5 : isHighlighted ? 3 : getBaseStrokeWidth(),
     strokeDasharray: getStrokeDashArray(),
-    zIndex: selected ? 100 : isHighlighted ? 50 : 0,
   };
 
-  const zIndex = selected || isHighlighted ? 100 : 0;
+  // z-index for EdgeLabelRenderer elements (these are HTML, so CSS z-index works)
+  // Both selected and highlighted edges should render above nodes
+  const labelZIndex = selected || isHighlighted ? 1000 : 0;
 
   return (
     <>
@@ -286,7 +289,7 @@ const ButtonEdgeInner = ({
                 ? `translate(-50%, -170%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: zIndex, // Below nodes (z-index 10) so labels don't overlap node content
+              zIndex: labelZIndex,
               display: "flex",
               alignItems: "center",
               gap: "4px",
@@ -294,8 +297,8 @@ const ButtonEdgeInner = ({
             className="nodrag nopan"
           >
             {label && (
-              <div className={`px-2 py-1 border rounded text-[10px] font-medium whitespace-nowrap shadow-sm ${selected ? 'bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40' : isHighlighted ? 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                {label}
+              <div className={`px-2 py-1 text-wrap border rounded text-[10px] font-medium shadow-sm ${selected ? 'bg-primary border-primary text-white dark:bg-primary dark:border-primary' : isHighlighted ? 'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                {String(label).slice(0, 30)}...
               </div>
             )}
 
@@ -331,14 +334,14 @@ const ButtonEdgeInner = ({
                 ? `translate(-50%, 30%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: 5,
+              zIndex: labelZIndex
             }}
             className="nodrag nopan"
           >
             <Button
               variant="outline"
               size="icon"
-              className={`h-6 w-6 rounded-full border shadow-sm p-0 z-10 transition-colors ${selected ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20' : isHighlighted ? 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'border-primary/60 bg-white dark:bg-slate-800 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20'}`}
+              className={`h-6 w-6 rounded-full border shadow-sm p-0 transition-colors ${selected ? 'border-primary bg-primary text-white dark:bg-primary' : isHighlighted ? 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'border-primary/60 bg-white dark:bg-slate-800 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20'}`}
               onClick={onInsertClick}
               title="Insert Block"
             >
@@ -355,7 +358,7 @@ const ButtonEdgeInner = ({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${sourceX}px,${sourceY + 40}px)`,
               pointerEvents: "all",
-              zIndex: 5,
+              zIndex: labelZIndex
             }}
             className="nodrag nopan group/start"
           >
@@ -379,7 +382,7 @@ const ButtonEdgeInner = ({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${targetX}px,${targetY - 40}px)`,
               pointerEvents: "all",
-              zIndex: 5,
+              zIndex: labelZIndex
             }}
             className="nodrag nopan group/end"
           >
