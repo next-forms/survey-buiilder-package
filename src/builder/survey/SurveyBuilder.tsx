@@ -92,6 +92,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isThemeBuilderOpen, setIsThemeBuilderOpen] = useState(false);
   const [isFlowBuilderOpen, setIsFlowBuilderOpen] = useState(false);
+  const [flowBuilderKey, setFlowBuilderKey] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // 1. Block definitions (once or on true changes only)
@@ -173,7 +174,10 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
     </Tabs>
 
     {/* Flow Builder - uses FlowV2 for pageless mode, FlowBuilder for paged mode */}
-    <Sheet open={isFlowBuilderOpen} onOpenChange={setIsFlowBuilderOpen}>
+    <Sheet open={isFlowBuilderOpen} onOpenChange={(open) => {
+      if (open) setFlowBuilderKey(k => k + 1);
+      setIsFlowBuilderOpen(open);
+    }}>
       <SheetTrigger asChild>
         <Button type="button" variant="outline" className="grow lg:grow-0">
           Flow Builder
@@ -182,8 +186,8 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" hideCloseButton onEscapeKeyDown={(event) => {event.preventDefault();}}>
         <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
           <div className="survey-flow h-full">
-            {state.rootNode ? (
-              mode === 'pageless' ? <FlowV3Builder onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
+            {isFlowBuilderOpen && (state.rootNode ? (
+              mode === 'pageless' ? <FlowV3Builder key={flowBuilderKey} onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
             ) : (
               <div className="text-center p-12 bg-muted rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>
@@ -192,7 +196,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
                 </p>
                 <Button type="button" onClick={handleCreateRootNode}>Create Survey</Button>
               </div>
-            )}
+            ))}
           </div>
       </SheetContent>
     </Sheet>

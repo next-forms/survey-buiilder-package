@@ -13,7 +13,15 @@ import { Badge } from "../../../components/ui/badge";
 const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>) => {
   const { state } = useSurveyBuilder();
   const { deleteElements } = useReactFlow();
-  const { block } = data;
+
+  // Get fresh block data from context instead of using potentially stale data from React Flow
+  // React Flow can cache node data internally, so we look up by UUID to always get current data
+  const block = useMemo(() => {
+    const blockFromData = data.block;
+    if (!state.rootNode?.items) return blockFromData;
+    const freshBlock = (state.rootNode.items as BlockData[]).find(b => b.uuid === blockFromData.uuid);
+    return freshBlock || blockFromData;
+  }, [data.block, state.rootNode?.items]);
 
   // Memoize block definition lookup
   const blockDefinition = useMemo(

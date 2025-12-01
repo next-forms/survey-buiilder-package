@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   ReactFlow,
   Controls,
@@ -53,6 +53,7 @@ interface FlowV3BuilderProps {
 const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const { state, updateNode } = useSurveyBuilder();
   const { fitView, zoomIn, zoomOut, getNodes, getEdges } = useReactFlow();
+
   
   const [mode, setMode] = useState<FlowV2Mode>("select");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -100,15 +101,10 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   // Track selected nodes to highlight connected edges
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
-  // Create a stable structural key that only changes when structure changes
-  // This prevents full re-computation on every text field edit
+  // Create a stable key from all block data to trigger re-computation when any data changes
   const structuralKey = useMemo(() => {
     if (!state.rootNode?.items) return "";
-    const blocks = state.rootNode.items as BlockData[];
-    // Create a key based on: block count, UUIDs, navigation rules count, and isEndBlock flags
-    return blocks.map(b =>
-      `${b.uuid}:${b.type}:${(b.navigationRules || []).map(r => `${r.target}|${r.condition}`).join(',')}:${b.isEndBlock}:${b.nextBlockId || ''}`
-    ).join(';');
+    return JSON.stringify(state.rootNode.items);
   }, [state.rootNode?.items]);
 
   // Transform survey state to React Flow nodes/edges
@@ -293,8 +289,16 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [structuralKey]); // Only recompute when structure actually changes, not on every field edit
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Force sync nodes on mount synchronously before paint
+  // This prevents React Flow from rendering stale cached nodes
+  useLayoutEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setNeedsLayout(true);
+  }, []); // Only on mount
 
   const hasInitialLayoutRef = useRef(false);
   
@@ -338,17 +342,21 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       }
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
+  // Trigger layout on initial mount
+  useEffect(() => {
+    if (!hasInitialLayoutRef.current) {
+      setNeedsLayout(true);
+    }
+  }, []);
+
   // Effect to run layout when nodes are initialized or structure changed
   useEffect(() => {
     // Wait for nodes to be initialized and have measurements
     const allMeasured = nodes.every(n => n.measured && n.measured.width && n.measured.height);
 
     if (needsLayout && nodes.length > 0 && allMeasured) {
-        const currentNodes = getNodes();
-        const currentEdges = getEdges();
-
-        // Run layout with actual node sizes
-        const layout = getLayoutedElements(currentNodes, currentEdges, "TB");
+        // Use nodes/edges from state, not getNodes()/getEdges() which may have stale cached data
+        const layout = getLayoutedElements(nodes, edges, "TB");
 
         setNodes([...layout.nodes]);
         setEdges([...layout.edges]);
@@ -360,7 +368,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
           hasInitialLayoutRef.current = true;
         }
     }
-  }, [needsLayout, nodes, getNodes, getEdges, setNodes, setEdges, fitView]);
+  }, [needsLayout, nodes, edges, setNodes, setEdges, fitView]);
 
   // Effect to pan to newly added node after it appears in the graph
   useEffect(() => {
