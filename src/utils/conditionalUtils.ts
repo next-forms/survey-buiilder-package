@@ -204,175 +204,281 @@ function evaluateNavigationalRule(conditionalRule: NavigationRule, currentValues
   }
 }
 
+// Helper to get value from currentValues supporting nested paths (e.g., "user.email")
+function getValueFromPath(currentValues: CurrentValues, path: string): any {
+  if (!path) return undefined;
+  const parts = path.split('.');
+  let value: any = currentValues;
+  for (const part of parts) {
+    if (value === null || value === undefined) return undefined;
+    value = value[part];
+  }
+  return value;
+}
+
 // Helper function to evaluate enhanced conditions
 function evaluateEnhancedCondition(condition: string, currentValues: CurrentValues): boolean | null {
   try {
-    // Check for isEmpty/isNotEmpty patterns
-    if (condition.match(/^!(\w+)\s*\|\|\s*\1\s*===\s*""$/)) {
-      const match = condition.match(/^!(\w+)/);
-      if (match) {
-        const fieldName = match[1];
-        const value = currentValues[fieldName];
-        return !value || value === "";
+    const trimmed = condition.trim();
+
+    // 1. Date equals: new Date(field).toDateString() === new Date("value").toDateString()
+    const dateEqualsMatch = trimmed.match(/^new Date\(([\w.]+)\)\.toDateString\(\) === new Date\(["']([^"']+)["']\)\.toDateString\(\)$/);
+    if (dateEqualsMatch) {
+      const fieldValue = getValueFromPath(currentValues, dateEqualsMatch[1]);
+      return new Date(fieldValue).toDateString() === new Date(dateEqualsMatch[2]).toDateString();
+    }
+
+    // Date not equals
+    const dateNotEqualsMatch = trimmed.match(/^new Date\(([\w.]+)\)\.toDateString\(\) !== new Date\(["']([^"']+)["']\)\.toDateString\(\)$/);
+    if (dateNotEqualsMatch) {
+      const fieldValue = getValueFromPath(currentValues, dateNotEqualsMatch[1]);
+      return new Date(fieldValue).toDateString() !== new Date(dateNotEqualsMatch[2]).toDateString();
+    }
+
+    // 2. Is today: new Date(field).toDateString() === new Date().toDateString()
+    const isTodayMatch = trimmed.match(/^new Date\(([\w.]+)\)\.toDateString\(\) === new Date\(\)\.toDateString\(\)$/);
+    if (isTodayMatch) {
+      const fieldValue = getValueFromPath(currentValues, isTodayMatch[1]);
+      return new Date(fieldValue).toDateString() === new Date().toDateString();
+    }
+
+    // 3. Is weekend IIFE
+    const isWeekendMatch = trimmed.match(/^\(\(\) => \{ const d = new Date\(([\w.]+)\); const day = d\.getDay\(\); return day === 0 \|\| day === 6; \}\)\(\)$/);
+    if (isWeekendMatch) {
+      const fieldValue = getValueFromPath(currentValues, isWeekendMatch[1]);
+      const d = new Date(fieldValue);
+      const day = d.getDay();
+      return day === 0 || day === 6;
+    }
+
+    // 4. Is weekday IIFE
+    const isWeekdayMatch = trimmed.match(/^\(\(\) => \{ const d = new Date\(([\w.]+)\); const day = d\.getDay\(\); return day >= 1 && day <= 5; \}\)\(\)$/);
+    if (isWeekdayMatch) {
+      const fieldValue = getValueFromPath(currentValues, isWeekdayMatch[1]);
+      const d = new Date(fieldValue);
+      const day = d.getDay();
+      return day >= 1 && day <= 5;
+    }
+
+    // 5. Age between IIFE
+    const ageBetweenMatch = trimmed.match(/^\(\(\) => \{ const age = Math\.floor\(\(new Date\(\)\.getTime\(\) - new Date\(([\w.]+)\)\.getTime\(\)\) \/ \(365\.25 \* 24 \* 60 \* 60 \* 1000\)\); return age >= (\d+) && age <= (\d+); \}\)\(\)$/);
+    if (ageBetweenMatch) {
+      const fieldValue = getValueFromPath(currentValues, ageBetweenMatch[1]);
+      const age = Math.floor((new Date().getTime() - new Date(fieldValue).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return age >= Number(ageBetweenMatch[2]) && age <= Number(ageBetweenMatch[3]);
+    }
+
+    // 6. Age greater than
+    const ageGreaterMatch = trimmed.match(/^Math\.floor\(\(new Date\(\)\.getTime\(\) - new Date\(([\w.]+)\)\.getTime\(\)\) \/ \(365\.25 \* 24 \* 60 \* 60 \* 1000\)\) > (\d+)$/);
+    if (ageGreaterMatch) {
+      const fieldValue = getValueFromPath(currentValues, ageGreaterMatch[1]);
+      const age = Math.floor((new Date().getTime() - new Date(fieldValue).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return age > Number(ageGreaterMatch[2]);
+    }
+
+    // 7. Age less than
+    const ageLessMatch = trimmed.match(/^Math\.floor\(\(new Date\(\)\.getTime\(\) - new Date\(([\w.]+)\)\.getTime\(\)\) \/ \(365\.25 \* 24 \* 60 \* 60 \* 1000\)\) < (\d+)$/);
+    if (ageLessMatch) {
+      const fieldValue = getValueFromPath(currentValues, ageLessMatch[1]);
+      const age = Math.floor((new Date().getTime() - new Date(fieldValue).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return age < Number(ageLessMatch[2]);
+    }
+
+    // 8. Date between: new Date(field) >= new Date("min") && new Date(field) <= new Date("max")
+    const dateBetweenMatch = trimmed.match(/^new Date\(([\w.]+)\) >= new Date\(["']([^"']+)["']\) && new Date\([\w.]+\) <= new Date\(["']([^"']+)["']\)$/);
+    if (dateBetweenMatch) {
+      const fieldValue = getValueFromPath(currentValues, dateBetweenMatch[1]);
+      const date = new Date(fieldValue);
+      return date >= new Date(dateBetweenMatch[2]) && date <= new Date(dateBetweenMatch[3]);
+    }
+
+    // 9. Date not between
+    const dateNotBetweenMatch = trimmed.match(/^new Date\(([\w.]+)\) < new Date\(["']([^"']+)["']\) \|\| new Date\([\w.]+\) > new Date\(["']([^"']+)["']\)$/);
+    if (dateNotBetweenMatch) {
+      const fieldValue = getValueFromPath(currentValues, dateNotBetweenMatch[1]);
+      const date = new Date(fieldValue);
+      return date < new Date(dateNotBetweenMatch[2]) || date > new Date(dateNotBetweenMatch[3]);
+    }
+
+    // 10. Date comparison: new Date(field) > new Date("value")
+    const dateCompareMatch = trimmed.match(/^new Date\(([\w.]+)\) (>=|<=|>|<) new Date\(["']([^"']+)["']\)$/);
+    if (dateCompareMatch) {
+      const fieldValue = getValueFromPath(currentValues, dateCompareMatch[1]);
+      const date = new Date(fieldValue);
+      const compareDate = new Date(dateCompareMatch[3]);
+      switch (dateCompareMatch[2]) {
+        case '>': return date > compareDate;
+        case '>=': return date >= compareDate;
+        case '<': return date < compareDate;
+        case '<=': return date <= compareDate;
       }
     }
-    
-    if (condition.match(/^(\w+)\s*&&\s*\1\s*!==\s*""$/)) {
-      const match = condition.match(/^(\w+)/);
-      if (match) {
-        const fieldName = match[1];
-        const value = currentValues[fieldName];
-        return value && value !== "";
-      }
+
+    // 11. Is past/future date: new Date(field) < new Date() or new Date(field) > new Date()
+    const pastFutureMatch = trimmed.match(/^new Date\(([\w.]+)\) (<|>) new Date\(\)$/);
+    if (pastFutureMatch) {
+      const fieldValue = getValueFromPath(currentValues, pastFutureMatch[1]);
+      const date = new Date(fieldValue);
+      const now = new Date();
+      return pastFutureMatch[2] === '<' ? date < now : date > now;
     }
-    
-    // Check for array operations
-    if (condition.includes('.includes(')) {
-      // Pattern: ["a","b"].includes(field)
-      const includesMatch = condition.match(/^(!?)(\[.*?\])\.includes\((\w+)\)$/);
-      if (includesMatch) {
-        const [, negated, arrayStr, fieldName] = includesMatch;
-        const arrayValue = JSON.parse(arrayStr);
-        const fieldValue = currentValues[fieldName];
-        const result = Array.isArray(arrayValue) && arrayValue.includes(fieldValue);
-        return negated ? !result : result;
-      }
-      
-      // Pattern: field.includes("value")
-      const fieldIncludesMatch = condition.match(/^(\w+)\.includes\((.+)\)$/);
-      if (fieldIncludesMatch) {
-        const [, fieldName, valueStr] = fieldIncludesMatch;
-        const fieldValue = currentValues[fieldName];
-        const value = JSON.parse(valueStr);
-        if (Array.isArray(fieldValue)) {
-          return fieldValue.includes(value);
-        }
-        return String(fieldValue).includes(String(value));
-      }
+
+    // 12. Day of week: new Date(field).getDay() === N
+    const dayOfWeekMatch = trimmed.match(/^new Date\(([\w.]+)\)\.getDay\(\) === (\d+)$/);
+    if (dayOfWeekMatch) {
+      const fieldValue = getValueFromPath(currentValues, dayOfWeekMatch[1]);
+      return new Date(fieldValue).getDay() === Number(dayOfWeekMatch[2]);
     }
-    
-    // Check for array some/every operations
-    if (condition.includes('.some(') || condition.includes('.every(')) {
-      // Pattern: field.some(v => ["a","b"].includes(v))
-      const someMatch = condition.match(/^(\w+)\.(some|every)\(v\s*=>\s*(\[.*?\])\.includes\(v\)\)$/);
-      if (someMatch) {
-        const [, fieldName, method, arrayStr] = someMatch;
-        const fieldValue = currentValues[fieldName];
-        const arrayValue = JSON.parse(arrayStr);
-        
+
+    // 13. Month equals: (new Date(field).getMonth() + 1) === N
+    const monthMatch = trimmed.match(/^\(new Date\(([\w.]+)\)\.getMonth\(\) \+ 1\) === (\d+)$/);
+    if (monthMatch) {
+      const fieldValue = getValueFromPath(currentValues, monthMatch[1]);
+      return (new Date(fieldValue).getMonth() + 1) === Number(monthMatch[2]);
+    }
+
+    // 14. Year equals: new Date(field).getFullYear() === N
+    const yearMatch = trimmed.match(/^new Date\(([\w.]+)\)\.getFullYear\(\) === (\d+)$/);
+    if (yearMatch) {
+      const fieldValue = getValueFromPath(currentValues, yearMatch[1]);
+      return new Date(fieldValue).getFullYear() === Number(yearMatch[2]);
+    }
+
+    // 15. Regex matches: new RegExp("pattern").test(field)
+    const regexMatch = trimmed.match(/^new RegExp\(["']([^"']+)["']\)\.test\(([\w.]+)\)$/);
+    if (regexMatch) {
+      const fieldValue = getValueFromPath(currentValues, regexMatch[2]);
+      return new RegExp(regexMatch[1]).test(String(fieldValue || ''));
+    }
+
+    // 16. Contains any: field.some(v => ["a","b"].includes(v))
+    const containsAnyMatch = trimmed.match(/^([\w.]+)\.some\(v => (\[.+\])\.includes\(v\)\)$/);
+    if (containsAnyMatch) {
+      const fieldValue = getValueFromPath(currentValues, containsAnyMatch[1]);
+      try {
+        const arrayValue = JSON.parse(containsAnyMatch[2]);
         if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
-          if (method === 'some') {
-            return fieldValue.some(v => arrayValue.includes(v));
-          } else {
-            return arrayValue.every(v => fieldValue.includes(v));
-          }
+          return fieldValue.some(v => arrayValue.includes(v));
         }
-      }
-      
-      // Pattern: !field.some(v => ["a","b"].includes(v))
-      const notSomeMatch = condition.match(/^!(\w+)\.some\(v\s*=>\s*(\[.*?\])\.includes\(v\)\)$/);
-      if (notSomeMatch) {
-        const [, fieldName, arrayStr] = notSomeMatch;
-        const fieldValue = currentValues[fieldName];
-        const arrayValue = JSON.parse(arrayStr);
-        
+      } catch { /* fallthrough */ }
+    }
+
+    // 17. Contains all: ["a","b"].every(v => field.includes(v))
+    const containsAllMatch = trimmed.match(/^(\[.+\])\.every\(v => ([\w.]+)\.includes\(v\)\)$/);
+    if (containsAllMatch) {
+      const fieldValue = getValueFromPath(currentValues, containsAllMatch[2]);
+      try {
+        const arrayValue = JSON.parse(containsAllMatch[1]);
+        if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
+          return arrayValue.every(v => fieldValue.includes(v));
+        }
+      } catch { /* fallthrough */ }
+    }
+
+    // 18. Contains none: !field.some(v => ["a","b"].includes(v))
+    const containsNoneMatch = trimmed.match(/^!([\w.]+)\.some\(v => (\[.+\])\.includes\(v\)\)$/);
+    if (containsNoneMatch) {
+      const fieldValue = getValueFromPath(currentValues, containsNoneMatch[1]);
+      try {
+        const arrayValue = JSON.parse(containsNoneMatch[2]);
         if (Array.isArray(fieldValue) && Array.isArray(arrayValue)) {
           return !fieldValue.some(v => arrayValue.includes(v));
         }
-      }
+      } catch { /* fallthrough */ }
     }
-    
-    // Check for between operations
-    if (condition.includes(' >= ') && condition.includes(' && ') && condition.includes(' <= ')) {
-      const betweenMatch = condition.match(/^(\w+)\s*>=\s*(.+?)\s*&&\s*\1\s*<=\s*(.+)$/);
-      if (betweenMatch) {
-        const [, fieldName, minStr, maxStr] = betweenMatch;
-        const fieldValue = currentValues[fieldName];
-        const min = JSON.parse(minStr);
-        const max = JSON.parse(maxStr);
-        return fieldValue >= min && fieldValue <= max;
-      }
+
+    // 19. Not contains: !field.includes("value")
+    const notContainsMatch = trimmed.match(/^!([\w.]+)\.includes\(["']([^"']+)["']\)$/);
+    if (notContainsMatch) {
+      const fieldValue = getValueFromPath(currentValues, notContainsMatch[1]);
+      return !String(fieldValue || '').includes(notContainsMatch[2]);
     }
-    
-    // Check for not between operations
-    if (condition.includes(' < ') && condition.includes(' || ') && condition.includes(' > ')) {
-      const notBetweenMatch = condition.match(/^(\w+)\s*<\s*(.+?)\s*\|\|\s*\1\s*>\s*(.+)$/);
-      if (notBetweenMatch) {
-        const [, fieldName, minStr, maxStr] = notBetweenMatch;
-        const fieldValue = currentValues[fieldName];
-        const min = JSON.parse(minStr);
-        const max = JSON.parse(maxStr);
-        return fieldValue < min || fieldValue > max;
-      }
-    }
-    
-    // Check for regex patterns
-    if (condition.includes('new RegExp(')) {
-      const regexMatch = condition.match(/^new RegExp\((.+?)\)\.test\((\w+)\)$/);
-      if (regexMatch) {
-        const [, patternStr, fieldName] = regexMatch;
-        const pattern = JSON.parse(patternStr);
-        const fieldValue = currentValues[fieldName];
-        return new RegExp(pattern).test(String(fieldValue));
-      }
-    }
-    
-    // Check for string methods (contains, startsWith, endsWith)
-    const stringMethodMatch = condition.match(/^(\w+)\.(contains|startsWith|endsWith)\((.+)\)$/);
-    if (stringMethodMatch) {
-      const [, fieldName, method, valueStr] = stringMethodMatch;
-      const fieldValue = String(currentValues[fieldName] || '');
-      const value = JSON.parse(valueStr);
-      
-      switch (method) {
-        case 'contains':
-          return fieldValue.includes(String(value));
-        case 'startsWith':
-          return fieldValue.startsWith(String(value));
-        case 'endsWith':
-          return fieldValue.endsWith(String(value));
-      }
-    }
-    
-    // Check for notContains pattern
-    if (condition.match(/^!(\w+)\.includes\(/)) {
-      const match = condition.match(/^!(\w+)\.includes\((.+)\)$/);
-      if (match) {
-        const [, fieldName, valueStr] = match;
-        const fieldValue = String(currentValues[fieldName] || '');
-        const value = JSON.parse(valueStr);
-        return !fieldValue.includes(String(value));
-      }
-    }
-    
-    // Standard comparison operators
-    const comparisonMatch = condition.match(/^(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/);
-    if (comparisonMatch) {
-      const [, fieldName, operator, valueStr] = comparisonMatch;
-      const fieldValue = currentValues[fieldName];
-      let value;
+
+    // 20. In array: ["a","b"].includes(field)
+    const inArrayMatch = trimmed.match(/^(\[.+\])\.includes\(([\w.]+)\)$/);
+    if (inArrayMatch) {
+      const fieldValue = getValueFromPath(currentValues, inArrayMatch[2]);
       try {
-        value = JSON.parse(valueStr);
-      } catch {
-        value = valueStr;
-      }
-      
-      switch (operator) {
-        case '==':
-          return fieldValue == value;
-        case '!=':
-          return fieldValue != value;
-        case '>':
-          return fieldValue > value;
-        case '>=':
-          return fieldValue >= value;
-        case '<':
-          return fieldValue < value;
-        case '<=':
-          return fieldValue <= value;
+        const arrayValue = JSON.parse(inArrayMatch[1]);
+        return Array.isArray(arrayValue) && arrayValue.includes(fieldValue);
+      } catch { /* fallthrough */ }
+    }
+
+    // 21. Not in array: !["a","b"].includes(field)
+    const notInArrayMatch = trimmed.match(/^!(\[.+\])\.includes\(([\w.]+)\)$/);
+    if (notInArrayMatch) {
+      const fieldValue = getValueFromPath(currentValues, notInArrayMatch[2]);
+      try {
+        const arrayValue = JSON.parse(notInArrayMatch[1]);
+        return Array.isArray(arrayValue) && !arrayValue.includes(fieldValue);
+      } catch { /* fallthrough */ }
+    }
+
+    // 22. Is empty: !field || field === ""
+    const isEmptyMatch = trimmed.match(/^!([\w.]+) \|\| [\w.]+ === ""$/);
+    if (isEmptyMatch) {
+      const fieldValue = getValueFromPath(currentValues, isEmptyMatch[1]);
+      return !fieldValue || fieldValue === "";
+    }
+
+    // 23. Is not empty: field && field !== ""
+    const isNotEmptyMatch = trimmed.match(/^([\w.]+) && [\w.]+ !== ""$/);
+    if (isNotEmptyMatch) {
+      const fieldValue = getValueFromPath(currentValues, isNotEmptyMatch[1]);
+      return fieldValue && fieldValue !== "";
+    }
+
+    // 24. Between: field >= "min" && field <= "max"
+    const betweenMatch = trimmed.match(/^([\w.]+) >= ["']?([^"'&]+)["']? && [\w.]+ <= ["']?([^"']+)["']?$/);
+    if (betweenMatch) {
+      const fieldValue = getValueFromPath(currentValues, betweenMatch[1]);
+      let min: any = betweenMatch[2];
+      let max: any = betweenMatch[3];
+      try { min = JSON.parse(min); } catch { /* keep as string */ }
+      try { max = JSON.parse(max); } catch { /* keep as string */ }
+      return fieldValue >= min && fieldValue <= max;
+    }
+
+    // 25. Not between: field < "min" || field > "max"
+    const notBetweenMatch = trimmed.match(/^([\w.]+) < ["']?([^"'|]+)["']? \|\| [\w.]+ > ["']?([^"']+)["']?$/);
+    if (notBetweenMatch) {
+      const fieldValue = getValueFromPath(currentValues, notBetweenMatch[1]);
+      let min: any = notBetweenMatch[2];
+      let max: any = notBetweenMatch[3];
+      try { min = JSON.parse(min); } catch { /* keep as string */ }
+      try { max = JSON.parse(max); } catch { /* keep as string */ }
+      return fieldValue < min || fieldValue > max;
+    }
+
+    // 26. String methods: field.contains("value"), field.startsWith("value"), field.endsWith("value")
+    const stringMethodMatch = trimmed.match(/^([\w.]+)\.(contains|startsWith|endsWith)\(["']([^"']*)["']\)$/);
+    if (stringMethodMatch) {
+      const fieldValue = String(getValueFromPath(currentValues, stringMethodMatch[1]) || '');
+      const value = stringMethodMatch[3];
+      switch (stringMethodMatch[2]) {
+        case 'contains': return fieldValue.includes(value);
+        case 'startsWith': return fieldValue.startsWith(value);
+        case 'endsWith': return fieldValue.endsWith(value);
       }
     }
-    
+
+    // 27. Standard comparison: field == "value", field != "value", etc.
+    const comparisonMatch = trimmed.match(/^([\w.]+) (==|!=|>=|<=|>|<) ["']?([^"']*)["']?$/);
+    if (comparisonMatch) {
+      const fieldValue = getValueFromPath(currentValues, comparisonMatch[1]);
+      let value: any = comparisonMatch[3];
+      try { value = JSON.parse(comparisonMatch[3]); } catch { /* keep as string */ }
+
+      switch (comparisonMatch[2]) {
+        case '==': return fieldValue == value;
+        case '!=': return fieldValue != value;
+        case '>': return fieldValue > value;
+        case '>=': return fieldValue >= value;
+        case '<': return fieldValue < value;
+        case '<=': return fieldValue <= value;
+      }
+    }
+
     return null; // Couldn't parse with enhanced operators
   } catch (error) {
     console.error('Error in enhanced condition evaluation:', error);
