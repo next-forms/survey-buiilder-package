@@ -264,6 +264,8 @@ const ButtonEdgeInner = ({
     zIndex: selected ? 100 : isHighlighted ? 50 : 0,
   };
 
+  const zIndex = selected || isHighlighted ? 100 : 0;
+
   return (
     <>
       <BaseEdge
@@ -284,7 +286,7 @@ const ButtonEdgeInner = ({
                 ? `translate(-50%, -170%) translate(${labelX}px,${labelY}px)`
                 : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: 5, // Below nodes (z-index 10) so labels don't overlap node content
+              zIndex: zIndex, // Below nodes (z-index 10) so labels don't overlap node content
               display: "flex",
               alignItems: "center",
               gap: "4px",
