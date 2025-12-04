@@ -18,7 +18,7 @@ import { MatrixBlock } from "./MatrixBlock";
 import { RangeBlock } from "./RangeBlock";
 import { ScriptBlock } from "./ScriptBlock";
 import { SelectableBoxQuestionBlock } from "./SelectableBoxQuestionBlock";
-import { PatientBlock } from "./PatieintBlock";
+import { PatientBlock } from "./PatientBlock";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
