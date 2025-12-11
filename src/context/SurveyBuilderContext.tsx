@@ -364,6 +364,7 @@ interface SurveyBuilderContextType {
   exportSurvey: () => { rootNode: NodeData | null; localizations: LocalizationMap; theme: ThemeDefinition };
   setGlobalCustomFields: (customFields: GlobalCustomField[]) => void;
   setCustomData: (customData: any) => void;
+  customData: any;
   // Field collection utilities (includes nested fields from output schemas)
   getAvailableFields: (currentBlockId: string) => string[];
   getAvailableFieldsBefore: (currentBlockId: string) => string[];
@@ -433,9 +434,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
 
   const initSurvey = () => {
     // Create root node structure based on mode
-    // Use the mode prop directly to avoid stale closure issues with state.mode
-    const isPageless = mode === 'pageless';
-    const rootNode = isPageless
+    const rootNode = state.mode === 'pageless'
       ? {
           // Pageless mode: blocks directly in rootNode.items (no pages/sets)
           type: "section",
@@ -866,6 +865,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     exportSurvey,
     setGlobalCustomFields,
     setCustomData,
+    customData: state.customData,
     getAvailableFields,
     getAvailableFieldsBefore,
     getAvailableFieldsUptoCurrent,
