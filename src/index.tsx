@@ -111,7 +111,7 @@ export {
   SelectBlock,
   BMICalculatorBlock,
   CalculatedFieldBlock,
-  CheckoutBlock,
+  // CheckoutBlock,
   ConditionalBlock,
   DatePickerBlock,
   FileUploadBlock,

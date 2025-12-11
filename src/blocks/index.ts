@@ -8,7 +8,7 @@ import { CheckboxBlock } from "./CheckboxBlock";
 import { SelectBlock } from "./SelectBlock";
 import { BMICalculatorBlock } from "./BMICalculatorBlock";
 import { CalculatedFieldBlock } from "./CalculatedFieldBlock";
-import { CheckoutBlock } from "./CheckoutBlock";
+// import { CheckoutBlock } from "./CheckoutBlock";
 import { ConditionalBlock } from "./ConditionalBlock";
 import { DatePickerBlock } from "./DatePickerBlock";
 import { FileUploadBlock } from "./FileUploadBlock";
@@ -18,11 +18,11 @@ import { MatrixBlock } from "./MatrixBlock";
 import { RangeBlock } from "./RangeBlock";
 import { ScriptBlock } from "./ScriptBlock";
 import { SelectableBoxQuestionBlock } from "./SelectableBoxQuestionBlock";
-import { PatientBlock } from "./PatientBlock";
+// import { PatientBlock } from "./PatientBlock";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
-  patientAuth: PatientBlock,
+  // patientAuth: PatientBlock,
   agreement: AgreementBlock,
   textfield: TextInputBlock,
   textarea: TextareaBlock,
@@ -32,7 +32,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
   select: SelectBlock,
   bmiCalculator: BMICalculatorBlock,
   calculated: CalculatedFieldBlock,
-  checkout: CheckoutBlock,
+  // checkout: CheckoutBlock,
   conditional: ConditionalBlock,
   datepicker: DatePickerBlock,
   fileupload: FileUploadBlock,
@@ -47,7 +47,7 @@ export const blockRegistry: Record<string, BlockDefinition> = {
 // Export all standard block definitions - ALL NOW UNIFIED
 export const StandardBlocks: BlockDefinition[] = [
   // Basic input blocks
-  PatientBlock,
+  // PatientBlock,
   AgreementBlock,
   SelectableBoxQuestionBlock,
   TextInputBlock,
@@ -74,12 +74,12 @@ export const StandardBlocks: BlockDefinition[] = [
   BMICalculatorBlock,
   CalculatedFieldBlock,
   ConditionalBlock,
-  CheckoutBlock,
+  // CheckoutBlock,
 ];
 
 // Export individual blocks for direct import
 export { 
-  PatientBlock,
+  // PatientBlock,
   AgreementBlock,
   TextInputBlock, 
   TextareaBlock, 
@@ -89,7 +89,7 @@ export {
   SelectBlock,
   BMICalculatorBlock,
   CalculatedFieldBlock,
-  CheckoutBlock,
+  // CheckoutBlock,
   ConditionalBlock,
   DatePickerBlock,
   FileUploadBlock,
