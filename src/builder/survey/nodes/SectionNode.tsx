@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState, Suspense, lazy, useRef } from "react";
+import { useState, Suspense, lazy, useRef, Fragment } from "react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
@@ -327,7 +327,7 @@ export const SectionNode: React.FC<SectionNodeProps> = ({
             <DropZone index={0} isActive={dragOverIndex === 0} />
 
             {items.map((block, index) => (
-              <div key={block.uuid || index}>
+              <Fragment key={block.uuid || index}>
                 <SortableItem value={block.uuid as string}>
                   <div className="relative">
                     <SortableItemHandle className="absolute -left-5 top-2 cursor-grab text-muted-foreground">
@@ -344,7 +344,7 @@ export const SectionNode: React.FC<SectionNodeProps> = ({
                 </SortableItem>
                 {/* Drop zone after each block */}
                 <DropZone index={index + 1} isActive={dragOverIndex === index + 1} />
-              </div>
+              </Fragment>
             ))}
           </SortableContent>
         </Sortable>
