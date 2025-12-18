@@ -111,7 +111,7 @@ export const AnalyticsTrackedLayout: React.FC<AnalyticsTrackedLayoutProps> = ({
       const blockLabel = currentBlock?.label || currentPageData?.label || `Page ${currentPage + 1}`;
       const pageTitle = `${surveyName} - ${blockLabel}`;
 
-      console.log("Curtrrent page title is : ", pageTitle);
+      // console.log("Curtrrent page title is : ", pageTitle);
       trackPageView(
         currentPage,
         currentPageData?.uuid || `page-${currentPage}`,
