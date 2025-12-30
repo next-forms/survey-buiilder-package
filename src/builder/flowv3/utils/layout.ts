@@ -38,7 +38,8 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
     rankdir: direction,
     nodesep: 100,  // Reduced from 1200 - much better performance
     ranksep: 150,  // Slightly reduced for tighter layouts
-    ranker: 'tight-tree'  // Faster than network-simplex for most cases
+    ranker: 'tight-tree',  // Faster than network-simplex for most cases
+    align: 'DL'  // Align child nodes to the left instead of right
   });
 
   nodes.forEach((node) => {
@@ -57,6 +58,17 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
 
   dagre.layout(dagreGraph);
 
+  // Calculate min and max x to mirror the layout horizontally
+  // This shifts child nodes to the left instead of right
+  let minX = Infinity;
+  let maxX = -Infinity;
+  nodes.forEach((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    minX = Math.min(minX, nodeWithPosition.x);
+    maxX = Math.max(maxX, nodeWithPosition.x);
+  });
+  const centerX = (minX + maxX) / 2;
+
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
 
@@ -65,12 +77,15 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
     const width = node.measured?.width ?? defaultWidth;
     const height = node.measured?.height ?? defaultHeight;
 
+    // Mirror x position around center to shift children left instead of right
+    const mirroredX = centerX - (nodeWithPosition.x - centerX);
+
     return {
       ...node,
       targetPosition: isHorizontal ? Position.Left : Position.Top,
       sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
       position: {
-        x: nodeWithPosition.x - width / 2,
+        x: mirroredX - width / 2,
         y: nodeWithPosition.y - height / 2,
       },
     };
