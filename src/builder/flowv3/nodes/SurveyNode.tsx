@@ -7,21 +7,24 @@ import { BlockData } from "../../../types";
 import { CircleDot, GripVertical, PieChart, Settings, Trash2, GitBranch } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
+import { useBlocksMap } from "../utils/BlocksMapContext";
 
 // Custom Node Component - Performance optimized
 // Using areEqual comparison to prevent unnecessary re-renders
 const SurveyNodeInner = ({ id, data, selected }: NodeProps<Node<FlowV3NodeData>>) => {
   const { state } = useSurveyBuilder();
   const { deleteElements } = useReactFlow();
+  const blocksMap = useBlocksMap();
 
-  // Get fresh block data from context instead of using potentially stale data from React Flow
-  // React Flow can cache node data internally, so we look up by UUID to always get current data
+  // Get fresh block data using O(1) Map lookup instead of O(n) Array.find
+  // OPTIMIZED: Uses context-provided blocksMap for efficient lookup
   const block = useMemo(() => {
     const blockFromData = data.block;
-    if (!state.rootNode?.items) return blockFromData;
-    const freshBlock = (state.rootNode.items as BlockData[]).find(b => b.uuid === blockFromData.uuid);
+    if (!blockFromData.uuid) return blockFromData;
+    // O(1) lookup via Map
+    const freshBlock = blocksMap.get(blockFromData.uuid);
     return freshBlock || blockFromData;
-  }, [data.block, state.rootNode?.items]);
+  }, [data.block, blocksMap]);
 
   // Memoize block definition lookup
   const blockDefinition = useMemo(

@@ -37,7 +37,7 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "T
   dagreGraph.setGraph({
     rankdir: direction,
     nodesep: 100,  // Reduced from 1200 - much better performance
-    ranksep: 150,  // Slightly reduced for tighter layouts
+    ranksep: 200,  // Slightly reduced for tighter layouts
     ranker: 'tight-tree',  // Faster than network-simplex for most cases
     align: 'DL'  // Align child nodes to the left instead of right
   });

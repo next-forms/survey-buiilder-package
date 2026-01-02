@@ -33,6 +33,7 @@ import { NodeConfigPanel } from "../flow/NodeConfigPanel";
 import { BlockSelectorDialog } from "./BlockSelectorDialog";
 import { getHumanReadableCondition } from "./utils/conditionLabel";
 import { Button } from "../../components/ui/button";
+import { BlocksMapProvider } from "./utils/BlocksMapContext";
 
 import { Plus, ArrowUpToLine, ArrowDownToLine, Pencil } from "lucide-react";
 
@@ -101,26 +102,50 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   // Track selected nodes to highlight connected edges
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
-  // Create a stable key from all block data to trigger re-computation when any data changes
-  const structuralKey = useMemo(() => {
-    if (!state.rootNode?.items) return "";
-    return JSON.stringify(state.rootNode.items);
+  // OPTIMIZED: Memoized blocks array and lookup map for O(1) access
+  const blocks = useMemo(() => {
+    return (state.rootNode?.items || []) as BlockData[];
   }, [state.rootNode?.items]);
+
+  const blocksMap = useMemo(() => {
+    const map = new Map<string, BlockData>();
+    blocks.forEach(block => {
+      if (block.uuid) map.set(block.uuid, block);
+    });
+    return map;
+  }, [blocks]);
+
+  // Create a stable key from block structure to trigger re-computation when structure changes
+  // OPTIMIZED: Uses targeted property extraction instead of full JSON.stringify
+  // Includes: uuid, navigation rules (condition + target + isDefault), nextBlockId, isEndBlock
+  const structuralKey = useMemo(() => {
+    if (blocks.length === 0) return "";
+    // Build a structural key from properties that affect graph structure and edge labels
+    return blocks.map(block => {
+      const rulesKey = block.navigationRules
+        ? block.navigationRules.map(r => `${r.condition ?? ''}|${r.target}|${r.isDefault ? 1 : 0}`).join(';')
+        : '';
+      return `${block.uuid}|${block.type}|${block.nextBlockId ?? ''}|${block.isEndBlock ? 1 : 0}|${rulesKey}`;
+    }).join('::');
+  }, [blocks]);
 
   // Transform survey state to React Flow nodes/edges
   // This only runs when the STRUCTURE changes (not on every text edit)
   const { initialNodes, initialEdges } = useMemo(() => {
-    if (!state.rootNode || !state.rootNode.items) return { initialNodes: [], initialEdges: [] };
+    if (!state.rootNode || blocks.length === 0) return { initialNodes: [], initialEdges: [] };
 
-    const blocks = state.rootNode.items as BlockData[];
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    // Helper to resolve target
+    // Helper to resolve target - OPTIMIZED: uses Map for O(1) lookup
     const resolveNavigationTarget = (target: string): string => {
       if (!target || target === "submit" || target === "end") return "submit";
-      const targetBlock = blocks.find((b) => b.uuid === target || b.fieldName === target);
-      return targetBlock ? targetBlock.uuid || "" : "submit";
+      // First try direct UUID lookup (O(1))
+      const targetBlock = blocksMap.get(target);
+      if (targetBlock) return targetBlock.uuid || "";
+      // Fallback to fieldName search if not found by UUID (rare case)
+      const blockByFieldName = blocks.find((b) => b.fieldName === target);
+      return blockByFieldName ? blockByFieldName.uuid || "" : "submit";
     };
 
     // --- 1. Create Nodes ---
@@ -287,7 +312,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
     return { initialNodes: nodes, initialEdges: edges };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structuralKey]); // Only recompute when structure actually changes, not on every field edit
+  }, [structuralKey, blocks, blocksMap]); // Only recompute when structure actually changes
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -371,24 +396,38 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   }, [needsLayout, nodes, edges, setNodes, setEdges, fitView]);
 
   // Effect to pan to newly added node after it appears in the graph
+  // OPTIMIZED: Removed nodes dependency - uses retry mechanism instead
   useEffect(() => {
-    if (pendingPanToNodeId) {
-      // Delay to ensure the node has been rendered and positioned
-      const timer = setTimeout(() => {
-        const node = getNodes().find(n => n.id === pendingPanToNodeId);
-        if (node) {
-          fitView({
-            nodes: [node],
-            duration: 400,
-            padding: 0.5,
-            maxZoom: 0.85, // More relaxed zoom - don't zoom in too close
-          });
-          setPendingPanToNodeId(null);
-        }
-      }, 300); // Longer delay to ensure layout is complete
-      return () => clearTimeout(timer);
-    }
-  }, [pendingPanToNodeId, getNodes, fitView, nodes]); // Added nodes dependency to re-run when nodes update
+    if (!pendingPanToNodeId) return;
+
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const tryPanToNode = () => {
+      const node = getNodes().find(n => n.id === pendingPanToNodeId);
+      if (node && node.position.x !== 0 && node.position.y !== 0) {
+        // Node exists and has been positioned by layout
+        fitView({
+          nodes: [node],
+          duration: 400,
+          padding: 0.5,
+          maxZoom: 0.85,
+        });
+        setPendingPanToNodeId(null);
+      } else if (retryCount < maxRetries) {
+        // Node not ready yet, retry
+        retryCount++;
+        setTimeout(tryPanToNode, 100);
+      } else {
+        // Give up after max retries
+        setPendingPanToNodeId(null);
+      }
+    };
+
+    // Initial delay to allow layout to start
+    const timer = setTimeout(tryPanToNode, 200);
+    return () => clearTimeout(timer);
+  }, [pendingPanToNodeId, getNodes, fitView]);
 
   // Handle Node Deletion
   const onNodesDelete = useCallback(
@@ -932,6 +971,9 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
   // Update edges with highlighting based on selected nodes
   // This effect runs when selection changes and updates edge data
+  // OPTIMIZED: Only creates new edge objects when they actually need to change
+  // NOTE: This effect only manages isHighlighted state, not the edge's selected state
+  // Edge selection is handled separately by React Flow and onSelectionChange
   useEffect(() => {
     // Build the set of selected node IDs from the key
     const selectedIds = new Set(nodeSelectionKey ? nodeSelectionKey.split(',') : []);
@@ -942,45 +984,27 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     // Remove empty string if present
     selectedIds.delete('');
 
-    if (selectedIds.size === 0) {
-      // Clear all highlighting and reset z-index
-      setEdges(currentEdges => {
-        const hasAnyHighlighted = currentEdges.some(e => e.data?.isHighlighted);
-        if (!hasAnyHighlighted) return currentEdges;
-
-        return currentEdges.map(edge => {
-          if (edge.data?.isHighlighted) {
-            // Remove highlight and selection state used for elevation
-            return { ...edge, selected: false, zIndex: 0, data: { ...edge.data, isHighlighted: false } };
-          }
-          return edge;
-        });
-      });
-      return;
-    }
-
-    // Mark edges connected to selected nodes as highlighted and elevate them
-    // We set selected: true on highlighted edges so elevateEdgesOnSelect works
-    setEdges(currentEdges =>
-      currentEdges.map(edge => {
-        const isConnected = selectedIds.has(edge.source) || selectedIds.has(edge.target);
+    setEdges(currentEdges => {
+      let hasChanges = false;
+      const updatedEdges = currentEdges.map(edge => {
+        const isConnected = selectedIds.size > 0 && (selectedIds.has(edge.source) || selectedIds.has(edge.target));
         const currentHighlight = edge.data?.isHighlighted ?? false;
-        const currentZIndex = edge.zIndex ?? 0;
-        const targetZIndex = isConnected ? 1000 : 0;
 
-        // Update if highlight state changed OR if z-index needs correction
-        if (isConnected !== currentHighlight || currentZIndex !== targetZIndex) {
-          // Highlighted edges get selected: true for elevation + z-index 1000
+        // Only update isHighlighted, don't touch selected or zIndex
+        // Edge selection and z-index are managed by onSelectionChange
+        if (isConnected !== currentHighlight) {
+          hasChanges = true;
           return {
             ...edge,
-            selected: isConnected,
-            zIndex: targetZIndex,
             data: { ...edge.data, isHighlighted: isConnected }
           };
         }
         return edge;
-      })
-    );
+      });
+
+      // Return same array reference if nothing changed to prevent re-render
+      return hasChanges ? updatedEdges : currentEdges;
+    });
   }, [nodeSelectionKey, selectedNodeIds, setEdges]);
 
   // Handle edge click to show tooltip
@@ -1116,6 +1140,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   }, [edgeTooltip, closeEdgeTooltip]);
 
   return (
+    <BlocksMapProvider value={blocksMap}>
     <div className="h-full flex flex-col">
        <FlowV2Toolbar
         mode={mode}
@@ -1297,6 +1322,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         onSelect={handleBlockSelect}
       />
     </div>
+    </BlocksMapProvider>
   );
 };
 

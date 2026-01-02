@@ -7,6 +7,7 @@ import {
 } from "@xyflow/react";
 import { Plus, X, Pencil } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { useDarkMode } from "../utils/useDarkMode";
 
 // Edge data interface for type safety
 interface ButtonEdgeData {
@@ -96,30 +97,6 @@ const getAvoidingPath = (
   return { path, labelX, labelY };
 };
 
-// Hook to detect dark mode
-const useIsDarkMode = () => {
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark;
-};
 
 const ButtonEdgeInner = ({
   id,
@@ -138,7 +115,7 @@ const ButtonEdgeInner = ({
   selected,
 }: EdgeProps) => {
   const edgeData = data as ButtonEdgeData | undefined;
-  const isDarkMode = useIsDarkMode();
+  const isDarkMode = useDarkMode();
 
   // Determine if this edge skips over nodes and needs special routing
   const skippedNodeCount = edgeData?.skippedNodeCount ?? 0;
@@ -228,42 +205,33 @@ const ButtonEdgeInner = ({
   const isHighlighted = edgeData?.isHighlighted ?? false;
   const edgeType = edgeData?.edgeType ?? 'default';
 
-  // Get colors based on dark mode
-  const colors = isDarkMode ? EDGE_COLORS.dark : EDGE_COLORS.light;
+  // Memoize edge style computation to avoid recalculating on every render
+  const edgeStyle = useMemo(() => {
+    const colors = isDarkMode ? EDGE_COLORS.dark : EDGE_COLORS.light;
 
-  // Determine base stroke color based on edge type
-  const getBaseStrokeColor = () => {
-    switch (edgeType) {
-      case 'start': return colors.start;
-      case 'conditional': return colors.conditional;
-      case 'sequential': return colors.sequential;
-      default: return colors.default;
-    }
-  };
+    // Determine base stroke color based on edge type
+    const baseStrokeColor = (() => {
+      switch (edgeType) {
+        case 'start': return colors.start;
+        case 'conditional': return colors.conditional;
+        case 'sequential': return colors.sequential;
+        default: return colors.default;
+      }
+    })();
 
-  // Determine stroke width based on edge type
-  const getBaseStrokeWidth = () => {
-    switch (edgeType) {
-      case 'conditional': return 2;
-      case 'sequential': return 2;
-      default: return 2;
-    }
-  };
+    // Stroke width is always 2 for base
+    const baseStrokeWidth = 2;
 
-  // Get stroke dash array for sequential edges
-  const getStrokeDashArray = () => {
-    return edgeType === 'sequential' ? '5,5' : undefined;
-  };
+    // Stroke dash array for sequential edges
+    const strokeDasharray = edgeType === 'sequential' ? '5,5' : undefined;
 
-  // Highlight style when selected or connected to selected node
-  // Note: z-index is set on the edge object in FlowV3Builder, not here in styles
-  // SVG elements don't respect CSS z-index - React Flow uses edge.zIndex for rendering order
-  const edgeStyle = {
-    ...style,
-    stroke: selected ? colors.selected : isHighlighted ? colors.highlighted : getBaseStrokeColor(),
-    strokeWidth: selected ? 5 : isHighlighted ? 3 : getBaseStrokeWidth(),
-    strokeDasharray: getStrokeDashArray(),
-  };
+    return {
+      ...style,
+      stroke: selected ? colors.selected : isHighlighted ? colors.highlighted : baseStrokeColor,
+      strokeWidth: selected ? 5 : isHighlighted ? 3 : baseStrokeWidth,
+      strokeDasharray,
+    };
+  }, [isDarkMode, edgeType, selected, isHighlighted, style]);
 
   // z-index for EdgeLabelRenderer elements (these are HTML, so CSS z-index works)
   // Both selected and highlighted edges should render above nodes
@@ -427,6 +395,7 @@ const areEdgePropsEqual = (prevProps: EdgeProps, nextProps: EdgeProps): boolean 
   if (prevData?.ruleIndex !== nextData?.ruleIndex) return false;
   if (prevData?.rule !== nextData?.rule) return false;
   if (prevData?.isHighlighted !== nextData?.isHighlighted) return false;
+  if (prevData?.edgeType !== nextData?.edgeType) return false;
 
   return true;
 };
