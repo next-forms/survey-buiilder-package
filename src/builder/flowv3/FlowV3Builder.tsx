@@ -232,13 +232,6 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             // Check if this rule follows the sequential path
             const isSequentialPath = targetId === nextBlockId;
 
-            // Calculate how many nodes this edge skips (for routing around them)
-            const sourceIndex = index;
-            const targetIndex = targetId === "submit"
-              ? blocks.length
-              : blocks.findIndex(b => b.uuid === targetId);
-            const skippedNodeCount = targetIndex > sourceIndex ? targetIndex - sourceIndex - 1 : 0;
-
             // Track edge index from this source for parallel offset
             const edgeIndexFromSource = sourceEdgeCount[blockId] || 0;
             sourceEdgeCount[blockId] = edgeIndexFromSource + 1;
@@ -261,7 +254,6 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                   targetBlockId: targetId,
                   sourceBlockId: blockId,
                   weight: isSequentialPath ? 2 : 1, // Give higher weight to sequential path
-                  skippedNodeCount, // Number of nodes this edge skips over
                   // Parallel edge info for offset calculation
                   edgeIndex: edgeIndexFromSource,
                   totalParallelEdges: totalEdgesFromSource,

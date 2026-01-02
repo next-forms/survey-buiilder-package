@@ -3,11 +3,16 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getSmoothStepPath,
+  useNodes,
   type EdgeProps,
 } from "@xyflow/react";
 import { Plus, X, Pencil } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { useDarkMode } from "../utils/useDarkMode";
+import {
+  calculateEdgePath,
+  type NodeBounds,
+} from "../utils/pathfinding";
 
 // Edge data interface for type safety
 interface ButtonEdgeData {
@@ -17,7 +22,6 @@ interface ButtonEdgeData {
   rule?: unknown;
   ruleIndex?: number;
   weight?: number;
-  skippedNodeCount?: number; // Number of nodes this edge skips over
   edgeIndex?: number; // Index of this edge among parallel edges from same source
   totalParallelEdges?: number; // Total number of edges from the same source
   isHighlighted?: boolean; // Whether this edge is connected to a selected node
@@ -45,56 +49,17 @@ const EDGE_COLORS = {
   }
 };
 
-// Custom path generator for edges that need to route around nodes
-// Creates a path that goes to the side, completely avoiding middle nodes
-const getAvoidingPath = (
-  sourceX: number,
-  sourceY: number,
-  targetX: number,
-  targetY: number,
-  skippedNodes: number = 1,
-  edgeIndex: number = 0,
-  totalEdges: number = 1
-): { path: string; labelX: number; labelY: number } => {
-  // Calculate offset based on how many nodes we're skipping
-  // More skipped nodes = route further out to avoid them all
-  // Base offset covers half node width (~200-300px) plus margin
-  const baseOffset = 280;
-  const perNodeOffset = 40; // Additional offset per skipped node
-  const parallelOffset = 50; // Offset between parallel edges
-
-  // Calculate parallel edge offset (spread edges out)
-  const parallelShift = totalEdges > 1
-    ? (edgeIndex - (totalEdges - 1) / 2) * parallelOffset
-    : 0;
-
-  const sideOffset = baseOffset + (skippedNodes * perNodeOffset) + Math.abs(parallelShift);
-
-  // Always go to the right side
-  const sideX = Math.max(sourceX, targetX) + sideOffset;
-
-  const r = 10; // corner radius
-
-  // Create a clean rectangular path around the nodes
-  // Path: down from source -> right -> down along side -> left -> up to target
-  const path = [
-    `M ${sourceX} ${sourceY}`,
-    `L ${sourceX} ${sourceY + r}`,
-    `Q ${sourceX} ${sourceY + 2*r} ${sourceX + r} ${sourceY + 2*r}`,
-    `L ${sideX - r} ${sourceY + 2*r}`,
-    `Q ${sideX} ${sourceY + 2*r} ${sideX} ${sourceY + 3*r}`,
-    `L ${sideX} ${targetY - 3*r}`,
-    `Q ${sideX} ${targetY - 2*r} ${sideX - r} ${targetY - 2*r}`,
-    `L ${targetX + r} ${targetY - 2*r}`,
-    `Q ${targetX} ${targetY - 2*r} ${targetX} ${targetY - r}`,
-    `L ${targetX} ${targetY}`,
-  ].join(' ');
-
-  // Label position - on the vertical side portion, offset vertically for parallel edges
-  const labelX = sideX + 15;
-  const labelY = (sourceY + targetY) / 2 + (edgeIndex * 30); // Offset labels vertically
-
-  return { path, labelX, labelY };
+// Convert React Flow nodes to NodeBounds format for pathfinding
+const nodesToBounds = (nodes: ReturnType<typeof useNodes>): NodeBounds[] => {
+  return nodes
+    .filter(node => node.position && node.measured?.width && node.measured?.height)
+    .map(node => ({
+      id: node.id,
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width ?? 400,
+      height: node.measured?.height ?? 150,
+    }));
 };
 
 
@@ -116,46 +81,59 @@ const ButtonEdgeInner = ({
 }: EdgeProps) => {
   const edgeData = data as ButtonEdgeData | undefined;
   const isDarkMode = useDarkMode();
+  const flowNodes = useNodes();
 
-  // Determine if this edge skips over nodes and needs special routing
-  const skippedNodeCount = edgeData?.skippedNodeCount ?? 0;
-  const isSkipEdge = skippedNodeCount > 0;
+  // Convert flow nodes to bounds for pathfinding
+  const nodeBounds = useMemo(() => nodesToBounds(flowNodes), [flowNodes]);
 
   // Parallel edge info for offsetting overlapping edges
   const edgeIndex = edgeData?.edgeIndex ?? 0;
   const totalParallelEdges = edgeData?.totalParallelEdges ?? 1;
 
   const { edgePath, labelX, labelY } = useMemo(() => {
-    if (isSkipEdge) {
-      // Route around nodes for edges that skip over them
-      const avoiding = getAvoidingPath(
-        sourceX, sourceY, targetX, targetY,
-        skippedNodeCount, edgeIndex, totalParallelEdges
-      );
-      return { edgePath: avoiding.path, labelX: avoiding.labelX, labelY: avoiding.labelY };
+    // Validate coordinates - use fallback if invalid
+    if (!isFinite(sourceX) || !isFinite(sourceY) || !isFinite(targetX) || !isFinite(targetY)) {
+      return {
+        edgePath: `M 0 0 L 0 0`,
+        labelX: 0,
+        labelY: 0,
+      };
     }
 
-    // For normal sequential edges, use smooth step path for cleaner routing
-    // Apply offset for parallel edges sharing the same path
-    const parallelOffset = totalParallelEdges > 1
-      ? (edgeIndex - (totalParallelEdges - 1) / 2) * 30
-      : 0;
+    // Calculate path with collision detection
+    const pathResult = calculateEdgePath(
+      sourceX, sourceY, targetX, targetY,
+      nodeBounds, source, target,
+      edgeIndex, totalParallelEdges
+    );
 
-    const [path, lx, ly] = getSmoothStepPath({
-      sourceX: sourceX + parallelOffset,
-      sourceY,
-      sourcePosition,
-      targetX: targetX + parallelOffset,
-      targetY,
-      targetPosition,
-      borderRadius: 16,
-    });
+    if (!pathResult.needsRouting) {
+      // No obstacles - use smooth step path for direct connections
+      const parallelOffset = totalParallelEdges > 1
+        ? (edgeIndex - (totalParallelEdges - 1) / 2) * 30
+        : 0;
 
-    // Offset label position for parallel edges
-    const adjustedLabelY = ly + (edgeIndex * 25);
+      const [path, lx, ly] = getSmoothStepPath({
+        sourceX: sourceX + parallelOffset,
+        sourceY,
+        sourcePosition,
+        targetX: targetX + parallelOffset,
+        targetY,
+        targetPosition,
+        borderRadius: 16,
+      });
 
-    return { edgePath: path, labelX: lx, labelY: adjustedLabelY };
-  }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isSkipEdge, skippedNodeCount, edgeIndex, totalParallelEdges]);
+      const adjustedLabelY = ly + (edgeIndex * 25);
+      return { edgePath: path, labelX: lx, labelY: adjustedLabelY };
+    }
+
+    // Use the routed path that avoids obstacles
+    return {
+      edgePath: pathResult.path,
+      labelX: pathResult.labelX,
+      labelY: pathResult.labelY,
+    };
+  }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, nodeBounds, source, target, edgeIndex, totalParallelEdges]);
 
   // Memoize data extraction to avoid recalculating on every render
   const { isExplicitRule, hasRuleIndex, showInsertButton, insertIndex, ruleIndex } = useMemo(() => ({
