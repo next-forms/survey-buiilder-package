@@ -44,8 +44,35 @@ export const NavigationRuleValueInput: React.FC<Props> = ({
     return null;
   }
 
-  const [inputMode, setInputMode] = React.useState<'literal' | 'variable'>('literal');
-  const [valueMode, setValueMode] = React.useState<'options' | 'custom'>('options');
+  // Determine initial input mode based on existing value
+  const [inputMode, setInputMode] = React.useState<'literal' | 'variable'>(() => {
+    const currentValue = Array.isArray(value) ? value[0] || '' : value || '';
+    // If the current value is a variable, default to variable mode
+    if (currentValue && availableVariables.includes(currentValue)) {
+      return 'variable';
+    }
+    return 'literal';
+  });
+
+  // Determine initial value mode based on existing value
+  const [valueMode, setValueMode] = React.useState<'options' | 'custom'>(() => {
+    const currentValue = Array.isArray(value) ? value[0] || '' : value || '';
+
+    // If it's a variable, default to options (doesn't matter since variable mode takes precedence)
+    if (currentValue && availableVariables.includes(currentValue)) {
+      return 'options';
+    }
+
+    // If there are field options and the value doesn't match any, use custom mode
+    if (fieldOptions.length > 0 && currentValue) {
+      const isInOptions = fieldOptions.some(opt => opt.value === currentValue);
+      if (!isInOptions) {
+        return 'custom';
+      }
+    }
+
+    return 'options';
+  });
 
   const hasFieldOptions = fieldOptions.length > 0;
 
