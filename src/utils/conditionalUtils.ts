@@ -879,3 +879,97 @@ export function calculateBMI(
 
   return { bmi: parseFloat(bmi.toFixed(1)), category };
 }
+
+/**
+ * Gets the navigation target for a specific option value by evaluating navigation rules
+ * Returns the target UUID if a rule matches, or null if no rule matches
+ */
+export function getNavigationTargetForOption(
+  block: BlockData,
+  optionValue: string
+): string | null {
+  if (!block.navigationRules || block.navigationRules.length === 0) {
+    return null;
+  }
+
+  const fieldName = block.fieldName;
+  if (!fieldName) return null;
+
+  // Create simulated currentValues with the option value
+  const simulatedValues: CurrentValues = {
+    [fieldName]: optionValue
+  };
+
+  // Evaluate each navigation rule
+  for (const rule of block.navigationRules) {
+    try {
+      const { condition, target } = rule;
+
+      // Try enhanced condition evaluation first
+      const enhancedResult = evaluateEnhancedCondition(condition, simulatedValues);
+      if (enhancedResult === true) {
+        return target;
+      }
+
+      // Fallback to Function constructor evaluation for complex conditions
+      if (enhancedResult === null) {
+        const context = { ...simulatedValues };
+        const evaluator = new Function(...Object.keys(context), `return ${condition}`);
+        const result = evaluator(...Object.values(context));
+        if (result) {
+          return target;
+        }
+      }
+    } catch {
+      // Skip rules that fail to evaluate
+      continue;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Checks if all options in a block with options (like selectablebox) are covered
+ * by navigation rules that point to non-sequential targets.
+ *
+ * @param block - The block to check
+ * @param sequentialTargetId - The next block in sequential order (or "submit")
+ * @returns true if ALL options are covered by rules pointing to different targets than sequential
+ */
+export function areAllOptionsCoveredByRules(
+  block: BlockData,
+  sequentialTargetId: string
+): boolean {
+  // Check if block has options
+  const options = block.options;
+  if (!Array.isArray(options) || options.length === 0) {
+    return false;
+  }
+
+  // Check if block has navigation rules
+  if (!block.navigationRules || block.navigationRules.length === 0) {
+    return false;
+  }
+
+  // For each option, check if there's a navigation rule that matches
+  // and points to a target different from the sequential target
+  for (const option of options) {
+    const optionValue = option.value;
+    if (optionValue === undefined || optionValue === null) {
+      // Option without value - can't be evaluated
+      return false;
+    }
+
+    const target = getNavigationTargetForOption(block, String(optionValue));
+
+    // If no rule matches this option, or the rule points to sequential target,
+    // we still need the fallback edge
+    if (!target || target === sequentialTargetId) {
+      return false;
+    }
+  }
+
+  // All options are covered by rules pointing to non-sequential targets
+  return true;
+}

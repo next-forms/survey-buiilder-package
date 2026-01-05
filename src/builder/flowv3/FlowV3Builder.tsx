@@ -32,6 +32,7 @@ import type { FlowV2Mode } from "../flowv2/types";
 import { NodeConfigPanel } from "../flow/NodeConfigPanel";
 import { BlockSelectorDialog } from "./BlockSelectorDialog";
 import { getHumanReadableCondition } from "./utils/conditionLabel";
+import { areAllOptionsCoveredByRules } from "../../utils/conditionalUtils";
 import { Button } from "../../components/ui/button";
 import { BlocksMapProvider } from "./utils/BlocksMapContext";
 
@@ -273,7 +274,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
              return targetId === nextBlockId;
         });
 
-        if (!hasDefaultRule && !hasRuleToNextBlock) {
+        // Check if all options are covered by navigation rules pointing to non-sequential targets
+        // If so, we don't need a fallback edge because every possible selection has a defined path
+        const allOptionsCovered = areAllOptionsCoveredByRules(block, nextBlockId);
+
+        if (!hasDefaultRule && !hasRuleToNextBlock && !allOptionsCovered) {
            // Track edge index from this source for parallel offset
            const edgeIndexFromSource = sourceEdgeCount[blockId] || 0;
            sourceEdgeCount[blockId] = edgeIndexFromSource + 1;
