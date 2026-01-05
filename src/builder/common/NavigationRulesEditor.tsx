@@ -436,15 +436,185 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
     setRules(newRules);
   }, []);
 
-  const renderRuleEditor = React.useCallback((rule: RuleState, index: number) => {
+  const renderRuleEditor = React.useCallback((rule: RuleState, index: number, isSortable: boolean = false) => {
+    if (isSortable) {
+      return (
+          <SortableItem key={rule.id} value={rule.id} className="border rounded-md p-3 space-y-3 my-2 bg-background">
+            <div className="flex items-center gap-2 mb-2">
+              <SortableItemHandle className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1">
+                <GripVertical className="h-4 w-4" />
+              </SortableItemHandle>
+              <span className="text-xs font-medium text-muted-foreground">Rule {index + 1}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-sm">Variable</Label>
+                <Select
+                  value={rule.field}
+                  onValueChange={(val) => handleRuleChange(index, "field", val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select field" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
+                    {fieldOptions.map((name) => (
+                      <SelectItem key={name} value={name} className="pl-2">
+                        <span className="text-sm">{name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Operator</Label>
+                <Select
+                  value={rule.operator}
+                  onValueChange={(val) => handleRuleChange(index, "operator", val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Operator" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Comparison</SelectLabel>
+                      {OPERATORS.filter(op => op.category === 'comparison').map((op) => (
+                        <SelectItem key={op.value} value={op.value} className="pl-4">
+                          <span className="text-sm">{op.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Text</SelectLabel>
+                      {OPERATORS.filter(op => op.category === 'string').map((op) => (
+                        <SelectItem key={op.value} value={op.value} className="pl-4">
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm">{op.label}</span>
+                            {op.description && (
+                              <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                {op.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Array/List</SelectLabel>
+                      {OPERATORS.filter(op => op.category === 'array').map((op) => (
+                        <SelectItem key={op.value} value={op.value} className="pl-4">
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm">{op.label}</span>
+                            {op.description && (
+                              <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                {op.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Logical</SelectLabel>
+                      {OPERATORS.filter(op => op.category === 'logical').map((op) => (
+                        <SelectItem key={op.value} value={op.value} className="pl-4">
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm">{op.label}</span>
+                            {op.description && (
+                              <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                {op.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Date</SelectLabel>
+                      {OPERATORS.filter(op => op.category === 'date').map((op) => (
+                        <SelectItem key={op.value} value={op.value} className="pl-4">
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm">{op.label}</span>
+                            {op.description && (
+                              <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                {op.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Value</Label>
+                <NavigationRuleValueInput
+                  value={rule.value as any}
+                  onChange={(val) => handleRuleChange(index, "value", val)}
+                  operator={OPERATORS.find(op => op.value === rule.operator) || OPERATORS[0]}
+                  availableVariables={fieldOptions}
+                  fieldType={data.type === 'number' ? 'number' : 'text'}
+                  fieldOptions={getBlockOptions(findBlockByFieldName(rule.field))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-sm">Target</Label>
+                <Select
+                  value={
+                    rule.target === "submit"
+                      ? "submit"
+                      : rule.isPage
+                        ? `page:${rule.target}`
+                        : `block:${rule.target}`
+                  }
+                  onValueChange={(val) => handleTargetChange(index, val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto z-50" side="bottom" align="start" sideOffset={5}>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Pages</SelectLabel>
+                      {pageOptions.map((p) => (
+                        <SelectItem key={`page-${p.uuid}`} value={`page:${p.uuid}`} className="pl-4">
+                          <span className="text-sm">{p.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Blocks</SelectLabel>
+                      {blockOptions.map((b) => (
+                        <SelectItem key={`block-${b.uuid}`} value={`block:${b.uuid}`} className="pl-4">
+                          <span className="text-sm">{b.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectItem value="submit" className="font-medium">
+                      <span className="text-sm">Submit Form</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {!hideRemoveButton && (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeRule(index)}
+                >
+                  Remove Rule
+                </Button>
+              </div>
+            )}
+          </SortableItem>
+      );
+    }
     return (
-        <SortableItem key={rule.id} value={rule.id} className="border rounded-md p-3 space-y-3 my-2 bg-background">
-          <div className="flex items-center gap-2 mb-2">
-            <SortableItemHandle className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1">
-              <GripVertical className="h-4 w-4" />
-            </SortableItemHandle>
-            <span className="text-xs font-medium text-muted-foreground">Rule {index + 1}</span>
-          </div>
+        <div key={rule.id} className="border rounded-md p-3 space-y-3 my-2 bg-background">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-sm">Variable</Label>
@@ -609,7 +779,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
               </Button>
             </div>
           )}
-        </SortableItem>
+        </div>
     );
   }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type, findBlockByFieldName, getBlockOptions, hideRemoveButton]);
 
@@ -673,13 +843,13 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
               orientation="vertical"
             >
               <SortableContent className="space-y-2">
-                {rules.map((rule, index) => renderRuleEditor(rule, index))}
+                {rules.map((rule, index) => renderRuleEditor(rule, index, true))}
               </SortableContent>
               <SortableOverlay>
                 {({ value }) => {
                   const rule = rules.find((r) => r.id === value);
                   const index = rules.findIndex((r) => r.id === value);
-                  return rule ? renderRuleEditor(rule, index) : null;
+                  return rule ? renderRuleEditor(rule, index, true) : null;
                 }}
               </SortableOverlay>
             </Sortable>
