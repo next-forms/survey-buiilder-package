@@ -1,4 +1,5 @@
 import React from "react";
+import { v4 as uuidv4 } from "uuid";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import {
@@ -19,7 +20,14 @@ import {
   standardRuleToEnhanced,
   type EnhancedNavigationRule
 } from "./navigation-rules-types";
-import { Plus } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
+import {
+  Sortable,
+  SortableContent,
+  SortableItem,
+  SortableItemHandle,
+  SortableOverlay,
+} from "../../components/ui/sortable";
 
 interface Props {
   data: BlockData;
@@ -31,12 +39,13 @@ interface Props {
 }
 
 interface RuleState extends EnhancedNavigationRule {
-  // EnhancedNavigationRule already has all needed fields
+  id: string;
 }
 
-function parseRule(rule: NavigationRule): RuleState {
+function parseRule(rule: NavigationRule & { id?: string }): RuleState {
   const parsed = standardRuleToEnhanced(rule.condition);
   return {
+    id: rule.id || uuidv4(),
     field: parsed.field || "",
     operator: parsed.operator || "==",
     value: parsed.value || "",
@@ -415,7 +424,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
   const addRule = React.useCallback(() => {
     setRules((prev) => [
       ...prev,
-      { field: "", operator: "==", value: "", target: "", isPage: true },
+      { id: uuidv4(), field: "", operator: "==", value: "", target: "", isPage: true },
     ]);
   }, []);
 
@@ -423,9 +432,19 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
     setRules((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const handleReorderRules = React.useCallback((newRules: RuleState[]) => {
+    setRules(newRules);
+  }, []);
+
   const renderRuleEditor = React.useCallback((rule: RuleState, index: number) => {
     return (
-        <div key={index} className="border rounded-md p-3 space-y-3 my-4">
+        <SortableItem key={rule.id} value={rule.id} className="border rounded-md p-3 space-y-3 my-2 bg-background">
+          <div className="flex items-center gap-2 mb-2">
+            <SortableItemHandle className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors p-1">
+              <GripVertical className="h-4 w-4" />
+            </SortableItemHandle>
+            <span className="text-xs font-medium text-muted-foreground">Rule {index + 1}</span>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-sm">Variable</Label>
@@ -590,8 +609,7 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
               </Button>
             </div>
           )}
-        </div>
-
+        </SortableItem>
     );
   }, [fieldOptions, pageOptions, blockOptions, handleRuleChange, handleTargetChange, removeRule, data.type, findBlockByFieldName, getBlockOptions, hideRemoveButton]);
 
@@ -648,9 +666,23 @@ export const NavigationRulesEditor: React.FC<Props> = ({ data, onUpdate, editRul
               <p className="text-xs">Click "Add Rule" to create custom navigation flows</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {rules.map((rule, index) => renderRuleEditor(rule, index))}
-            </div>
+            <Sortable
+              value={rules}
+              onValueChange={handleReorderRules}
+              getItemValue={(rule) => rule.id}
+              orientation="vertical"
+            >
+              <SortableContent className="space-y-2">
+                {rules.map((rule, index) => renderRuleEditor(rule, index))}
+              </SortableContent>
+              <SortableOverlay>
+                {({ value }) => {
+                  const rule = rules.find((r) => r.id === value);
+                  const index = rules.findIndex((r) => r.id === value);
+                  return rule ? renderRuleEditor(rule, index) : null;
+                }}
+              </SortableOverlay>
+            </Sortable>
           )}
           <div className="flex items-center justify-between">
             <Button type="button" onClick={addRule} size="sm" variant="outline">
