@@ -16,7 +16,8 @@ import {
   Connection,
   Panel,
   OnConnectStart,
-  type OnSelectionChangeFunc
+  type OnSelectionChangeFunc,
+  type OnReconnect,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
@@ -54,7 +55,7 @@ interface FlowV3BuilderProps {
 
 const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
   const { state, updateNode } = useSurveyBuilder();
-  const { fitView, zoomIn, zoomOut, getNodes, getEdges } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
 
   
   const [mode, setMode] = useState<FlowV2Mode>("select");
@@ -640,6 +641,57 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       });
     };
 
+    // Handle edge reconnection from custom drag handle
+    const handleReconnectEdge = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        edgeId: string;
+        source: string;
+        oldTarget: string;
+        newTarget: string;
+        rule?: any;
+        ruleIndex?: number;
+      }>;
+      const { source, newTarget, rule, ruleIndex } = customEvent.detail;
+      const currentState = stateRef.current;
+
+      if (!currentState.rootNode || !source || !newTarget) return;
+
+      const items = currentState.rootNode.items as BlockData[];
+      const sourceBlock = items.find(b => b.uuid === source);
+
+      if (!sourceBlock) return;
+
+      let updatedBlock = { ...sourceBlock };
+
+      if (rule && typeof ruleIndex === 'number') {
+        // This is an explicit navigation rule - update the rule's target
+        if (updatedBlock.navigationRules && updatedBlock.navigationRules[ruleIndex]) {
+          const newRules = [...updatedBlock.navigationRules];
+          newRules[ruleIndex] = { ...newRules[ruleIndex], target: newTarget };
+          updatedBlock.navigationRules = newRules;
+        }
+      } else {
+        // This is a sequential/nextBlockId edge
+        if (newTarget === "submit") {
+          updatedBlock.isEndBlock = true;
+          updatedBlock.nextBlockId = undefined;
+        } else {
+          updatedBlock.isEndBlock = false;
+          updatedBlock.nextBlockId = newTarget;
+        }
+      }
+
+      // Update the state
+      const updatedItems = items.map(item =>
+        item.uuid === sourceBlock.uuid ? updatedBlock : item
+      );
+
+      updateNodeRef.current(currentState.rootNode.uuid!, {
+        ...currentState.rootNode,
+        items: updatedItems,
+      });
+    };
+
     // Add all listeners once
     window.addEventListener('flow-v3-edit-edge', handleEditEdge);
     window.addEventListener('flow-v3-delete-edge', handleDeleteEdge);
@@ -647,6 +699,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     window.addEventListener('flow-v3-add-block', handleAddBlock);
     window.addEventListener('flow-v3-add-branch', handleAddBranch);
     window.addEventListener('flow-v3-update-block', handleUpdateBlock);
+    window.addEventListener('flow-v3-reconnect-edge', handleReconnectEdge);
 
     // Cleanup all listeners
     return () => {
@@ -656,6 +709,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       window.removeEventListener('flow-v3-add-block', handleAddBlock);
       window.removeEventListener('flow-v3-add-branch', handleAddBranch);
       window.removeEventListener('flow-v3-update-block', handleUpdateBlock);
+      window.removeEventListener('flow-v3-reconnect-edge', handleReconnectEdge);
     };
   }, []); // Empty deps - listeners are stable, use refs for current values
 
@@ -823,9 +877,21 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
   // Track connection start for onConnectEnd
   const connectingNodeId = useRef<string | null>(null);
+  // Track if we're currently reconnecting an edge (to prevent onConnectEnd from firing)
+  const isReconnecting = useRef<boolean>(false);
 
   const onConnectStart: OnConnectStart = useCallback((_, { nodeId }) => {
     connectingNodeId.current = nodeId;
+  }, []);
+
+  // Track reconnection start to prevent onConnectEnd from firing
+  const onReconnectStart = useCallback(() => {
+    isReconnecting.current = true;
+  }, []);
+
+  // Reset reconnection state when reconnection ends
+  const onReconnectEnd = useCallback(() => {
+    isReconnecting.current = false;
   }, []);
 
   const handleAddRule = useCallback((sourceId: string, targetId: string) => {
@@ -884,23 +950,93 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
+      // Skip if this is a reconnection (handled by onReconnect instead)
+      if (isReconnecting.current) {
+        connectingNodeId.current = null;
+        return;
+      }
+
       if (!connectingNodeId.current) return;
 
       const target = event.target as HTMLElement;
       const nodeElement = target.closest('.react-flow__node');
-      
+
       if (nodeElement) {
         const targetId = nodeElement.getAttribute('data-id');
         if (targetId && targetId !== connectingNodeId.current) {
             handleAddRule(connectingNodeId.current, targetId);
         }
       }
-      
+
       connectingNodeId.current = null;
     },
     [handleAddRule]
   );
 
+  // Handle edge reconnection - allows moving edge target to a different node
+  const onReconnect: OnReconnect = useCallback(
+    (oldEdge, newConnection) => {
+      if (!state.rootNode || !newConnection.source || !newConnection.target) return;
+
+      // Don't allow reconnecting edges from "start" node
+      if (oldEdge.source === "start") return;
+
+      // Don't allow reconnecting to the same target
+      if (oldEdge.target === newConnection.target) return;
+
+      // Don't allow connecting to self
+      if (newConnection.source === newConnection.target) return;
+
+      const items = state.rootNode.items as BlockData[];
+      const sourceBlock = items.find(b => b.uuid === oldEdge.source);
+
+      if (!sourceBlock) return;
+
+      // Resolve the new target - could be a block UUID or "submit"
+      const newTargetNode = getNodes().find(n => n.id === newConnection.target);
+      let newTargetId = "submit";
+      if (newTargetNode && newTargetNode.type === "survey-node") {
+        const targetBlock = (newTargetNode.data as any).block as BlockData;
+        newTargetId = targetBlock.uuid || "";
+      }
+
+      // Extract edge data to determine what type of edge this is
+      const edgeData = oldEdge.data as { rule?: any; ruleIndex?: number } | undefined;
+
+      let updatedBlock = { ...sourceBlock };
+
+      if (edgeData?.rule && typeof edgeData.ruleIndex === 'number') {
+        // This is an explicit navigation rule - update the rule's target
+        const ruleIndex = edgeData.ruleIndex;
+        if (updatedBlock.navigationRules && updatedBlock.navigationRules[ruleIndex]) {
+          const newRules = [...updatedBlock.navigationRules];
+          newRules[ruleIndex] = { ...newRules[ruleIndex], target: newTargetId };
+          updatedBlock.navigationRules = newRules;
+        }
+      } else {
+        // This is a sequential/nextBlockId edge
+        // Update nextBlockId or isEndBlock based on new target
+        if (newTargetId === "submit") {
+          updatedBlock.isEndBlock = true;
+          updatedBlock.nextBlockId = undefined;
+        } else {
+          updatedBlock.isEndBlock = false;
+          updatedBlock.nextBlockId = newTargetId;
+        }
+      }
+
+      // Update the state
+      const updatedItems = items.map(item =>
+        item.uuid === sourceBlock.uuid ? updatedBlock : item
+      );
+
+      updateNode(state.rootNode.uuid!, {
+        ...state.rootNode,
+        items: updatedItems,
+      });
+    },
+    [state.rootNode, updateNode, getNodes]
+  );
 
   // Handle Node Double Click
   const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -1178,6 +1314,10 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                 onConnect={onConnect}
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
+                onReconnect={onReconnect}
+                onReconnectStart={onReconnectStart}
+                onReconnectEnd={onReconnectEnd}
+                edgesReconnectable={true}
                 onDragOver={onDragOver}
                 onDrop={onDropWithIndex}
                 onNodeDoubleClick={onNodeDoubleClick}
