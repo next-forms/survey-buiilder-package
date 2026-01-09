@@ -378,8 +378,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
     const allMeasured = nodes.every(n => n.measured && n.measured.width && n.measured.height);
 
     if (needsLayout && nodes.length > 0 && allMeasured) {
-        // Use nodes/edges from state, not getNodes()/getEdges() which may have stale cached data
-        const layout = getLayoutedElements(nodes, edges, "TB");
+      let cancelled = false;
+
+      // Use nodes/edges from state, not getNodes()/getEdges() which may have stale cached data
+      getLayoutedElements(nodes, edges, "TB").then((layout) => {
+        if (cancelled) return;
 
         setNodes([...layout.nodes]);
         setEdges([...layout.edges]);
@@ -390,6 +393,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
           setTimeout(() => fitView({ padding: 0.3, duration: 500, maxZoom: 0.85 }), 50);
           hasInitialLayoutRef.current = true;
         }
+      });
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [needsLayout, nodes, edges, setNodes, setEdges, fitView]);
 

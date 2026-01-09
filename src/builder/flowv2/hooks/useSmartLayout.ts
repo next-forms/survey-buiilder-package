@@ -1,7 +1,16 @@
 import { useCallback, useRef, useEffect } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
 import type { FlowV2Node, FlowV2Edge, BlockNodeData } from "../types";
-import dagre from "@dagrejs/dagre";
+
+// Lazy-loaded dagre instance to avoid SSR issues
+let dagreInstance: typeof import("@dagrejs/dagre") | null = null;
+
+async function getDagre() {
+  if (!dagreInstance) {
+    dagreInstance = await import("@dagrejs/dagre");
+  }
+  return dagreInstance.default;
+}
 
 // ============================================================================
 // SMART LAYOUT CONFIGURATION
@@ -423,17 +432,18 @@ function calculateClusterBounds(nodes: FlowV2Node[]): {
 /**
  * Compute layout using Dagre with intelligent, adaptive parameters
  */
-export function computeSmartDagreLayout(
+export async function computeSmartDagreLayout(
   nodes: FlowV2Node[],
   edges: FlowV2Edge[],
   options?: { useMeasured?: boolean }
-): FlowV2Node[] {
+): Promise<FlowV2Node[]> {
   const { useMeasured = true } = options || {};
 
   // Analyze flow structure
   const metrics = analyzeFlowStructure(nodes, edges);
   const { rankSep, nodeSep } = calculateAdaptiveSpacing(metrics);
 
+  const dagre = await getDagre();
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: SMART_LAYOUT_CONFIG.rankdir,
@@ -722,13 +732,13 @@ export function hasOverlapsSmart(nodes: FlowV2Node[]): boolean {
 /**
  * Complete smart layout with measured dimensions and overlap resolution
  */
-export function computeFullSmartLayout(
+export async function computeFullSmartLayout(
   nodes: FlowV2Node[],
   edges: FlowV2Edge[],
   options?: { useMeasured?: boolean }
-): FlowV2Node[] {
+): Promise<FlowV2Node[]> {
   // First pass: Smart Dagre layout
-  let layoutedNodes = computeSmartDagreLayout(nodes, edges, options);
+  let layoutedNodes = await computeSmartDagreLayout(nodes, edges, options);
 
   // Second pass: Resolve any remaining overlaps
   if (hasOverlapsSmart(layoutedNodes)) {
@@ -751,7 +761,7 @@ export function useSmartLayout() {
    * Apply smart layout to current nodes
    */
   const applySmartLayout = useCallback(
-    (options: SmartLayoutOptions = {}) => {
+    async (options: SmartLayoutOptions = {}) => {
       const {
         animate = true,
         fitAfterLayout = true,
@@ -770,7 +780,7 @@ export function useSmartLayout() {
       );
 
       // Compute layout
-      const layoutedNodes = computeFullSmartLayout(nodes, edges, {
+      const layoutedNodes = await computeFullSmartLayout(nodes, edges, {
         useMeasured: allMeasured,
       });
 

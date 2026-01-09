@@ -87,13 +87,27 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
   // Node bounds context for edge routing
   const nodeBoundsContext = useNodeBoundsContext();
 
-  // Convert survey data to flow nodes/edges
-  const initialFlow = useMemo(() => {
-    return pagelessToFlow(state.rootNode);
-  }, [state.rootNode]);
+  // Track if initial flow has been loaded
+  const [isFlowLoaded, setIsFlowLoaded] = useState(false);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
+  // Initialize with empty arrays, will be populated by useEffect
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Load initial flow data asynchronously
+  useEffect(() => {
+    let cancelled = false;
+    pagelessToFlow(state.rootNode).then((flow) => {
+      if (!cancelled) {
+        setNodes(flow.nodes as Node[]);
+        setEdges(flow.edges as Edge[]);
+        setIsFlowLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []); // Only run on mount
 
   // Update node bounds for edge routing whenever nodes change position or size
   useEffect(() => {
@@ -175,11 +189,21 @@ const FlowV2BuilderInner: React.FC<FlowV2BuilderProps> = ({ onClose }) => {
 
   // Sync nodes when survey data changes - preserve viewport
   useEffect(() => {
-    const flow = pagelessToFlow(state.rootNode);
-    setNodes(flow.nodes as Node[]);
-    setEdges(flow.edges as Edge[]);
+    // Skip on initial render since initial load effect handles that
+    if (!isFlowLoaded) return;
+
+    let cancelled = false;
+    pagelessToFlow(state.rootNode).then((flow) => {
+      if (!cancelled) {
+        setNodes(flow.nodes as Node[]);
+        setEdges(flow.edges as Edge[]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
     // Don't reset isInitialRenderRef - we want to preserve viewport
-  }, [state.rootNode, setNodes, setEdges]);
+  }, [state.rootNode, setNodes, setEdges, isFlowLoaded]);
 
   // Generate drop zone positions based on provided nodes (not from state to avoid loops)
   // Uses horizontal (LR) layout - drop zones appear between nodes horizontally

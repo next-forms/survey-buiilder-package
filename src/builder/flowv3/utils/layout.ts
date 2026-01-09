@@ -1,8 +1,17 @@
-import dagre from "@dagrejs/dagre";
 import { Node, Edge, Position } from "@xyflow/react";
 
 const defaultWidth = 400;
 const defaultHeight = 150;
+
+// Lazy-loaded dagre instance to avoid SSR issues
+let dagreInstance: typeof import("@dagrejs/dagre") | null = null;
+
+async function getDagre() {
+  if (!dagreInstance) {
+    dagreInstance = await import("@dagrejs/dagre");
+  }
+  return dagreInstance.default;
+}
 
 // Cache for layout results to avoid redundant calculations
 let layoutCache: {
@@ -19,13 +28,14 @@ const generateLayoutCacheKey = (nodes: Node[], edges: Edge[]): string => {
   return `${nodeKey}::${edgeKey}`;
 };
 
-export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "TB") => {
+export const getLayoutedElements = async (nodes: Node[], edges: Edge[], direction = "TB") => {
   // Check cache first
   const cacheKey = generateLayoutCacheKey(nodes, edges);
   if (layoutCache && layoutCache.key === cacheKey) {
     return layoutCache.result;
   }
 
+  const dagre = await getDagre();
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 

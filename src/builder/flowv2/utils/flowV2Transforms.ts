@@ -1,35 +1,28 @@
 import type { NodeData, BlockData } from "../../../types";
 import type { FlowV2Node, FlowV2Edge, BlockNodeData } from "../types";
-import dagre from "@dagrejs/dagre";
+import { LAYOUT_CONFIG } from "./layoutConfig";
 
-// Layout configuration for horizontal flow
-export const LAYOUT_CONFIG = {
-  // Dagre graph settings
-  rankdir: "LR" as const, // Left-to-Right horizontal layout
-  nodesep: 80, // Vertical separation between nodes in same rank
-  ranksep: 200, // Horizontal separation between ranks (columns) - increased for better readability
-  marginx: 100,
-  marginy: 100,
-  // Node size defaults
-  startNodeWidth: 150,
-  startNodeHeight: 50,
-  submitNodeWidth: 150,
-  submitNodeHeight: 50,
-  blockNodeMinWidth: 320,
-  blockNodeMaxWidth: 450,
-  blockNodeBaseHeight: 80,
-  // Spacing
-  edgeSeparation: 20,
-} as const;
+// Re-export for backwards compatibility
+export { LAYOUT_CONFIG } from "./layoutConfig";
+
+// Lazy-loaded dagre instance to avoid SSR issues
+let dagreInstance: typeof import("@dagrejs/dagre") | null = null;
+
+async function getDagre() {
+  if (!dagreInstance) {
+    dagreInstance = await import("@dagrejs/dagre");
+  }
+  return dagreInstance.default;
+}
 
 /**
  * Transform pageless survey data (rootNode.items = blocks) to React Flow nodes and edges
  * using dagre for layout.
  */
-export function pagelessToFlow(rootNode: NodeData | null): {
+export async function pagelessToFlow(rootNode: NodeData | null): Promise<{
   nodes: FlowV2Node[];
   edges: FlowV2Edge[];
-} {
+}> {
   if (!rootNode) {
     return { nodes: [], edges: [] };
   }
@@ -252,7 +245,7 @@ export function pagelessToFlow(rootNode: NodeData | null): {
   });
 
   // --- 3. Compute Layout using Dagre ---
-  const layoutedNodes = computeDagreLayout(nodes, edges);
+  const layoutedNodes = await computeDagreLayout(nodes, edges);
 
   return { nodes: layoutedNodes, edges };
 }
@@ -283,13 +276,14 @@ function resolveNavigationTarget(target: string, blocks: BlockData[]): string | 
  * Supports using actual measured dimensions if available.
  * Uses horizontal (LR) layout for better flow visualization.
  */
-export function recalculatePositions(
+export async function recalculatePositions(
   nodes: FlowV2Node[],
   edges: FlowV2Edge[],
   options?: { useMeasured?: boolean }
-): FlowV2Node[] {
+): Promise<FlowV2Node[]> {
   const { useMeasured = true } = options || {};
 
+  const dagre = await getDagre();
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: LAYOUT_CONFIG.rankdir, // Horizontal layout
@@ -441,10 +435,11 @@ export function estimateNodeSize(node: FlowV2Node): { width: number; height: num
  * Compute initial layout using Dagre with estimated sizes.
  * Uses horizontal (LR) layout for better flow visualization.
  */
-function computeDagreLayout(
+async function computeDagreLayout(
   nodes: FlowV2Node[],
   edges: FlowV2Edge[]
-): FlowV2Node[] {
+): Promise<FlowV2Node[]> {
+  const dagre = await getDagre();
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: LAYOUT_CONFIG.rankdir, // Horizontal (LR) layout
@@ -635,12 +630,12 @@ export function resolveOverlaps(
  * Full layout recalculation with overlap resolution
  * Use this when nodes have been measured and you want a clean layout
  */
-export function layoutWithMeasuredDimensions(
+export async function layoutWithMeasuredDimensions(
   nodes: FlowV2Node[],
   edges: FlowV2Edge[]
-): FlowV2Node[] {
+): Promise<FlowV2Node[]> {
   // First, recalculate using Dagre with measured dimensions
-  let layoutedNodes = recalculatePositions(nodes, edges, { useMeasured: true });
+  let layoutedNodes = await recalculatePositions(nodes, edges, { useMeasured: true });
 
   // Then resolve any remaining overlaps
   if (hasOverlaps(layoutedNodes)) {

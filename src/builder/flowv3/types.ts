@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { BlockData } from "../../../types";
+import type { BlockData } from "../../types";
 
 export interface FlowV3NodeData extends Record<string, unknown> {
   block: BlockData;

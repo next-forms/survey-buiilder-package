@@ -38,5 +38,5 @@ export type FlowV2Edge = Edge<ConditionalEdgeData>;
 // Flow modes
 export type FlowV2Mode = "select" | "connect" | "pan";
 
-// Re-export LAYOUT_CONFIG from transforms for convenience
-export { LAYOUT_CONFIG } from "./utils/flowV2Transforms";
+// Re-export LAYOUT_CONFIG for convenience (from separate file to avoid dagre dependency chain)
+export { LAYOUT_CONFIG } from "./utils/layoutConfig";
