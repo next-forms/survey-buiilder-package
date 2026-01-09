@@ -83,7 +83,22 @@ export interface BlockDefinition {
   validateValue?: (value: any, data: BlockData) => string | null;
   // Output schema - defines what data structure this block returns
   outputSchema?: OutputSchema;
+  inputSchema?: OutputSchema;
+  blockFunctions?: BlockFunctionDef[];
 }
+
+export type BlockParameterDef = {
+  type: string;           // keep open-ended: "number" | "string" | "boolean" | anything
+  optional?: boolean;
+  description?: string;
+};
+
+export type BlockFunctionDef = {
+  name: string;
+  parameters?: Record<string, BlockParameterDef>; // any number of params, any names
+  callfunction: (...args: any[]) => any;           // any signature, any arity, any return
+};
+
 
 export interface NodeDefinition {
   type: string;

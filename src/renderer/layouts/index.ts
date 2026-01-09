@@ -1,5 +1,6 @@
 import type { LayoutDefinition, LayoutProps } from "../../types";
 import { RenderPageSurveyLayout } from "./RenderPageSurveyLayout";
+import { ChatLayout } from "./ChatLayout";
 import { createLayout } from "./createLayout";
 import React from "react";
 
@@ -14,6 +15,11 @@ export const layoutRegistry: Record<string, LayoutDefinition> = {
     name: "renderPage",
     description: "Alias for default layout - page-by-page rendering",
     component: RenderPageSurveyLayout,
+  },
+  chat: {
+    name: "chat",
+    description: "Conversational chat-style layout with AI-powered questions",
+    component: ChatLayout,
   },
 };
 
@@ -72,6 +78,17 @@ export function getLayoutComponent(
 
 // Export the default layout for direct import
 export { RenderPageSurveyLayout };
+
+// Export ChatLayout and its types
+export { ChatLayout } from './ChatLayout';
+export type {
+  ChatMessage as ChatMessageType,
+  AIHandler,
+  AIHandlerContext,
+  AIHandlerResponse,
+  ChatLayoutProps,
+  ChatCustomData,
+} from './ChatLayout';
 
 // Export helper components and utilities
 export { CurrentBlock, NavigationButtons, ProgressIndicator } from './helpers';
