@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Calendar as CalendarIcon, Upload } from 'lucide-react';
+import { Send, Calendar as CalendarIcon, Upload, AlertCircle } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import type { BlockData, ThemeDefinition } from '../../../types';
+import type { BlockData, ThemeDefinition, BlockDefinition } from '../../../types';
+import { getBlockDefinition } from '../../../blocks';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
 import { Slider } from '../../../components/ui/slider';
 import { Calendar } from '../../../components/ui/calendar';
 import { ChatOptionButtons } from './ChatOptionButtons';
+import { SchemaBasedInput } from './SchemaBasedInput';
 
 interface ChatInputProps {
   block: BlockData;
@@ -44,6 +46,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [localValue, setLocalValue] = useState(value ?? '');
   const [dateOpen, setDateOpen] = useState(false);
+
+  // Get block definition to check for chatRenderer
+  const blockDefinition = getBlockDefinition(block.type);
 
   // Sync local value with prop value
   useEffect(() => {
@@ -84,6 +89,82 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const blockType = block.type;
+
+  // PRIORITY 1: Check if block has a custom chatRenderer
+  if (blockDefinition?.chatRenderer) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full"
+      >
+        {blockDefinition.chatRenderer({
+          block,
+          value,
+          onChange,
+          onSubmit,
+          theme,
+          disabled,
+          error,
+          placeholder,
+        })}
+      </motion.div>
+    );
+  }
+
+  // PRIORITY 2: Check if block type is known (existing hardcoded UI)
+  const isKnownBlockType =
+    OPTION_BLOCK_TYPES.includes(blockType) ||
+    TEXT_BLOCK_TYPES.includes(blockType) ||
+    TEXTAREA_BLOCK_TYPES.includes(blockType) ||
+    ['datepicker', 'date', 'range', 'slider', 'fileupload', 'file'].includes(blockType);
+
+  // PRIORITY 3: For unknown blocks, check for inputSchema or outputSchema
+  if (!isKnownBlockType) {
+    const inputSchema = blockDefinition?.inputSchema;
+    const outputSchema = blockDefinition?.outputSchema;
+
+    if (inputSchema || outputSchema) {
+      // Use schema-based input for unknown blocks with schemas
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full"
+        >
+          <SchemaBasedInput
+            block={block}
+            schema={inputSchema || outputSchema}
+            value={value}
+            onChange={onChange}
+            onSubmit={onSubmit}
+            theme={theme}
+            disabled={disabled}
+            error={error}
+            placeholder={placeholder}
+          />
+        </motion.div>
+      );
+    }
+
+    // No chatRenderer, not a known block type, and no schema - show error
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full p-4 border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 rounded-lg"
+      >
+        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+          <AlertCircle className="w-5 h-5" />
+          <span className="font-medium">Unknown block type: {blockType}</span>
+        </div>
+        <p className="mt-2 text-sm text-red-500 dark:text-red-400">
+          This block type does not have a chatRenderer defined and no inputSchema or outputSchema is available.
+          Please add a chatRenderer to the block definition or define an inputSchema/outputSchema.
+        </p>
+      </motion.div>
+    );
+  }
 
   // Render option buttons for radio/checkbox/select
   if (OPTION_BLOCK_TYPES.includes(blockType)) {

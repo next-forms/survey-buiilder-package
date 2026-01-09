@@ -9,6 +9,7 @@ export type {
   AIHandlerResponse,
   ChatLayoutProps,
   ChatCustomData,
+  ChatRendererProps,
 } from './types';
 
 // Components (for custom layouts)
@@ -18,6 +19,7 @@ export { ChatInput } from './ChatInput';
 export { ChatMultiFieldInput } from './ChatMultiFieldInput';
 export { ChatOptionButtons } from './ChatOptionButtons';
 export { TypingIndicator } from './TypingIndicator';
+export { SchemaBasedInput } from './SchemaBasedInput';
 
 // Hooks (for custom implementations)
 export { useChatMessages } from './hooks/useChatMessages';

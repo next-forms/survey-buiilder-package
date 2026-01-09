@@ -88,6 +88,7 @@ export type {
   AIHandlerResponse,
   ChatLayoutProps,
   ChatCustomData,
+  ChatRendererProps,
 } from './ChatLayout';
 
 // Export helper components and utilities

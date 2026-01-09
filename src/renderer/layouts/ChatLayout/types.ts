@@ -1,4 +1,7 @@
-import type { BlockData, LayoutProps, BlockDefinition } from "../../../types";
+import type { BlockData, LayoutProps, BlockDefinition, ChatRendererProps } from "../../../types";
+
+// Re-export ChatRendererProps for convenience
+export type { ChatRendererProps };
 
 /**
  * Represents a single message in the chat conversation

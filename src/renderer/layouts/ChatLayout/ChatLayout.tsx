@@ -43,10 +43,11 @@ const getReadOnlyContent = (block: BlockData): string => {
   return block.label || block.text || '[Content Block]';
 };
 
-// Extended block definition with inputSchema support
+// Extended block definition with inputSchema and chatRenderer support
 type ExtendedBlockDefinition = BlockDefinition & {
   inputSchema?: BlockSchema;
   blockFunctions?: BlockFunction[];
+  chatRenderer?: BlockDefinition['chatRenderer'];
 };
 
 // Multi-field state for blocks with inputSchema
@@ -226,10 +227,13 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       return;
     }
 
-    // Check if this block has inputSchema (multi-field block)
+    // Check if this block has a chatRenderer - if so, skip inputSchema handling
+    // and let ChatInput render the custom chatRenderer
     const { inputSchema, definition } = getBlockInputSchema(block);
+    const hasChatRenderer = definition?.chatRenderer != null;
 
-    if (inputSchema?.properties && Object.keys(inputSchema.properties).length > 0) {
+    // Only use multi-field mode if block has inputSchema AND no chatRenderer
+    if (!hasChatRenderer && inputSchema?.properties && Object.keys(inputSchema.properties).length > 0) {
       // This is a multi-field block - enter multi-field mode
       const fields = Object.keys(inputSchema.properties);
       setMultiFieldState({

@@ -78,6 +78,15 @@ export interface BlockDefinition {
   renderPreview?: () => JSX.Element;
   // Renderer component - new unified approach
   renderBlock?: (props: BlockRendererProps) => JSX.Element | null;
+  /**
+   * Chat renderer - custom UI for chat layout
+   * When defined, ChatLayout will use this instead of hardcoded input types.
+   * The renderer is responsible for the full interaction:
+   * - Rendering appropriate UI (inputs, buttons, etc.)
+   * - Handling value changes via onChange
+   * - Calling onSubmit when the user completes input to advance to next question
+   */
+  chatRenderer?: (props: ChatRendererProps) => JSX.Element | null;
   // Validation
   validate?: (data: BlockData) => string | null;
   validateValue?: (value: any, data: BlockData) => string | null;
@@ -399,6 +408,32 @@ export interface BlockRendererProps {
   // New props for conditional rendering
   isVisible?: boolean;
   customValidation?: (value: any) => string | null;
+}
+
+/**
+ * Props passed to chatRenderer for rendering blocks in chat layout
+ * The chatRenderer is responsible for handling the entire interaction:
+ * - Rendering the UI
+ * - Collecting user input
+ * - Calling onSubmit when done to advance to next question
+ */
+export interface ChatRendererProps {
+  /** The block data containing configuration */
+  block: BlockData;
+  /** Current value (may be undefined for first render) */
+  value?: any;
+  /** Callback to update value without submitting */
+  onChange: (value: any) => void;
+  /** Callback to submit the value and advance to next question */
+  onSubmit: (value: any) => void;
+  /** Theme definition for styling */
+  theme?: ThemeDefinition;
+  /** Whether input is disabled */
+  disabled?: boolean;
+  /** Validation error message if any */
+  error?: string;
+  /** Placeholder text for inputs */
+  placeholder?: string;
 }
 
 export interface PageRendererProps {
