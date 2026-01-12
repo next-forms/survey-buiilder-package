@@ -27,7 +27,8 @@ export function useAutoScroll(enabled: boolean = true): UseAutoScrollReturn {
     const container = containerRef.current;
     const threshold = 50; // pixels from bottom to consider "at bottom"
     const atBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      threshold;
     setIsAtBottom(atBottom);
   }, []);
 
