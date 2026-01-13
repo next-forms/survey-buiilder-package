@@ -1,29 +1,28 @@
-// Enhanced RenderPageSurveyLayout with intake form design styling
-import React, { useEffect, useRef } from "react";
+// RenderPageSurveyLayout (MedVi look-alike)
+import React, { useEffect, useRef, useState, Fragment } from "react";
 import { useSurveyForm } from "../../context/SurveyFormContext";
 import { BlockRenderer } from "../renderers/BlockRenderer";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "../../components/ui/button";
-import { ChevronLeft, ArrowRight, History } from "lucide-react";
-import { cn } from '../../lib/utils';
+import { ChevronLeft } from "lucide-react";
+import { cn } from "../../lib/utils";
 import { getSurveyPages, detectSurveyMode } from "../../utils/surveyUtils";
-import { AnalyticsTrackedLayout } from './AnalyticsTrackedLayout';
+import { AnalyticsTrackedLayout } from "./AnalyticsTrackedLayout";
 
 interface RenderPageSurveyLayoutProps {
   progressBar?:
-  | boolean
-  | {
-    type?: "bar" | "dots" | "numbers" | "percentage";
-    showPercentage?: boolean;
-    showStepInfo?: boolean;
-    showStepTitles?: boolean;
-    showStepNumbers?: boolean;
-    position?: "top" | "bottom";
-    color?: string;
-    backgroundColor?: string;
-    height?: number | string;
-    animation?: boolean;
-  };
+    | boolean
+    | {
+        type?: "bar" | "dots" | "numbers" | "percentage";
+        showPercentage?: boolean;
+        showStepInfo?: boolean;
+        showStepTitles?: boolean;
+        showStepNumbers?: boolean;
+        position?: "top" | "bottom";
+        color?: string;
+        backgroundColor?: string;
+        height?: number | string;
+        animation?: boolean;
+      };
   navigationButtons?: {
     showPrevious?: boolean;
     showNext?: boolean;
@@ -44,6 +43,31 @@ interface RenderPageSurveyLayoutProps {
   logo?: any;
 }
 
+const Star = ({ className }: { className: string }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <g clipPath="url(#clip0_39_803)">
+      <path
+        d="M11.4847 10.1132L12.9447 14.6079L8.00267 11.0159L11.4847 10.1132ZM16 5.20658H9.89L8.00333 -0.607422L6.11 5.20791L0 5.19991L4.948 8.79791L3.05467 14.6072L8.00267 11.0159L11.058 8.79791L16 5.20658Z"
+        fill="#00B67A"
+      />
+    </g>
+    <defs>
+      <clipPath id="clip0_39_803">
+        <rect width="16" height="16" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+const MotionFragment = motion.create(Fragment);
+
 export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   progressBar = true,
   navigationButtons = {
@@ -63,7 +87,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   submitText = "Complete Survey",
   enableDebug = false,
   showNavigationHistory = false,
-  logo = null
+  logo = null,
 }) => {
   const {
     currentPage,
@@ -74,21 +98,28 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     errors,
     goToNextBlock,
     goToPreviousBlock,
-    isFirstPage,
     isLastPage,
     submit,
     isValid,
     theme,
     surveyData,
-    // Enhanced navigation properties
     navigationHistory,
     canGoBack,
     getActualProgress,
-    getTotalVisibleSteps,
-    getCurrentStepPosition,
     getVisibleBlocks,
     analytics,
   } = useSurveyForm();
+
+  // Theme-driven colors (fallbacks keep MedVi defaults)
+  const themeColors = (theme as any)?.colors || {};
+  const bgColor = themeColors.background || "#FAFAFA";
+  const textColor = themeColors.text || "#1C1C1C";
+  const ratingBg = themeColors.card || "#FFFFFF"; // optional theme color token
+  const progressTrackBg = themeColors.card || "#FFFFFF";
+  const btnBg = themeColors.text || "#1C1C1C";
+  const btnHoverBg = themeColors.text || "#1C1C1C";
+  const gradientStart = themeColors.accent || "#DC9EA8";
+  const gradientEnd = themeColors.secondary || "#948EC4";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -99,346 +130,261 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const currentPageBlocks = currentPage < pages.length ? pages[currentPage] : [];
   const visibleCurrentPageBlocks = getVisibleBlocks(currentPageBlocks);
 
+  const progress = getActualProgress();
+
+  // MedVi-style "ready" animation gating
+  const [isReady, setIsReady] = useState(false);
+  const contentKey = `page-${currentPage}-block-${currentBlockIndex}`;
+
+  useEffect(() => {
+    setIsReady(false);
+    const raf = requestAnimationFrame(() => setIsReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, [contentKey]);
+
   // Auto-focus first input when step changes
   useEffect(() => {
     if (autoFocus && firstInputRef.current) {
-      setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 200);
+      setTimeout(() => firstInputRef.current?.focus(), 200);
     }
   }, [currentPage, currentBlockIndex, autoFocus]);
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const currentBlock = currentPageBlocks[currentBlockIndex];
     if (currentBlock?.isEndBlock) {
       submit();
-    } else if (isLastPage && currentBlockIndex === currentPageBlocks.length - 1) {
+      return;
+    }
+    if (isLastPage && currentBlockIndex === currentPageBlocks.length - 1) {
       submit();
-    } else {
-      goToNextBlock();
+      return;
     }
+    goToNextBlock();
   };
 
-  // Handle previous navigation using history
   const handlePrevious = () => {
-    if (canGoBack) {
-      goToPreviousBlock();
-    }
+    if (canGoBack) goToPreviousBlock();
   };
 
-  // Calculate progress percentage based on actual visible steps completed
-  const progressPercentage = getActualProgress();
-  const currentStepPosition = getCurrentStepPosition();
-  const totalVisibleSteps = getTotalVisibleSteps();
+  const currentBlock = currentPageBlocks[currentBlockIndex];
+  const blockDisclaimer = currentBlock?.disclaimer;
 
-  // Get button text from navigationButtons or fallback
   const continueText = navigationButtons?.nextText || "Continue";
   const completeText = navigationButtons?.submitText || submitText;
+
+  const isFinalStep =
+    isLastPage && currentBlockIndex === currentPageBlocks.length - 1;
+
   const showNextButton =
     navigationButtons?.showNext !== false &&
     currentPageBlocks[currentBlockIndex]?.showContinueButton !== false;
 
   // Debug info (only shown when enableDebug is true)
-  const debugInfo = enableDebug ? {
-    currentPage,
-    currentBlockIndex,
-    totalPages,
-    totalVisibleSteps,
-    currentStepPosition,
-    progressPercentage: Math.round(progressPercentage),
-    navigationHistoryLength: navigationHistory.length,
-    canGoBack,
-    visibleBlocksInCurrentPage: visibleCurrentPageBlocks.length,
-  } : null;
+  const debugInfo = enableDebug
+    ? {
+        currentPage,
+        currentBlockIndex,
+        totalPages,
+        progressPercentage: Math.round(progress),
+        navigationHistoryLength: navigationHistory.length,
+        canGoBack,
+        visibleBlocksInCurrentPage: visibleCurrentPageBlocks.length,
+      }
+    : null;
 
-  // Get current block for potential disclaimer
-  const currentBlock = currentPageBlocks[currentBlockIndex];
-  const blockDisclaimer = currentBlock?.disclaimer;
+  const renderLogo = () => {
+    if (!logo) return null;
+
+    // Support both logo() and logo(className)
+    if (typeof logo === "function") {
+      try {
+        return logo("h-8 sm:h-9 w-auto");
+      } catch {
+        return logo();
+      }
+    }
+
+    // If they pass a ReactNode
+    return logo;
+  };
 
   const layoutContent = (
     <div
-      className="survey-fullpage-layout min-h-max flex flex-col w-full p-4 sm:p-8"
       ref={containerRef}
+      className="medvi-layout relative flex flex-col w-full max-w-4xl mx-auto py-2 sm:py-8 px-6 sm:px-8"
+      style={{ minHeight: "70svh", color: textColor }}
     >
-      {/* Debug Panel (only visible when enableDebug is true) */}
+      {/* Debug Panel */}
       {enableDebug && (
-        <div className="w-full bg-yellow-50 border-b border-yellow-200 p-2 text-xs">
-          <div className="max-w-2xl mx-auto">
-            <details className="cursor-pointer">
-              <summary className="font-medium text-yellow-800">Debug Info</summary>
-              <pre className="mt-2 text-yellow-700 whitespace-pre-wrap">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </details>
-          </div>
+        <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs mb-4">
+          <details className="cursor-pointer">
+            <summary className="font-medium text-yellow-800">
+              Debug Info
+            </summary>
+            <pre className="mt-2 text-yellow-700 whitespace-pre-wrap">
+              {JSON.stringify(debugInfo, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
 
-      {/* Logo Section - Positioned after header */}
-      {logo && (
-        <div className="w-full flex py-2 border-gray-100 mb-4 mx-auto">
-            {logo()}
-          </div>
-      )}
+      {/* Header */}
+      <header className="flex flex-col gap-3 sm:gap-2" style={{ color: textColor }}>
+        {/* Logo & Rating */}
+        <div className="flex items-center justify-center gap-2.5 sm:gap-4">
+          {/* Logo */}
+          <div className="flex items-center">{renderLogo()}</div>
 
-
-      {/* Fixed Header Section */}
-      <div className="w-full backdrop-blur-sm mx-auto py-4">          
-          {/* Progress Bar Section */}
-          {progressBar && typeof progressBar === "object" && progressBar.position !== "bottom" && (
-            <div className="mb-3">
-              <div className="h-2 w-full rounded-full overflow-hidden bg-gray-200">
-                <motion.div
-                  className={cn(
-                    "h-full transition-all duration-500 ease-out rounded-full",
-                    theme.progress.bar || "bg-[#a55a36]",
-                  )}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-
-              {/* Progress bar type variations */}
-              {progressBar.type === "dots" && (
-                <div className="flex justify-center space-x-1 mt-2">
-                  {Array.from({ length: totalVisibleSteps }, (_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-2 h-2 rounded-full transition-colors",
-                        i <= currentStepPosition
-                          ? "bg-[#E67E4D]"
-                          : "bg-gray-200"
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {progressBar.type === "numbers" && (
-                <div className="text-center text-xs text-gray-500 mt-2">
-                  {currentStepPosition + 1} / {totalVisibleSteps}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Default progress bar for boolean true */}
-          {progressBar === true && (
-            <div className="mb-3">
-              <div className="h-2 w-full rounded-full overflow-hidden bg-gray-200">
-                <motion.div
-                  className="h-full bg-[#E67E4D] transition-all duration-500 ease-out rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Row - Only Back button */}
-          <div className="flex items-center justify-start h-8">
-            
-            {/* Back Button */}
-            <div className="flex items-center">
-              {navigationButtons?.showPrevious !== false && canGoBack && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePrevious}
-                    className={
-                      theme?.button?.navigation || cn(
-                        "opacity-70 hover:opacity-100 transition-all duration-200",
-                        "w-8 h-8 p-0 rounded-full",
-                        "border border-gray-200",
-                        "hover:bg-gray-50 hover:scale-105",
-                        "focus:ring-2 focus:ring-[#E67E4D]/20"
-                      )
-                    }
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span className="sr-only">
-                      {navigationButtons?.previousText || "Previous"}
-                    </span>
-                  </Button>
-
-                  {/* Navigation history indicator */}
-                  {showNavigationHistory && (
-                    <div className="text-xs text-gray-500 flex items-center opacity-70">
-                      <History className="w-3 h-3 mr-1" />
-                      <span className="tabular-nums">{navigationHistory.length - 1}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
         </div>
-      </div>
 
-
-      {/* Main Content Area */}
-      <div className="relative flex-1 flex flex-col w-full mx-auto">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${currentPage}-${currentBlockIndex}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="flex-1 flex flex-col"
+        {/* Back Button & Progress Bar */}
+        <div className="flex items-center w-full gap-2.5 sm:gap-4 h-[40px] sm:h-[56px]">
+          {/* Back */}
+          <button
+            type="button"
+            onClick={canGoBack ? handlePrevious : undefined}
+            disabled={!canGoBack}
+            className={cn(
+              "flex items-center transition-opacity mt-1 duration-200 cursor-pointer focus:outline-none",
+              canGoBack
+                ? "hover:opacity-80"
+                : "hidden opacity-0 pointer-events-none"
+            )}
           >
-            {/* Question Content - Centered Layout */}
-            <div className="relative flex-[0.8] flex flex-col justify-start items-center py-2">
-              <div className="w-full mx-auto space-y-6">
-                {currentPageBlocks[currentBlockIndex] && (
-                  <div className="text-start">                    
-                    <BlockRenderer
-                      block={currentPageBlocks[currentBlockIndex]}
-                      value={(() => {
-                        const fieldName = currentPageBlocks[currentBlockIndex].fieldName;
-                        const fieldValue = fieldName ? values[fieldName as string] : undefined;
-                        if (enableDebug) {
-                          console.log('[RenderPageSurveyLayout] BlockRenderer value:', {
-                            fieldName,
-                            fieldValue,
-                            allValues: values,
-                            currentBlockIndex,
-                            currentPage
-                          });
-                        }
-                        return fieldValue;
-                      })()
-                      }
-                      onChange={(value) => {
-                        const currentBlock =
-                          currentPageBlocks[currentBlockIndex];
-                        const field = currentBlock.fieldName;
-                        if (field) setValue(field, value);
-                        if (currentBlock.autoContinueOnSelect) {
-                          goToNextBlock(field ? { [field]: value } : undefined);
-                        }
-                      }}
-                      error={
-                        currentPageBlocks[currentBlockIndex].fieldName
-                          ? errors[
-                          currentPageBlocks[currentBlockIndex]
-                            .fieldName as string
-                          ]
-                          : undefined
-                      }
-                      ref={firstInputRef}
-                      theme={theme}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
+            <ChevronLeft className="size-6 mb-1" />
+          </button>
 
-            {/* Navigation Buttons - Fixed at bottom */}
-            <div className="w-full backdrop-blur-sm border-gray-100">
-              <div className="w-full mx-auto py-4">
-                
-                {/* Disclaimer Text */}
-                {blockDisclaimer && (
-                  <div className="mb-6">
-                    <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto text-center">
-                      {blockDisclaimer}
-                    </p>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit}>
-                  <div
-                    className={cn(
-                      "flex items-center",
-                      navigationButtons?.align === "left"
-                        ? "justify-start"
-                        : navigationButtons?.align === "right"
-                          ? "justify-end"
-                          : "justify-center",
-                    )}
-                  >
-                    {/* Previous Button (if split layout) */}
-                    {navigationButtons?.position === "split" &&
-                      canGoBack &&
-                      navigationButtons?.showPrevious !== false && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handlePrevious}
-                          className={cn(
-                            "mr-auto",
-                            theme?.button?.secondary
-                          )}
-                        >
-                          <ChevronLeft className="mr-2 w-4 h-4" />
-                          {navigationButtons?.previousText || "Previous"}
-                        </Button>
-                      )}
-
-                    {/* Main Action Button - Intake Form Style */}
-                    {showNextButton && (
-                      <Button
-                        type="submit"
-                        disabled={!isValid}
-                        variant="ghost"
-                        size="lg"
-                        className={
-                          theme?.button?.navigation || cn(
-                            "bg-black hover:bg-gray-800 text-white",
-                            "px-16 py-4 text-base font-medium",
-                            "rounded-full min-w-32 sm:min-w-[200px]",
-                            "transition-all duration-200",
-                            "hover:scale-[1.02] active:scale-[0.98]",
-                            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                          )
-                        }
-                      >
-                        <span className="flex items-center">
-                          {isLastPage &&
-                            currentBlockIndex === currentPageBlocks.length - 1
-                            ? completeText
-                            : continueText}
-                          {!(
-                            isLastPage &&
-                            currentBlockIndex === currentPageBlocks.length - 1
-                          ) && <ArrowRight className="ml-2 w-4 h-4" />}
-                        </span>
-                      </Button>
-                    )}
-                  </div>
-                </form>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom Progress Bar (if positioned at bottom) */}
-      {progressBar &&
-        typeof progressBar === "object" &&
-        progressBar.position === "bottom" && (
-          <div className="w-full mx-auto border-t bg-white/80 backdrop-blur-sm py-2">
-              <div className="h-2 w-full rounded-full overflow-hidden bg-gray-200">
+          {/* Progress */}
+          {progressBar !== false && (
+            <div className="w-full mx-auto">
+              <div
+                className="h-2 rounded-full overflow-hidden"
+                style={{
+                  backgroundColor: progressTrackBg,
+                  boxShadow: "0 4px 15.7px 0 rgba(28, 28, 28, 0.05)",
+                }}
+              >
                 <motion.div
-                  className={cn(
-                    "h-full transition-all duration-500 ease-out rounded-full",
-                    progressBar.color || "bg-[#E67E4D]",
-                  )}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progressPercentage}%` }}
+                  className="h-full rounded-full"
+                  style={{
+                    background: `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`,
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
                 />
               </div>
-          </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative flex-1 py-4 sm:py-7 w-full mx-auto">
+        {isReady && (
+          <AnimatePresence mode="wait">
+            <MotionFragment
+              key={contentKey}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <div className="space-y-4">
+                {currentPageBlocks[currentBlockIndex] && (
+                  <BlockRenderer
+                    block={currentPageBlocks[currentBlockIndex]}
+                    value={(() => {
+                      const fieldName =
+                        currentPageBlocks[currentBlockIndex].fieldName;
+                      return fieldName
+                        ? values[fieldName as string]
+                        : undefined;
+                    })()}
+                    onChange={(value) => {
+                      const blk = currentPageBlocks[currentBlockIndex];
+                      const field = blk.fieldName;
+                      if (field) setValue(field, value);
+
+                      if (blk.autoContinueOnSelect) {
+                        goToNextBlock(field ? { [field]: value } : undefined);
+                      }
+                    }}
+                    error={
+                      currentPageBlocks[currentBlockIndex].fieldName
+                        ? errors[
+                            currentPageBlocks[currentBlockIndex]
+                              .fieldName as string
+                          ]
+                        : undefined
+                    }
+                    ref={firstInputRef}
+                    theme={theme}
+                  />
+                )}
+              </div>
+            </MotionFragment>
+          </AnimatePresence>
         )}
+      </main>
+
+      {/* Footer (MedVi CTA) */}
+      <footer className="py-16 px-4">
+        {blockDisclaimer && (
+          <p className="text-xs text-[#1C1C1C]/60 leading-relaxed max-w-md mx-auto text-center mb-6">
+            {blockDisclaimer}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="w-full">
+          {showNextButton && (
+            <button
+              type="submit"
+              disabled={!isValid}
+              className={cn(
+                "w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 flex items-center gap-2.5 focus:outline-none",
+                !isValid
+                  ? "opacity-60 cursor-not-allowed"
+                  : "active:scale-[0.98] cursor-pointer"
+              )}
+              style={{
+                backgroundColor: btnBg,
+                flexGrow: 1,
+                boxShadow:
+                  "inset 0 5px 8.8px rgba(255, 255, 255, 0.25), inset 0 -8px 9.9px rgba(0, 0, 0, 0.25)",
+              }}
+              onMouseEnter={(e) => {
+                if (isValid) (e.currentTarget.style.backgroundColor = `${btnHoverBg}CC`);
+              }}
+              onMouseLeave={(e) => {
+                if (isValid) e.currentTarget.style.backgroundColor = btnBg;
+              }}
+              >
+              {isFinalStep ? completeText : continueText}
+
+              {/* MedVi arrow icon */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden
+              >
+                <path
+                  fill="currentColor"
+                  d="M16.175 13H5q-.425 0-.712-.288T4 12t.288-.712T5 11h11.175l-4.9-4.9q-.3-.3-.288-.7t.313-.7q.3-.275.7-.288t.7.288l6.6 6.6q.15.15.213.325t.062.375t-.062.375t-.213.325l-6.6 6.6q-.275.275-.687.275T11.3 19.3q-.3-.3-.3-.712t.3-.713z"
+                />
+              </svg>
+            </button>
+          )}
+        </form>
+      </footer>
+
+      {/* (Optional) you can add MedVi bottom spacing / background elements here */}
     </div>
   );
 
-  // Wrap with analytics tracking if analytics is configured
   if (analytics) {
     return (
       <AnalyticsTrackedLayout analytics={analytics}>
