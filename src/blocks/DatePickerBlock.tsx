@@ -397,6 +397,16 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
   );
   const [isOpen, setIsOpen] = useState(false);
 
+  // Calculate the initial date for the calendar (18 years ago from today)
+  const initialCalendarDate = React.useMemo(() => {
+    // If there's already a selected date, use that
+    if (date) return date;
+    // Otherwise, default to 18 years ago
+    const eighteenYearsAgo = new Date();
+    eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+    return eighteenYearsAgo;
+  }, [date]);
+
   // Parse disabled days from comma-separated string
   const disabledDays = React.useMemo(() => {
     if (!block.disabledDays) return undefined;
@@ -448,12 +458,6 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Label */}
-      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-        <CalendarIcon className="w-4 h-4" />
-        <span className="text-sm">{block.label || 'Select a date'}</span>
-      </div>
-
       <div className="flex gap-2 items-center w-full">
         {/* Date Picker Popover */}
         <div className="w-full flex-1 flex flex-col relative">
@@ -463,7 +467,7 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
                 type="button"
                 variant="outline"
                 className={cn(
-                  'w-full flex-1 h-14 justify-start text-left font-normal rounded-xl',
+                  'w-full flex-1 h-14 justify-start text-left font-normal rounded-xl items-center',
                   !date && 'text-muted-foreground',
                   error && 'border-destructive'
                 )}
@@ -471,7 +475,7 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? (
-                  <span className="text-lg font-semibold">
+                  <span className="text-base sm.text-lg">
                     {format(date, getDateFormat(block.dateFormat as string))}
                   </span>
                 ) : (
@@ -493,6 +497,7 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
                 }}
                 disabled={dateConstraints}
                 disableWeekdays={disabledDays}
+                initialDate={initialCalendarDate}
                 initialFocus
               />
             </PopoverContent>
