@@ -156,13 +156,6 @@
   background-color: var(--survey-primary);
 }
 
-.survey-isolated-content button[class*="primary"],
-.survey-isolated-content .btn-primary {
-  background-color: var(--survey-primary);
-  border-color: var(--survey-primary);
-  /* Don't force color on buttons - let theme classes handle it */
-}
-
 .survey-isolated-content .bg-secondary,
 .survey-isolated-content button[class*="secondary"],
 .survey-isolated-content .btn-secondary {
