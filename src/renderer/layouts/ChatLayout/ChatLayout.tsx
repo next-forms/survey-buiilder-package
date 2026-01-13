@@ -16,6 +16,7 @@ import { ChatContainer } from './ChatContainer';
 import { ChatMessageComponent } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ChatMultiFieldInput } from './ChatMultiFieldInput';
+import { UnreadIndicator } from './UnreadIndicator';
 import { useChatMessages } from './hooks/useChatMessages';
 import { useAutoScroll } from './hooks/useAutoScroll';
 import {
@@ -117,7 +118,15 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
 
   // Chat state
   const { messages, addMessage, updateMessage } = useChatMessages();
-  const { containerRef, scrollToBottom } = useAutoScroll(autoScrollToBottom);
+  const {
+    containerRef,
+    inputRef,
+    scrollToBottom,
+    inputHeight,
+    unreadCount,
+    clearUnread,
+    onUserMessage,
+  } = useAutoScroll(autoScrollToBottom, messages);
 
   // Track which blocks we've already asked about
   const askedBlocksRef = useRef<Set<string>>(new Set());
@@ -235,7 +244,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         setIsAILoading(false);
         // Small delay before accepting input to ensure message is rendered
         setTimeout(() => setQuestionReady(true), 200);
-        scrollToBottom(true);
+        // Don't auto-scroll on AI response - let user choose to scroll down
       }
     },
     [
@@ -247,7 +256,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       typingDelay,
       addMessage,
       updateMessage,
-      scrollToBottom,
       multiFieldState.blockDefinition,
     ]
   );
@@ -275,7 +283,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
             blockId,
             blockType: block.type,
           });
-          scrollToBottom(true);
+          // Don't auto-scroll on AI messages
         }
 
         // Auto-advance to next block after a short delay
@@ -364,7 +372,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         setIsAILoading(false);
         // Small delay before accepting input to ensure message is rendered
         setTimeout(() => setQuestionReady(true), 200);
-        scrollToBottom(true);
+        // Don't auto-scroll on AI response - let user choose to scroll down
       }
     },
     [
@@ -376,7 +384,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       typingDelay,
       addMessage,
       updateMessage,
-      scrollToBottom,
       getBlockInputSchema,
       generateFieldQuestion,
       goToNextBlock,
@@ -522,13 +529,15 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         );
       }
 
-      scrollToBottom(true);
+      // Trigger auto-scroll since this is a user message
+      onUserMessage();
     },
     [
       currentBlock,
       multiFieldState,
       addMessage,
       setValue,
+      onUserMessage,
       goToNextBlock,
       scrollToBottom,
       generateFieldQuestion,
@@ -602,6 +611,9 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         },
       });
 
+      // Trigger auto-scroll since this is a user message
+      onUserMessage();
+
       // Let goToNextBlock handle navigation and submission
       // It evaluates navigation rules and submits when appropriate
       goToNextBlock({ [currentBlock.fieldName]: value });
@@ -610,8 +622,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       setTimeout(() => {
         isProcessingRef.current = false;
       }, 300);
-
-      scrollToBottom(true);
     },
     [
       currentBlock,
@@ -619,7 +629,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       setValue,
       addMessage,
       goToNextBlock,
-      scrollToBottom,
+      onUserMessage,
       multiFieldState.isActive,
       questionReady,
     ]
@@ -640,9 +650,9 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         theme?.background
       )}
     >
-      {/* Progress bar at top */}
+      {/* Progress bar at top - sticky position for mobile compatibility */}
       {progressBarConfig && progressBarConfig.position !== 'bottom' && (
-        <div className="sticky top-0 z-49 px-4 pt-4 pb-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+        <div className="sticky top-0 px-4 pt-4 pb-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
           <ProgressIndicator
             type={progressBarConfig.type}
             showPercentage={progressBarConfig.showPercentage}
@@ -654,7 +664,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         </div>
       )}
 
-      {/* Chat messages area */}
+      {/* Chat messages area - scrollable, takes remaining space */}
       <ChatContainer
         ref={containerRef}
         theme={theme}
@@ -670,13 +680,45 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
             />
           ))}
         </AnimatePresence>
+
+        {/* Spacer to ensure content doesn't get hidden behind input */}
+        {!isComplete && currentBlock && !isAILoading && questionReady && (
+          <div style={{ height: inputHeight || 80 }} />
+        )}
       </ChatContainer>
 
-      {/* Input area - only show after AI question has been generated */}
+      {/* Progress bar at bottom */}
+      {progressBarConfig && progressBarConfig.position === 'bottom' && (
+        <div className="shrink-0 px-4 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
+          <ProgressIndicator
+            type={progressBarConfig.type}
+            showPercentage={progressBarConfig.showPercentage}
+            showStepInfo={progressBarConfig.showStepInfo}
+            height={progressBarConfig.height}
+            color={progressBarConfig.color}
+            backgroundColor={progressBarConfig.backgroundColor}
+          />
+        </div>
+      )}
+
+      {/* Unread messages indicator - positioned above input */}
+      {/* Only delay showing if input is about to appear (isAILoading false but questionReady false) */}
+      {(isComplete || questionReady || isAILoading) && (
+        <UnreadIndicator
+          count={unreadCount}
+          onClick={clearUnread}
+          theme={theme}
+          inputHeight={inputHeight || 80}
+        />
+      )}
+
+      {/* Input area - sticky at bottom for mobile keyboard compatibility */}
       {!isComplete && currentBlock && !isAILoading && questionReady && (
-        <div className="sticky bottom-0 rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 p-4 max-w-full">
+        <div
+          ref={inputRef}
+          className="sticky bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 p-4 w-full"
+        >
           {multiFieldState.isActive ? (
-            // Multi-field input mode
             <ChatMultiFieldInput
               fieldName={
                 multiFieldState.fields[multiFieldState.currentFieldIndex]
@@ -692,7 +734,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
               placeholder={inputPlaceholder}
             />
           ) : (
-            // Standard single-field input
             <ChatInput
               block={currentBlock}
               value={values[currentBlock.fieldName || currentBlock.name || '']}
