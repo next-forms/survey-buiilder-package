@@ -23,6 +23,17 @@ import { generateFieldName } from './utils/GenFieldName';
 import { themes } from '../themes';
 import { format } from 'date-fns';
 
+/**
+ * Calculate a date based on age (years ago from today)
+ * @param age - The age in years
+ * @returns Date representing the birthdate for that age
+ */
+const getDateFromAge = (age: number): Date => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - age);
+  return date;
+};
+
 // Simple date formatter function since we're not using date-fns
 const formatDate = (date: Date, format: string = 'PPP'): string => {
   const options: Intl.DateTimeFormatOptions = {
@@ -195,8 +206,8 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-3 gap-4">
+      {/* Date-based constraints */}
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-sm" htmlFor="minDate">
             Minimum Date
@@ -205,8 +216,16 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
             id="minDate"
             type="date"
             value={data.minDate || ''}
-            onChange={(e) => handleChange('minDate', e.target.value)}
+            onChange={(e) => {
+              onUpdate?.({
+                ...data,
+                minDate: e.target.value,
+                maxAge: '', // Clear age when setting date
+              });
+            }}
+            disabled={!!data.maxAge}
           />
+          <p className="text-xs text-muted-foreground">Or use Max Age below</p>
         </div>
 
         <div className="space-y-2">
@@ -217,24 +236,84 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
             id="maxDate"
             type="date"
             value={data.maxDate || ''}
-            onChange={(e) => handleChange('maxDate', e.target.value)}
+            onChange={(e) => {
+              onUpdate?.({
+                ...data,
+                maxDate: e.target.value,
+                minAge: '', // Clear age when setting date
+              });
+            }}
+            disabled={!!data.minAge}
           />
+          <p className="text-xs text-muted-foreground">Or use Min Age below</p>
+        </div>
+      </div>
+
+      {/* Age-based constraints */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-sm" htmlFor="minAge">
+            Minimum Age
+          </Label>
+          <Input
+            id="minAge"
+            type="number"
+            min="0"
+            placeholder="e.g., 18"
+            value={data.minAge || 18}
+            onChange={(e) => {
+              onUpdate?.({
+                ...data,
+                minAge: e.target.value,
+                maxDate: '', // Clear date when setting age
+              });
+            }}
+            disabled={!!data.maxDate}
+          />
+          <p className="text-xs text-muted-foreground">
+            Must be at least X years old
+          </p>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="disabledDays">
-            Disabled Days
+          <Label className="text-sm" htmlFor="maxAge">
+            Maximum Age
           </Label>
           <Input
-            id="disabledDays"
-            placeholder="0,6 (Sun,Sat)"
-            value={data.disabledDays || ''}
-            onChange={(e) => handleChange('disabledDays', e.target.value)}
+            id="maxAge"
+            type="number"
+            min="0"
+            placeholder="e.g., 100"
+            value={data.maxAge || ''}
+            onChange={(e) => {
+              onUpdate?.({
+                ...data,
+                maxAge: e.target.value,
+                minDate: '', // Clear date when setting age
+              });
+            }}
+            disabled={!!data.minDate}
           />
           <p className="text-xs text-muted-foreground">
-            Comma-separated days (0=Sun, 6=Sat)
+            Must be at most X years old
           </p>
         </div>
+      </div>
+
+      {/* Disabled days */}
+      <div className="space-y-2">
+        <Label className="text-sm" htmlFor="disabledDays">
+          Disabled Days
+        </Label>
+        <Input
+          id="disabledDays"
+          placeholder="0,6 (Sun,Sat)"
+          value={data.disabledDays || ''}
+          onChange={(e) => handleChange('disabledDays', e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Comma-separated days (0=Sun, 6=Sat)
+        </p>
       </div>
     </div>
   );
@@ -388,24 +467,64 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
   disabled = false,
   error,
 }) => {
-  const [date, setDate] = useState<Date | null>(
-    value
-      ? new Date(value)
-      : block.defaultValue
-      ? new Date(block.defaultValue as string)
-      : null
-  );
+  const storageKey = `survey_field_${block.uuid || block.fieldName}`;
+
+  const [date, setDate] = useState<Date | null>(() => {
+    if (value) return new Date(value);
+
+    // Check session storage if no value is passed
+    try {
+      if (typeof window !== 'undefined') {
+        const savedValue = sessionStorage.getItem(storageKey);
+        if (savedValue) return new Date(savedValue);
+      }
+    } catch (e) {
+      console.error('Error loading selection from sessionStorage', e);
+    }
+
+    return block.defaultValue ? new Date(block.defaultValue as string) : null;
+  });
+
   const [isOpen, setIsOpen] = useState(false);
 
-  // Calculate the initial date for the calendar (18 years ago from today)
+  // Sync with value prop
+  useEffect(() => {
+    if (value) {
+      setDate(new Date(value));
+    }
+  }, [value]);
+
+  // Persist to session storage
+  useEffect(() => {
+    if (date && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(storageKey, date.toISOString());
+      } catch (e) {
+        console.error('Error saving selection to sessionStorage', e);
+      }
+    }
+  }, [date, storageKey]);
+  // Calculate the initial date for the calendar based on minAge or maxDate
+  // minAge determines the LATEST valid date (must be at least X years old)
   const initialCalendarDate = React.useMemo(() => {
     // If there's already a selected date, use that
     if (date) return date;
-    // Otherwise, default to 18 years ago
-    const eighteenYearsAgo = new Date();
-    eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
-    return eighteenYearsAgo;
-  }, [date]);
+    if (block.minAge) {
+      const minAge = parseInt(block.minAge as string, 10);
+      if (!isNaN(minAge)) {
+        return getDateFromAge(minAge);
+      }
+    }
+    // If maxDate is set, start at that date
+    if (block.maxDate) {
+      const maxDate = new Date(block.maxDate);
+      if (!isNaN(maxDate.getTime())) {
+        return maxDate;
+      }
+    }
+    // Default to today
+    return new Date();
+  }, [date, block.minAge, block.maxDate]);
 
   // Parse disabled days from comma-separated string
   const disabledDays = React.useMemo(() => {
@@ -419,28 +538,33 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
     }
   }, [block.disabledDays]);
 
-  // Create date range constraints
   const dateConstraints = React.useMemo(() => {
     const constraints: { from?: Date; to?: Date } = {};
 
-    if (block.minDate) {
-      try {
-        constraints.from = new Date(block.minDate);
-      } catch (e) {
-        // Invalid date, ignore
+    if (block.minAge) {
+      const minAge = parseInt(block.minAge as string, 10);
+      if (!isNaN(minAge)) {
+        constraints.to = getDateFromAge(minAge);
       }
-    }
-
-    if (block.maxDate) {
+    } else if (block.maxDate) {
       try {
         constraints.to = new Date(block.maxDate);
-      } catch (e) {
-        // Invalid date, ignore
+      } catch (e) {}
+    }
+
+    if (block.maxAge) {
+      const maxAge = parseInt(block.maxAge as string, 10);
+      if (!isNaN(maxAge)) {
+        constraints.from = getDateFromAge(maxAge);
       }
+    } else if (block.minDate) {
+      try {
+        constraints.from = new Date(block.minDate);
+      } catch (e) {}
     }
 
     return constraints;
-  }, [block.minDate, block.maxDate]);
+  }, [block.minAge, block.maxAge, block.minDate, block.maxDate]);
 
   const handleDateSelect = (selectedDate: Date) => {
     setDate(selectedDate);
@@ -458,9 +582,9 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex gap-2 items-center w-full">
+      <div className="flex gap-4 items-center justify-between">
         {/* Date Picker Popover */}
-        <div className="w-full flex-1 flex flex-col relative">
+        <div className="w-full sm:w-1/2 flex flex-col relative">
           <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -498,6 +622,8 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
                 disabled={dateConstraints}
                 disableWeekdays={disabledDays}
                 initialDate={initialCalendarDate}
+                showMonthSelect
+                showYearSelect
                 initialFocus
               />
             </PopoverContent>
@@ -509,7 +635,7 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
           type="button"
           onClick={handleSubmit}
           disabled={disabled || !date}
-          className="h-14 px-6 rounded-xl"
+          className="h-14 px-6 rounded-xl sm:w-1/3"
           style={
             theme?.colors?.primary
               ? { backgroundColor: theme.colors.primary }
@@ -539,14 +665,42 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
 }) => {
   const themeConfig = theme ?? themes.default;
 
+  const storageKey = `survey_field_${block.uuid || block.fieldName}`;
+
   // State for the selected date
-  const [date, setDate] = useState<Date | null>(
-    value
-      ? new Date(value)
-      : block.defaultValue
-      ? new Date(block.defaultValue as string)
-      : null
-  );
+  const [date, setDate] = useState<Date | null>(() => {
+    if (value) return new Date(value);
+
+    // Check session storage if no value is passed
+    try {
+      if (typeof window !== 'undefined') {
+        const savedValue = sessionStorage.getItem(storageKey);
+        if (savedValue) return new Date(savedValue);
+      }
+    } catch (e) {
+      console.error('Error loading selection from sessionStorage', e);
+    }
+
+    return block.defaultValue ? new Date(block.defaultValue as string) : null;
+  });
+
+  // Sync with value prop
+  useEffect(() => {
+    if (value) {
+      setDate(new Date(value));
+    }
+  }, [value]);
+
+  // Persist to session storage
+  useEffect(() => {
+    if (date && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(storageKey, date.toISOString());
+      } catch (e) {
+        console.error('Error saving selection to sessionStorage', e);
+      }
+    }
+  }, [date, storageKey]);
 
   // State for the calendar open/closed status
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -593,19 +747,17 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
     }
   }, [block.disabledDays]);
 
-  // Create date range constraints
+  // Create date range constraints (age-based takes priority over date-based)
   const dateConstraints = React.useMemo(() => {
     const constraints: { from?: Date; to?: Date } = {};
 
-    if (block.minDate) {
-      try {
-        constraints.from = new Date(block.minDate);
-      } catch (e) {
-        // Invalid date, ignore
+    // minAge sets the maximum selectable date (must be at least X years old)
+    if (block.minAge) {
+      const minAge = parseInt(block.minAge as string, 10);
+      if (!isNaN(minAge)) {
+        constraints.to = getDateFromAge(minAge);
       }
-    }
-
-    if (block.maxDate) {
+    } else if (block.maxDate) {
       try {
         constraints.to = new Date(block.maxDate);
       } catch (e) {
@@ -613,8 +765,22 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
       }
     }
 
+    // maxAge sets the minimum selectable date (must be at most X years old)
+    if (block.maxAge) {
+      const maxAge = parseInt(block.maxAge as string, 10);
+      if (!isNaN(maxAge)) {
+        constraints.from = getDateFromAge(maxAge);
+      }
+    } else if (block.minDate) {
+      try {
+        constraints.from = new Date(block.minDate);
+      } catch (e) {
+        // Invalid date, ignore
+      }
+    }
+
     return constraints;
-  }, [block.minDate, block.maxDate]);
+  }, [block.minAge, block.maxAge, block.minDate, block.maxDate]);
 
   // Format date according to specified format
   const formattedDate = date
@@ -715,6 +881,8 @@ export const DatePickerBlock: BlockDefinition = {
     showCalendarOnFocus: true,
     minDate: '',
     maxDate: '',
+    minAge: '18',
+    maxAge: '',
     disabledDays: '',
   },
   generateDefaultData: () => ({
@@ -727,6 +895,8 @@ export const DatePickerBlock: BlockDefinition = {
     showCalendarOnFocus: true,
     minDate: '',
     maxDate: '',
+    minAge: '18',
+    maxAge: '',
     disabledDays: '',
   }),
   renderItem: (props) => <DatePickerBlockItem {...props} />,

@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
+import {
+  Send,
+  Calendar as CalendarIcon,
+  Upload,
+  AlertCircle,
+} from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type {
   BlockData,
@@ -229,7 +234,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             {selectedDate ? selectedDate.toLocaleDateString() : 'Pick a date'}
           </Button>
           {dateOpen && (
-            <div className="absolute z-50 mt-1 bg-white dark:bg-gray-800 border rounded-md shadow-lg">
+            <div className="absolute z-50 bottom-full mb-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg">
               <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -297,12 +302,45 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Render file upload
   if (blockType === 'fileupload' || blockType === 'file') {
-    const fileConfig = {
-      maxFiles: parseInt(String(block.maxFiles || '1'), 10),
-      maxFileSize: parseFloat(String(block.maxFileSize || '5')),
-      acceptedFileTypes: (block.acceptedFileTypes as string[]) || [],
-      showPreview: block.showPreview as boolean,
-      helpText: block.helpText as string,
+    const acceptedTypes = (block.acceptedFileTypes as string[]) || [];
+    const maxFiles = parseInt(String(block.maxFiles || '1'), 10);
+    const maxFileSize =
+      parseFloat(String(block.maxFileSize || '5')) * 1024 * 1024; // MB to bytes
+    const currentFiles = Array.isArray(value) ? value : value ? [value] : [];
+
+    const handleFileSelect = (files: FileList | null) => {
+      if (!files || disabled) return;
+
+      const validFiles: File[] = [];
+      const errors: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = `.${file.name.split('.').pop()?.toLowerCase()}`;
+
+        // Validate file type
+        if (acceptedTypes.length > 0 && !acceptedTypes.includes(fileExt)) {
+          errors.push(`${file.name}: Invalid file type`);
+          continue;
+        }
+
+        // Validate file size
+        if (file.size > maxFileSize) {
+          errors.push(
+            `${file.name}: File too large (max ${block.maxFileSize || '5'}MB)`,
+          );
+          continue;
+        }
+
+        validFiles.push(file);
+      }
+
+      if (validFiles.length > 0) {
+        const newFiles = [...currentFiles, ...validFiles].slice(0, maxFiles);
+        const finalValue = maxFiles === 1 ? newFiles[0] : newFiles;
+        onChange(finalValue);
+        setTimeout(() => onSubmit(finalValue), 150);
+      }
     };
 
     // Convert value to File[] if needed
@@ -314,16 +352,53 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="w-full"
       >
-        <FileUploadInput
-          value={fileValue}
-          onChange={onChange}
-          onSubmit={onSubmit}
-          config={fileConfig}
-          disabled={disabled}
-          error={error}
-          theme={theme}
-          showSubmitButton={true}
-        />
+        <label
+          className={cn(
+            'flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer',
+            'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
+            'hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            disabled && 'opacity-50 cursor-not-allowed',
+          )}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <Upload className="w-8 h-8 mb-2 text-gray-500" />
+            <p className="text-sm text-gray-500 font-medium">
+              {currentFiles.length > 0
+                ? `${currentFiles.length} file(s) selected`
+                : 'Click to upload a file'}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {acceptedTypes.length > 0
+                ? acceptedTypes.join(', ')
+                : 'All files'}
+              {maxFiles > 1 && ` • Max ${maxFiles} files`}
+            </p>
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            disabled={disabled}
+            accept={
+              acceptedTypes.length > 0 ? acceptedTypes.join(',') : undefined
+            }
+            multiple={maxFiles > 1}
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
+        </label>
+        {/* Show selected file names */}
+        {currentFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {currentFiles.map((file: File, index: number) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+              >
+                {file.name}
+              </span>
+            ))}
+          </div>
+        )}
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
