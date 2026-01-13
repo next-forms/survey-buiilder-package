@@ -15,7 +15,7 @@ export const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
         ref={ref}
         className={cn(
           'flex flex-col h-full overflow-y-auto',
-          'px-4 py-4 space-y-2',
+          'pt-4 space-y-2',
           'scroll-smooth',
           theme?.background,
           className

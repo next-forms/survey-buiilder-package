@@ -646,13 +646,13 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
   return (
     <div
       className={cn(
-        'relative flex flex-col h-full max-w-3xl flex-1',
+        'relative flex flex-col h-full max-w-3xl flex-1 mx-auto',
         theme?.background
       )}
     >
       {/* Progress bar at top - sticky position for mobile compatibility */}
       {progressBarConfig && progressBarConfig.position !== 'bottom' && (
-        <div className="sticky top-0 px-4 pt-4 pb-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+        <div className="sticky top-0 px-4 pt-4 pb-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shrink-0 z-10">
           <ProgressIndicator
             type={progressBarConfig.type}
             showPercentage={progressBarConfig.showPercentage}
@@ -668,7 +668,10 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       <ChatContainer
         ref={containerRef}
         theme={theme}
-        className={cn('flex-1', chatContainerClassName)}
+        className={cn(
+          'flex-1 min-h-0 overflow-auto px-4',
+          chatContainerClassName
+        )}
       >
         <AnimatePresence mode="popLayout">
           {messages.map((message) => (
@@ -687,20 +690,6 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
         )}
       </ChatContainer>
 
-      {/* Progress bar at bottom */}
-      {progressBarConfig && progressBarConfig.position === 'bottom' && (
-        <div className="shrink-0 px-4 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
-          <ProgressIndicator
-            type={progressBarConfig.type}
-            showPercentage={progressBarConfig.showPercentage}
-            showStepInfo={progressBarConfig.showStepInfo}
-            height={progressBarConfig.height}
-            color={progressBarConfig.color}
-            backgroundColor={progressBarConfig.backgroundColor}
-          />
-        </div>
-      )}
-
       {/* Unread messages indicator - positioned above input */}
       {/* Only delay showing if input is about to appear (isAILoading false but questionReady false) */}
       {(isComplete || questionReady || isAILoading) && (
@@ -716,7 +705,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
       {!isComplete && currentBlock && !isAILoading && questionReady && (
         <div
           ref={inputRef}
-          className="sticky bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 p-4 w-full"
+          className="sticky left-0 right-0 bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 p-4 w-full shrink-0 z-20"
         >
           {multiFieldState.isActive ? (
             <ChatMultiFieldInput
