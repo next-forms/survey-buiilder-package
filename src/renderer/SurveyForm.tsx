@@ -183,7 +183,7 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   // Enhanced container class with better mobile responsiveness - memoize to prevent recreation
   const containerClass = React.useMemo(
     () =>
-      `survey-form-container ${themeConfig.containerLayout} antialiased ${className}`,
+      `survey-form-container w-full ${themeConfig.containerLayout} antialiased ${className}`,
     [themeConfig.containerLayout, className]
   );
 
