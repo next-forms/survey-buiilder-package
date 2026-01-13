@@ -1,16 +1,26 @@
-import React, { useEffect, useState } from "react";
-import type { BlockData, BlockDefinition, ContentBlockItemProps, ThemeDefinition } from "../types";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Button } from "../components/ui/button";
-import { Calendar, CalendarIcon } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
-import { Calendar as CalendarComponent } from "../components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
-import { Switch } from "../components/ui/switch";
-import { cn } from "../lib/utils";
-import { generateFieldName } from "./utils/GenFieldName";
-import { themes } from "../themes";
+import React, { useEffect, useState } from 'react';
+import type {
+  BlockData,
+  BlockDefinition,
+  ContentBlockItemProps,
+  ThemeDefinition,
+  ChatRendererProps,
+} from '../types';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Button } from '../components/ui/button';
+import { Calendar, CalendarIcon } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { Calendar as CalendarComponent } from '../components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../components/ui/popover';
+import { Switch } from '../components/ui/switch';
+import { cn } from '../lib/utils';
+import { generateFieldName } from './utils/GenFieldName';
+import { themes } from '../themes';
 import { format } from 'date-fns';
 
 // Simple date formatter function since we're not using date-fns
@@ -18,7 +28,7 @@ const formatDate = (date: Date, format: string = 'PPP'): string => {
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   };
 
   if (format === 'PP') {
@@ -65,17 +75,19 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
   // Format to display default date
   const formattedDate = defaultDate
     ? formatDate(defaultDate, 'PPP')
-    : "No default date";
+    : 'No default date';
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">
+            Field Name
+          </Label>
           <Input
             id="fieldName"
-            value={data.fieldName || ""}
-            onChange={(e) => handleChange("fieldName", e.target.value)}
+            value={data.fieldName || ''}
+            onChange={(e) => handleChange('fieldName', e.target.value)}
             placeholder="dateField1"
           />
           <p className="text-xs text-muted-foreground">
@@ -84,11 +96,13 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">
+            Question Label
+          </Label>
           <Input
             id="label"
-            value={data.label || ""}
-            onChange={(e) => handleChange("label", e.target.value)}
+            value={data.label || ''}
+            onChange={(e) => handleChange('label', e.target.value)}
             placeholder="Your question here?"
           />
           <p className="text-xs text-muted-foreground">
@@ -98,32 +112,38 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">
+          Description/Help Text
+        </Label>
         <Input
           id="description"
-          value={data.description || ""}
-          onChange={(e) => handleChange("description", e.target.value)}
+          value={data.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
           placeholder="Additional information about this question"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="placeholder">Placeholder</Label>
+          <Label className="text-sm" htmlFor="placeholder">
+            Placeholder
+          </Label>
           <Input
             id="placeholder"
-            value={data.placeholder || ""}
-            onChange={(e) => handleChange("placeholder", e.target.value)}
+            value={data.placeholder || ''}
+            onChange={(e) => handleChange('placeholder', e.target.value)}
             placeholder="Select a date..."
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="dateFormat">Date Format</Label>
+          <Label className="text-sm" htmlFor="dateFormat">
+            Date Format
+          </Label>
           <Input
             id="dateFormat"
-            value={data.dateFormat || ""}
-            onChange={(e) => handleChange("dateFormat", e.target.value)}
+            value={data.dateFormat || ''}
+            onChange={(e) => handleChange('dateFormat', e.target.value)}
             placeholder="PPP (e.g., April 29, 2025)"
           />
           <p className="text-xs text-muted-foreground">
@@ -134,14 +154,17 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="defaultValue">Default Value</Label>
+          <Label className="text-sm" htmlFor="defaultValue">
+            Default Value
+          </Label>
           <Popover>
             <PopoverTrigger>
-              <Button type="button"
+              <Button
+                type="button"
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !defaultDate && "text-muted-foreground"
+                  'w-full justify-start text-left font-normal',
+                  !defaultDate && 'text-muted-foreground'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -163,7 +186,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
               id="showCalendarOnFocus"
               checked={data.showCalendarOnFocus === true}
               onCheckedChange={(checked) =>
-                handleChange("showCalendarOnFocus", checked)
+                handleChange('showCalendarOnFocus', checked)
               }
             />
             <Label className="text-sm" htmlFor="showCalendarOnFocus">
@@ -175,32 +198,38 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="minDate">Minimum Date</Label>
+          <Label className="text-sm" htmlFor="minDate">
+            Minimum Date
+          </Label>
           <Input
             id="minDate"
             type="date"
-            value={data.minDate || ""}
-            onChange={(e) => handleChange("minDate", e.target.value)}
+            value={data.minDate || ''}
+            onChange={(e) => handleChange('minDate', e.target.value)}
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="maxDate">Maximum Date</Label>
+          <Label className="text-sm" htmlFor="maxDate">
+            Maximum Date
+          </Label>
           <Input
             id="maxDate"
             type="date"
-            value={data.maxDate || ""}
-            onChange={(e) => handleChange("maxDate", e.target.value)}
+            value={data.maxDate || ''}
+            onChange={(e) => handleChange('maxDate', e.target.value)}
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="disabledDays">Disabled Days</Label>
+          <Label className="text-sm" htmlFor="disabledDays">
+            Disabled Days
+          </Label>
           <Input
             id="disabledDays"
             placeholder="0,6 (Sun,Sat)"
-            value={data.disabledDays || ""}
-            onChange={(e) => handleChange("disabledDays", e.target.value)}
+            value={data.disabledDays || ''}
+            onChange={(e) => handleChange('disabledDays', e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
             Comma-separated days (0=Sun, 6=Sat)
@@ -212,9 +241,7 @@ const DatePickerBlockForm: React.FC<ContentBlockItemProps> = ({
 };
 
 // Component to render the block in the survey
-const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
-  data,
-}) => {
+const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
   const [date, setDate] = React.useState<Date | undefined>(
     data.defaultValue ? new Date(data.defaultValue as string) : undefined
   );
@@ -223,9 +250,9 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
   // Format date according to specified format or default
   const formatSelectedDate = (date: Date) => {
     try {
-      return formatDate(date, data.dateFormat || "PPP");
+      return formatDate(date, data.dateFormat || 'PPP');
     } catch (e) {
-      return formatDate(date, "PPP");
+      return formatDate(date, 'PPP');
     }
   };
 
@@ -234,7 +261,9 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
     if (!data.disabledDays) return undefined;
 
     try {
-      return data.disabledDays.split(",").map((d: string) => parseInt(d.trim(), 10));
+      return data.disabledDays
+        .split(',')
+        .map((d: string) => parseInt(d.trim(), 10));
     } catch {
       return undefined;
     }
@@ -266,7 +295,9 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>
+          {data.label}
+        </Label>
       )}
 
       {data.description && (
@@ -275,16 +306,19 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
 
       <Popover>
         <PopoverTrigger>
-          <Button type="button"
+          <Button
+            type="button"
             id={data.fieldName}
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              'w-full justify-start text-left font-normal',
+              !date && 'text-muted-foreground'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? formatSelectedDate(date) : data.placeholder || "Select a date"}
+            {date
+              ? formatSelectedDate(date)
+              : data.placeholder || 'Select a date'}
           </Button>
         </PopoverTrigger>
         <PopoverContent>
@@ -304,7 +338,8 @@ const DatePickerBlockItem: React.FC<ContentBlockItemProps> = ({
 const DatePickerBlockPreview: React.FC = () => {
   return (
     <div className="w-full flex items-center justify-center py-1">
-      <Button type="button"
+      <Button
+        type="button"
         variant="outline"
         className="w-4/5 max-w-full justify-start text-left font-normal text-muted-foreground"
         disabled
@@ -330,11 +365,162 @@ interface DatePickerRendererProps {
 const getDateFormat = (formatStr: string = 'PPP'): string => {
   // Map our format strings to date-fns format strings
   switch (formatStr) {
-    case 'P': return 'MM/dd/yyyy';
-    case 'PP': return 'MMM d, yyyy';
+    case 'P':
+      return 'MM/dd/yyyy';
+    case 'PP':
+      return 'MMM d, yyyy';
     case 'PPP':
-    default: return 'MMMM d, yyyy';
+    default:
+      return 'MMMM d, yyyy';
   }
+};
+
+/**
+ * Chat renderer for DatePicker - streamlined chat experience
+ * Provides a compact date picker UI optimized for conversational flow
+ */
+const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
+  block,
+  value,
+  onChange,
+  onSubmit,
+  theme,
+  disabled = false,
+  error,
+}) => {
+  const [date, setDate] = useState<Date | null>(
+    value
+      ? new Date(value)
+      : block.defaultValue
+      ? new Date(block.defaultValue as string)
+      : null
+  );
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Parse disabled days from comma-separated string
+  const disabledDays = React.useMemo(() => {
+    if (!block.disabledDays) return undefined;
+    try {
+      return block.disabledDays
+        .split(',')
+        .map((d: string) => parseInt(d.trim(), 10));
+    } catch {
+      return undefined;
+    }
+  }, [block.disabledDays]);
+
+  // Create date range constraints
+  const dateConstraints = React.useMemo(() => {
+    const constraints: { from?: Date; to?: Date } = {};
+
+    if (block.minDate) {
+      try {
+        constraints.from = new Date(block.minDate);
+      } catch (e) {
+        // Invalid date, ignore
+      }
+    }
+
+    if (block.maxDate) {
+      try {
+        constraints.to = new Date(block.maxDate);
+      } catch (e) {
+        // Invalid date, ignore
+      }
+    }
+
+    return constraints;
+  }, [block.minDate, block.maxDate]);
+
+  const handleDateSelect = (selectedDate: Date) => {
+    setDate(selectedDate);
+    setIsOpen(false);
+    const isoValue = selectedDate.toISOString();
+    onChange(isoValue);
+  };
+
+  const handleSubmit = () => {
+    if (date) {
+      const isoValue = date.toISOString();
+      onSubmit(isoValue);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      {/* Label */}
+      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+        <CalendarIcon className="w-4 h-4" />
+        <span className="text-sm">{block.label || 'Select a date'}</span>
+      </div>
+
+      <div className="flex gap-2 items-center w-full">
+        {/* Date Picker Popover */}
+        <div className="w-full flex-1 flex flex-col relative">
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  'w-full flex-1 h-14 justify-start text-left font-normal rounded-xl',
+                  !date && 'text-muted-foreground',
+                  error && 'border-destructive'
+                )}
+                disabled={disabled}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? (
+                  <span className="text-lg font-semibold">
+                    {format(date, getDateFormat(block.dateFormat as string))}
+                  </span>
+                ) : (
+                  <span>{block.placeholder || 'Pick a date'}</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-full p-0 mb-1 bottom-full"
+              align="start"
+            >
+              <CalendarComponent
+                mode="single"
+                selected={date || undefined}
+                onSelect={(newDate) => {
+                  if (newDate) {
+                    handleDateSelect(newDate);
+                  }
+                }}
+                disabled={dateConstraints}
+                disableWeekdays={disabledDays}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Submit Button */}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={disabled || !date}
+          className="h-14 px-6 rounded-xl"
+          style={
+            theme?.colors?.primary
+              ? { backgroundColor: theme.colors.primary }
+              : undefined
+          }
+        >
+          Continue
+        </Button>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="text-sm font-medium text-destructive">{error}</div>
+      )}
+    </div>
+  );
 };
 
 const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
@@ -344,13 +530,17 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
   onBlur,
   error,
   disabled,
-  theme = null
+  theme = null,
 }) => {
   const themeConfig = theme ?? themes.default;
 
   // State for the selected date
   const [date, setDate] = useState<Date | null>(
-    value ? new Date(value) : block.defaultValue ? new Date(block.defaultValue as string) : null
+    value
+      ? new Date(value)
+      : block.defaultValue
+      ? new Date(block.defaultValue as string)
+      : null
   );
 
   // State for the calendar open/closed status
@@ -390,7 +580,9 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
     if (!block.disabledDays) return undefined;
 
     try {
-      return block.disabledDays.split(",").map((d: string) => parseInt(d.trim(), 10));
+      return block.disabledDays
+        .split(',')
+        .map((d: string) => parseInt(d.trim(), 10));
     } catch {
       return undefined;
     }
@@ -421,7 +613,7 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
 
   // Format date according to specified format
   const formattedDate = date
-    ? formatDate(date, block.dateFormat as string || 'PPP')
+    ? formatDate(date, (block.dateFormat as string) || 'PPP')
     : '';
 
   return (
@@ -430,7 +622,7 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
       {block.label && (
         <Label
           htmlFor={block.fieldName}
-          className={cn("text-base", themeConfig.field.label)}
+          className={cn('text-base', themeConfig.field.label)}
         >
           {block.label}
         </Label>
@@ -438,7 +630,12 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
 
       {/* Description */}
       {block.description && (
-        <div className={cn("text-sm text-muted-foreground", themeConfig.field.description)}>
+        <div
+          className={cn(
+            'text-sm text-muted-foreground',
+            themeConfig.field.description
+          )}
+        >
           {block.description}
         </div>
       )}
@@ -450,9 +647,9 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
             id={block.fieldName}
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground",
-              error && "border-destructive",
+              'w-full justify-start text-left font-normal',
+              !date && 'text-muted-foreground',
+              error && 'border-destructive',
               themeConfig.field.input
             )}
             disabled={disabled}
@@ -462,7 +659,7 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
             {date ? (
               format(date, getDateFormat(block.dateFormat as string))
             ) : (
-              <span>{block.placeholder || "Select a date"}</span>
+              <span>{block.placeholder || 'Select a date'}</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -484,7 +681,12 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
 
       {/* Error message */}
       {error && (
-        <div className={cn("text-sm font-medium text-destructive", themeConfig.field.error)}>
+        <div
+          className={cn(
+            'text-sm font-medium text-destructive',
+            themeConfig.field.error
+          )}
+        >
           {error}
         </div>
       )}
@@ -492,62 +694,69 @@ const DatePickerRenderer: React.FC<DatePickerRendererProps> = ({
   );
 };
 
-
 // Export the block definition
 export const DatePickerBlock: BlockDefinition = {
-  type: "datepicker",
-  name: "Date Picker",
-  description: "Calendar component for selecting a date",
+  type: 'datepicker',
+  name: 'Date Picker',
+  description: 'Calendar component for selecting a date',
   icon: <Calendar className="w-4 h-4" />,
   defaultData: {
-    type: "datepicker",
-    fieldName: generateFieldName("date"),
-    label: "Select a date",
-    description: "",
-    placeholder: "Pick a date",
-    dateFormat: "PPP",
+    type: 'datepicker',
+    fieldName: generateFieldName('date'),
+    label: 'Select a date',
+    description: '',
+    placeholder: 'Pick a date',
+    dateFormat: 'PPP',
     showCalendarOnFocus: true,
-    minDate: "",
-    maxDate: "",
-    disabledDays: "",
+    minDate: '',
+    maxDate: '',
+    disabledDays: '',
   },
   generateDefaultData: () => ({
-    type: "datepicker",
-    fieldName: generateFieldName("date"),
-    label: "Select a date",
-    description: "",
-    placeholder: "Pick a date",
-    dateFormat: "PPP",
+    type: 'datepicker',
+    fieldName: generateFieldName('date'),
+    label: 'Select a date',
+    description: '',
+    placeholder: 'Pick a date',
+    dateFormat: 'PPP',
     showCalendarOnFocus: true,
-    minDate: "",
-    maxDate: "",
-    disabledDays: "",
+    minDate: '',
+    maxDate: '',
+    disabledDays: '',
   }),
   renderItem: (props) => <DatePickerBlockItem {...props} />,
   renderFormFields: (props) => <DatePickerBlockForm {...props} />,
-  renderPreview: () => <DatePickerBlockPreview/>,
-  renderBlock: (props: DatePickerRendererProps) => <DatePickerRenderer {...props} />,
+  renderPreview: () => <DatePickerBlockPreview />,
+  renderBlock: (props: DatePickerRendererProps) => (
+    <DatePickerRenderer {...props} />
+  ),
+  chatRenderer: (props) => <DatePickerChatRenderer {...props} />,
+  inputSchema: {
+    type: 'string',
+  },
   validate: (data) => {
-    if (!data.fieldName) return "Field name is required";
-    if (!data.label) return "Label is required";
+    if (!data.fieldName) return 'Field name is required';
+    if (!data.label) return 'Label is required';
     return null;
   },
   validateValue: (value, data) => {
-    if (data.required && !value) return "This field is required";
-    
+    if (data.required && !value) return 'This field is required';
+
     // Validate date is within range if minDate or maxDate is set
     if (value) {
       const dateValue = new Date(value);
-      if (isNaN(dateValue.getTime())) return "Please enter a valid date";
+      if (isNaN(dateValue.getTime())) return 'Please enter a valid date';
 
       if (data.minDate) {
         const minDate = new Date(data.minDate);
-        if (dateValue < minDate) return `Date must be after ${minDate.toLocaleDateString()}`;
+        if (dateValue < minDate)
+          return `Date must be after ${minDate.toLocaleDateString()}`;
       }
 
       if (data.maxDate) {
         const maxDate = new Date(data.maxDate);
-        if (dateValue > maxDate) return `Date must be before ${maxDate.toLocaleDateString()}`;
+        if (dateValue > maxDate)
+          return `Date must be before ${maxDate.toLocaleDateString()}`;
       }
     }
 
@@ -555,6 +764,6 @@ export const DatePickerBlock: BlockDefinition = {
   },
   // Output schema - this block returns a date as a string (ISO format)
   outputSchema: {
-    type: 'date'
+    type: 'date',
   },
 };
