@@ -10,13 +10,13 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Calendar, CalendarIcon } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import { Calendar as CalendarComponent } from '../components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '../components/ui/popover';
+import { DatePickerPopover } from '../components/ui/datepicker-popover';
 import { Switch } from '../components/ui/switch';
 import { cn } from '../lib/utils';
 import { generateFieldName } from './utils/GenFieldName';
@@ -585,49 +585,25 @@ const DatePickerChatRenderer: React.FC<ChatRendererProps> = ({
       <div className="flex gap-4 items-center justify-between">
         {/* Date Picker Popover */}
         <div className="w-full sm:w-1/2 flex flex-col relative">
-          <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className={cn(
-                  'w-full flex-1 h-14 justify-start text-left font-normal rounded-xl items-center',
-                  !date && 'text-muted-foreground',
-                  error && 'border-destructive'
-                )}
-                disabled={disabled}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? (
-                  <span className="text-base sm.text-lg">
-                    {format(date, getDateFormat(block.dateFormat as string))}
-                  </span>
-                ) : (
-                  <span>{block.placeholder || 'Pick a date'}</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-full p-0 mb-1 bottom-full"
-              align="start"
-            >
-              <CalendarComponent
-                mode="single"
-                selected={date || undefined}
-                onSelect={(newDate) => {
-                  if (newDate) {
-                    handleDateSelect(newDate);
-                  }
-                }}
-                disabled={dateConstraints}
-                disableWeekdays={disabledDays}
-                initialDate={initialCalendarDate}
-                showMonthSelect
-                showYearSelect
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <DatePickerPopover
+            value={date}
+            onChange={handleDateSelect}
+            placeholder={block.placeholder || 'Pick a date'}
+            disabled={disabled}
+            error={!!error}
+            dateConstraints={dateConstraints}
+            disableWeekdays={disabledDays}
+            initialDate={initialCalendarDate}
+            showMonthSelect
+            showYearSelect
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            triggerClassName="h-14 rounded-xl"
+            formatDate={(d) =>
+              format(d, getDateFormat(block.dateFormat as string))
+            }
+            side="top"
+          />
         </div>
 
         {/* Submit Button */}

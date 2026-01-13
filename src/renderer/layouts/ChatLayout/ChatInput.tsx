@@ -1,11 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Send,
-  Calendar as CalendarIcon,
-  Upload,
-  AlertCircle,
-} from 'lucide-react';
+import { Send, Upload, AlertCircle } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type {
   BlockData,
@@ -17,7 +12,7 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
 import { Slider } from '../../../components/ui/slider';
-import { Calendar } from '../../../components/ui/calendar';
+import { DatePickerPopover } from '../../../components/ui/datepicker-popover';
 import { ChatOptionButtons } from './ChatOptionButtons';
 import { SchemaBasedInput } from './SchemaBasedInput';
 import { FileUploadInput } from '../../../components/FileUploadInput';
@@ -62,7 +57,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [localValue, setLocalValue] = useState(value ?? '');
-  const [dateOpen, setDateOpen] = useState(false);
 
   // Get block definition to check for chatRenderer
   const blockDefinition = getBlockDefinition(block.type);
@@ -211,7 +205,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Render date picker
   if (blockType === 'datepicker' || blockType === 'date') {
-    const selectedDate = value ? new Date(value) : undefined;
+    const selectedDate = value ? new Date(value) : null;
 
     return (
       <motion.div
@@ -219,35 +213,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-2 w-full"
       >
-        <div className="relative">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            onClick={() => setDateOpen(!dateOpen)}
-            className={cn(
-              'w-full justify-start text-left font-normal',
-              !value && 'text-muted-foreground',
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {selectedDate ? selectedDate.toLocaleDateString() : 'Pick a date'}
-          </Button>
-          {dateOpen && (
-            <div className="absolute z-50 bottom-full mb-1 w-full bg-white dark:bg-gray-800 border rounded-md shadow-lg">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  const isoValue = date?.toISOString();
-                  onChange(isoValue);
-                  setDateOpen(false);
-                  setTimeout(() => onSubmit(isoValue), 150);
-                }}
-              />
-            </div>
-          )}
-        </div>
+        <DatePickerPopover
+          value={selectedDate}
+          onChange={(date) => {
+            const isoValue = date.toISOString();
+            onChange(isoValue);
+            setTimeout(() => onSubmit(isoValue), 150);
+          }}
+          placeholder="Pick a date"
+          disabled={disabled}
+          error={!!error}
+          side="top"
+          showMonthSelect
+          showYearSelect
+          triggerClassName="h-12"
+        />
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </motion.div>
     );
