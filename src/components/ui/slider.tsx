@@ -68,6 +68,25 @@ const Slider: React.FC<SliderProps> = ({
     onValueChange?.(newValues);
   };
 
+  // Shared logic for updating value from cursor position
+  const updateValue = (clientX: number, thumbIndex: number) => {
+    if (!trackRef.current) return;
+
+    const rect = trackRef.current.getBoundingClientRect();
+    const percentage = Math.min(
+      1,
+      Math.max(0, (clientX - rect.left) / rect.width)
+    );
+    const newValue = min + percentage * (max - min);
+    const normalizedValue = normalizeValue(newValue);
+
+    const newValues = [...internalValuesRef.current];
+    newValues[thumbIndex] = normalizedValue;
+    setInternalValues(newValues);
+    internalValuesRef.current = newValues;
+    onValueChange?.(newValues);
+  };
+
   const handleThumbMouseDown = (index: number) => (e: React.MouseEvent) => {
     if (disabled) return;
 
@@ -76,22 +95,8 @@ const Slider: React.FC<SliderProps> = ({
     draggingRef.current = index;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (draggingRef.current === null || !trackRef.current) return;
-
-      const rect = trackRef.current.getBoundingClientRect();
-      const percentage = Math.min(
-        1,
-        Math.max(0, (moveEvent.clientX - rect.left) / rect.width)
-      );
-      const newValue = min + percentage * (max - min);
-      const normalizedValue = normalizeValue(newValue);
-
-      // Update the dragging thumb's value
-      const newValues = [...internalValuesRef.current];
-      newValues[draggingRef.current] = normalizedValue;
-      setInternalValues(newValues);
-      internalValuesRef.current = newValues;
-      onValueChange?.(newValues);
+      if (draggingRef.current === null) return;
+      updateValue(moveEvent.clientX, draggingRef.current);
     };
 
     const handleMouseUp = () => {
@@ -101,9 +106,33 @@ const Slider: React.FC<SliderProps> = ({
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
-    // Add document-level event listeners
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleThumbTouchStart = (index: number) => (e: React.TouchEvent) => {
+    if (disabled) return;
+
+    // Prevent scrolling while sliding
+    e.preventDefault();
+    setDragging(index);
+    draggingRef.current = index;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (draggingRef.current === null) return;
+      updateValue(moveEvent.touches[0].clientX, draggingRef.current);
+    };
+
+    const handleTouchEnd = () => {
+      setDragging(null);
+      draggingRef.current = null;
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+
+    // Add non-passive listener to prevent scrolling
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
   };
 
   return (
@@ -141,6 +170,7 @@ const Slider: React.FC<SliderProps> = ({
               left: `${getPercentage(val)}%`,
             }}
             onMouseDown={handleThumbMouseDown(index)}
+            onTouchStart={handleThumbTouchStart(index)}
             role="slider"
             aria-valuemin={min}
             aria-valuemax={max}
