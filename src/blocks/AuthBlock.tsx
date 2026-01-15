@@ -12,7 +12,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { Button } from '../components/ui/button';
-import { Textarea } from '../components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -57,7 +56,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AuthBlockForm: React.FC<ContentBlockItemProps> = ({
   data,
   onUpdate,
-  onRemove,
 }) => {
   const [testResults, setTestResults] = React.useState<string[]>([]);
   const [testData, setTestData] = React.useState({
