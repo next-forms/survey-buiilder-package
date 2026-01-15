@@ -241,7 +241,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
                   <div className="w-6 h-6 flex items-center justify-center">
                     <CirclePlus className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="flex-grow grid grid-cols-2 gap-2">
+                  <div className="grow grid grid-cols-2 gap-2">
                     <Input
                       value={newOptionLabel}
                       onChange={(e) => setNewOptionLabel(e.target.value)}
@@ -382,7 +382,7 @@ const SortableOption: React.FC<SortableOptionProps> = ({
       <div className="w-6 h-6 flex items-center justify-center">
         <span className="text-xs text-muted-foreground">{index + 1}</span>
       </div>
-      <div className="flex-grow grid grid-cols-2 gap-2">
+      <div className="grow grid grid-cols-2 gap-2">
         <Input
           value={option.label}
           onChange={(e) => onUpdateOption(index, 'label', e.target.value)}
