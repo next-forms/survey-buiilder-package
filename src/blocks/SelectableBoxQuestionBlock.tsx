@@ -1132,6 +1132,22 @@ export const SelectableBoxQuestionBlock: BlockDefinition = {
       return 'At least one option is required';
     return null;
   },
+  inputSchema: {
+    oneOf: [
+      { type: 'string' },
+      {
+        type: 'array',
+        items: { type: 'string' },
+      },
+    ],
+    discriminator: {
+      propertyName: 'multiSelect',
+      mapping: {
+        false: 0,
+        true: 1,
+      },
+    },
+  },
   // Output schema - Union type based on multiSelect configuration
   // - Single select mode (multiSelect: false): returns string (e.g., "option-1")
   // - Multi-select mode (multiSelect: true): returns array (e.g., ["option-1", "option-2"])
