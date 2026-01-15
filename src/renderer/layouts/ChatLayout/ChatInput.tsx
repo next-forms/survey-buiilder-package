@@ -1,8 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Calendar as CalendarIcon, Upload, AlertCircle } from 'lucide-react';
+import {
+  Send,
+  Calendar as CalendarIcon,
+  Upload,
+  AlertCircle,
+} from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import type { BlockData, ThemeDefinition, BlockDefinition } from '../../../types';
+import type {
+  BlockData,
+  ThemeDefinition,
+  BlockDefinition,
+} from '../../../types';
 import { getBlockDefinition } from '../../../blocks';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -27,7 +36,14 @@ interface ChatInputProps {
 const OPTION_BLOCK_TYPES = ['radio', 'checkbox', 'select', 'selectablebox'];
 
 // Block types that use text input
-const TEXT_BLOCK_TYPES = ['textfield', 'text', 'email', 'phone', 'number', 'url'];
+const TEXT_BLOCK_TYPES = [
+  'textfield',
+  'text',
+  'email',
+  'phone',
+  'number',
+  'url',
+];
 
 // Block types that use textarea
 const TEXTAREA_BLOCK_TYPES = ['textarea', 'longtext'];
@@ -67,7 +83,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     return () => clearTimeout(timer);
   }, [block.uuid]);
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleTextChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
     onChange(newValue);
@@ -117,7 +135,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     OPTION_BLOCK_TYPES.includes(blockType) ||
     TEXT_BLOCK_TYPES.includes(blockType) ||
     TEXTAREA_BLOCK_TYPES.includes(blockType) ||
-    ['datepicker', 'date', 'range', 'slider', 'fileupload', 'file'].includes(blockType);
+    ['datepicker', 'date', 'range', 'slider', 'fileupload', 'file'].includes(
+      blockType
+    );
 
   // PRIORITY 3: For unknown blocks, check for inputSchema or outputSchema
   if (!isKnownBlockType) {
@@ -159,8 +179,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <span className="font-medium">Unknown block type: {blockType}</span>
         </div>
         <p className="mt-2 text-sm text-red-500 dark:text-red-400">
-          This block type does not have a chatRenderer defined and no inputSchema or outputSchema is available.
-          Please add a chatRenderer to the block definition or define an inputSchema/outputSchema.
+          This block type does not have a chatRenderer defined and no
+          inputSchema or outputSchema is available. Please add a chatRenderer to
+          the block definition or define an inputSchema/outputSchema.
         </p>
       </motion.div>
     );
@@ -182,9 +203,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           theme={theme}
           disabled={disabled}
         />
-        {error && (
-          <p className="mt-2 text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
@@ -228,9 +247,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
           )}
         </div>
-        {error && (
-          <p className="mt-2 text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
@@ -277,9 +294,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             Confirm
           </Button>
         </div>
-        {error && (
-          <p className="text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
@@ -288,7 +303,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   if (blockType === 'fileupload' || blockType === 'file') {
     const acceptedTypes = (block.acceptedFileTypes as string[]) || [];
     const maxFiles = parseInt(String(block.maxFiles || '1'), 10);
-    const maxFileSize = parseFloat(String(block.maxFileSize || '5')) * 1024 * 1024; // MB to bytes
+    const maxFileSize =
+      parseFloat(String(block.maxFileSize || '5')) * 1024 * 1024; // MB to bytes
     const currentFiles = Array.isArray(value) ? value : value ? [value] : [];
 
     const handleFileSelect = (files: FileList | null) => {
@@ -309,7 +325,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         // Validate file size
         if (file.size > maxFileSize) {
-          errors.push(`${file.name}: File too large (max ${block.maxFileSize || '5'}MB)`);
+          errors.push(
+            `${file.name}: File too large (max ${block.maxFileSize || '5'}MB)`
+          );
           continue;
         }
 
@@ -346,7 +364,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 : 'Click to upload a file'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {acceptedTypes.length > 0 ? acceptedTypes.join(', ') : 'All files'}
+              {acceptedTypes.length > 0
+                ? acceptedTypes.join(', ')
+                : 'All files'}
               {maxFiles > 1 && ` • Max ${maxFiles} files`}
             </p>
           </div>
@@ -354,7 +374,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             type="file"
             className="hidden"
             disabled={disabled}
-            accept={acceptedTypes.length > 0 ? acceptedTypes.join(',') : undefined}
+            accept={
+              acceptedTypes.length > 0 ? acceptedTypes.join(',') : undefined
+            }
             multiple={maxFiles > 1}
             onChange={(e) => handleFileSelect(e.target.files)}
           />
@@ -372,9 +394,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             ))}
           </div>
         )}
-        {error && (
-          <p className="mt-2 text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
@@ -385,7 +405,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-2 w-full"
+        className="flex flex-col gap-4 w-full"
       >
         <Textarea
           ref={textareaRef}
@@ -403,26 +423,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             theme?.field?.textarea
           )}
         />
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-400">Press Cmd+Enter to submit</span>
+        <div className="flex justify-end lg:justify-between items-center">
+          <span className="text-xs text-gray-400 hidden lg:block">
+            Press Cmd+Enter to submit
+          </span>
           <Button
             type="button"
             onClick={handleSubmitClick}
             disabled={disabled || !localValue}
             size="sm"
-            className="rounded-full"
+            className="rounded-full w-full flex-1 lg:w-fit lg:flex-0 flex gap-3 items-center"
             style={
               theme?.colors?.primary
                 ? { backgroundColor: theme.colors.primary }
                 : undefined
             }
           >
-            <Send className="w-4 h-4" />
+            <span className="inline-block">Continue</span>
+            <Send className="w-3 h-3 lg:w-4 lg:h-4" />
           </Button>
         </div>
-        {error && (
-          <p className="text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </motion.div>
     );
   }
@@ -432,19 +453,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex gap-2 w-full"
+      className="relative w-full h-fit flex gap-2 lg:gap-4 items-center"
     >
       <Input
         ref={inputRef}
-        type={blockType === 'email' ? 'email' : blockType === 'number' ? 'number' : 'text'}
+        type={
+          blockType === 'email'
+            ? 'email'
+            : blockType === 'number'
+            ? 'number'
+            : 'text'
+        }
         value={localValue}
         onChange={handleTextChange}
         onKeyDown={handleKeyDown}
         placeholder={block.placeholder || placeholder}
         disabled={disabled}
         className={cn(
-          'flex-1 rounded-full px-4 py-2 h-12',
           theme?.field?.input,
+          'flex-1 w-auto rounded-full px-4 py-2 h-12',
           error && 'border-red-500'
         )}
       />
@@ -452,18 +479,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         type="button"
         onClick={handleSubmitClick}
         disabled={disabled || !localValue}
-        size="icon"
-        className="rounded-full h-12 w-12 shrink-0"
+        className={cn(
+          theme?.button?.primary
+            ? theme?.button?.primary
+            : 'shadow-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'relative rounded-full shrink-0 flex items-center justify-center flex-none h-full w-auto aspect-square min-h-[64px]'
+        )}
         style={
           theme?.colors?.primary
             ? { backgroundColor: theme.colors.primary }
             : undefined
         }
       >
-        <Send className="w-5 h-5" />
+        <Send className="w-7 h-7 text-white" />
       </Button>
       {error && (
-        <p className="absolute -bottom-6 left-0 text-sm text-red-500">{error}</p>
+        <p
+          className={cn(
+            'absolute -bottom-6 left-0',
+            theme?.field?.error ? theme?.field?.error : 'text-sm text-red-500'
+          )}
+        >
+          {error}
+        </p>
       )}
     </motion.div>
   );
