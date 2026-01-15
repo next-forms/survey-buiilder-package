@@ -677,6 +677,12 @@ export const CheckboxBlock: BlockDefinition = {
       return 'This field is required';
     return null;
   },
+  inputSchema: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+  },
   // Output schema - this block returns an array of strings (selected option values)
   outputSchema: {
     type: 'array',
