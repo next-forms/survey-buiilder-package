@@ -598,6 +598,9 @@ export const RangeBlock: BlockDefinition = {
 
     return null;
   },
+  inputSchema: {
+    type: 'number',
+  },
   // Output schema - this block returns a numeric value (slider position)
   outputSchema: {
     type: 'number',
