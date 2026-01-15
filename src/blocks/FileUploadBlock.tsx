@@ -966,8 +966,13 @@ export const FileUploadBlock: BlockDefinition = {
 
     return null;
   },
-  // Output schema - this block returns a string (file URL) or object with file information
+  inputSchema: {
+    type: 'array',
+    items: { type: 'string' },
+  },
+  // Output schema - this block returns an array of strings (file URLs)
   outputSchema: {
-    type: 'string',
+    type: 'array',
+    items: { type: 'string' },
   },
 };
