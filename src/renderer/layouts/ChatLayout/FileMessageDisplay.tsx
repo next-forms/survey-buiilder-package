@@ -52,7 +52,14 @@ export const FileMessageDisplay: React.FC<FileMessageDisplayProps> = ({
         return (
           <div
             key={index}
-            className="flex flex-col items-center gap-2 sm:gap-4 p-2 sm:p-4 rounded-lg bg-white/15 backdrop-blur-sm w-[calc(33%-0.3rem)] sm:w-[100px]"
+            className={cn(
+              'flex flex-col items-center gap-2 sm:gap-4 p-2 sm:p-4 rounded-lg bg-white/15 backdrop-blur-sm sm:w-[100px]',
+              files.length === 1
+                ? 'w-full'
+                : files.length === 2
+                ? 'w-[calc(50%-0.3rem)]'
+                : 'w-[calc(33%-0.3rem)]'
+            )}
             title={fileName}
           >
             <Icon
