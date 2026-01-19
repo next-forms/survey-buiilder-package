@@ -306,7 +306,7 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
         <p className="text-xs text-muted-foreground">
           {data.acceptedFileTypes && data.acceptedFileTypes.length > 0
             ? `Accepted formats: ${(data.acceptedFileTypes as string[]).join(
-                ', '
+                ', ',
               )}`
             : 'All file formats accepted'}
           {data.maxFileSize && ` • Max size: ${data.maxFileSize} MB`}
@@ -524,7 +524,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
         <div
           className={cn(
             'text-sm text-muted-foreground',
-            themeConfig.field.description
+            themeConfig.field.description,
           )}
         >
           {block.description}
@@ -538,7 +538,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
           isDragging ? 'border-primary bg-primary/5' : 'border-input',
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
           error && 'border-destructive',
-          themeConfig.container.border
+          themeConfig.container.border,
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -548,7 +548,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
         <UploadCloud
           className={cn(
             'mx-auto h-10 w-10 mb-2 text-muted-foreground',
-            themeConfig.field.description
+            themeConfig.field.description,
           )}
         />
 
@@ -559,7 +559,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
         <p
           className={cn(
             'text-xs text-muted-foreground',
-            themeConfig.field.description
+            themeConfig.field.description,
           )}
         >
           {acceptedTypes && acceptedTypes.length > 0
@@ -593,7 +593,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
                 key={index}
                 className={cn(
                   'flex items-center gap-2 p-2 rounded-md border',
-                  themeConfig.container.card
+                  themeConfig.container.card,
                 )}
               >
                 {showPreview && (
@@ -610,7 +610,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
                   <p
                     className={cn(
                       'text-sm font-medium truncate',
-                      themeConfig.field.label
+                      themeConfig.field.label,
                     )}
                   >
                     {file.name}
@@ -618,7 +618,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
                   <p
                     className={cn(
                       'text-xs text-muted-foreground',
-                      themeConfig.field.description
+                      themeConfig.field.description,
                     )}
                   >
                     {(file.size / 1024).toFixed(1)} KB
@@ -648,7 +648,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
         <div
           className={cn(
             'text-sm font-medium text-destructive',
-            themeConfig.field.error
+            themeConfig.field.error,
           )}
         >
           {error}
@@ -669,219 +669,32 @@ const FileUploadChatRenderer: React.FC<ChatRendererProps> = ({
   onSubmit,
   theme,
   disabled = false,
-  error: externalError,
+  error,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize files state
-  const [files, setFiles] = useState<File[]>(() => {
-    if (Array.isArray(value)) {
-      return value;
-    }
-    return [];
-  });
-
-  const [isDragging, setIsDragging] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
+  // Dynamically import FileUploadInput to avoid circular dependency issues
+  const FileUploadInput =
+    require('../components/FileUploadInput').FileUploadInput;
 
   // Parse block configuration
-  const maxFiles = parseInt(String(block.maxFiles || '1'), 10);
-  const maxFileSizeMB = parseFloat(String(block.maxFileSize || '5'));
-  const maxFileSize = maxFileSizeMB * 1024 * 1024;
-  const acceptedTypes = (block.acceptedFileTypes as string[]) || [];
-
-  // Combined error (external or local)
-  const displayError = externalError || localError;
-
-  // Handle file selection
-  const handleFileSelect = (selectedFiles: FileList | null) => {
-    if (!selectedFiles || disabled) return;
-
-    setLocalError(null);
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      const fileExt = `.${file.name.split('.').pop()?.toLowerCase()}`;
-
-      const isValidType =
-        acceptedTypes.length === 0 || acceptedTypes.includes(fileExt);
-      const isValidSize = file.size <= maxFileSize;
-
-      if (!isValidType) {
-        errors.push(`"${file.name}" is not an accepted file type`);
-      } else if (!isValidSize) {
-        errors.push(`"${file.name}" exceeds ${maxFileSizeMB}MB limit`);
-      } else {
-        validFiles.push(file);
-      }
-    }
-
-    if (errors.length === 0 && files.length + validFiles.length > maxFiles) {
-      errors.push(`Maximum ${maxFiles} files allowed.`);
-    }
-
-    if (errors.length > 0) {
-      setLocalError(errors[0]); // Show first error
-    }
-
-    const newFiles = [...files, ...validFiles].slice(0, maxFiles);
-    setFiles(newFiles);
-    onChange(newFiles);
-  };
-
-  // Handle file removal
-  const handleRemoveFile = (e: React.MouseEvent, index: number) => {
-    e.stopPropagation();
-    setLocalError(null);
-    const newFiles = files.filter((_, i) => i !== index);
-    setFiles(newFiles);
-    onChange(newFiles);
-  };
-
-  // Handle drag events
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (!disabled) {
-      handleFileSelect(e.dataTransfer.files);
-    }
-  };
-
-  // Handle submit
-  const handleSubmit = () => {
-    onSubmit(files);
+  const config = {
+    maxFiles: parseInt(String(block.maxFiles || '1'), 10),
+    maxFileSize: parseFloat(String(block.maxFileSize || '5')),
+    acceptedFileTypes: (block.acceptedFileTypes as string[]) || [],
+    showPreview: block.showPreview as boolean,
+    helpText: block.helpText as string,
   };
 
   return (
-    <div className="flex flex-col gap-3 flex-1">
-      {/* Upload area - shows either empty state or selected files */}
-      <div
-        className={cn(
-          'border-2 border-dashed rounded-xl p-4 transition-colors',
-          isDragging ? 'border-primary bg-primary/5' : 'border-input',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-          displayError && 'border-destructive'
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => !disabled && fileInputRef.current?.click()}
-      >
-        {files.length > 0 ? (
-          // Selected files view - show files side by side
-          <div className="flex flex-wrap gap-2 w-full">
-            {files.map((file, index) => {
-              const isImage = file.type.startsWith('image/');
-              const showPreview = block.showPreview && isImage;
-
-              return (
-                <div
-                  key={index}
-                  className="relative group flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/50 border overflow-hidden max-w-[calc(50%-4px)]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {showPreview ? (
-                    <div className="w-7 h-7 shrink-0 rounded overflow-hidden">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-7 h-7 shrink-0 rounded bg-primary/10 flex items-center justify-center">
-                      <FileUp className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-
-                  <p className="text-xs font-medium truncate max-w-[80px]">
-                    {file.name}
-                  </p>
-
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={(e) => handleRemoveFile(e, index)}
-                      className="shrink-0 w-5 h-5 rounded-full bg-muted hover:bg-destructive/20 flex items-center justify-center transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Add more files indicator if not at max */}
-            {files.length < maxFiles && (
-              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-dashed text-muted-foreground">
-                <UploadCloud className="w-4 h-4" />
-                <span className="text-xs">Add more</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          // Empty state - upload prompt
-          <div className="text-center py-2">
-            <UploadCloud className="mx-auto h-8 w-8 mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium">
-              {block.helpText || 'Drop files or click to browse'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {acceptedTypes && acceptedTypes.length > 0
-                ? acceptedTypes.join(', ')
-                : 'All formats'}
-              {` • Max ${maxFileSizeMB}MB`}
-              {maxFiles > 1 && ` • Up to ${maxFiles} files`}
-            </p>
-          </div>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept={acceptedTypes?.join(',') || undefined}
-          multiple={maxFiles > 1}
-          onChange={(e) => handleFileSelect(e.target.files)}
-          disabled={disabled}
-        />
-      </div>
-
-      {/* Error message */}
-      {displayError && (
-        <p className="text-xs text-destructive">{displayError}</p>
-      )}
-
-      {/* Submit button */}
-      <Button
-        type="button"
-        onClick={handleSubmit}
-        disabled={disabled || files.length === 0}
-        className="h-11 rounded-xl w-full"
-        style={
-          theme?.colors?.primary
-            ? { backgroundColor: theme.colors.primary }
-            : undefined
-        }
-      >
-        {files.length > 0
-          ? `Continue with ${files.length} file${files.length > 1 ? 's' : ''}`
-          : 'Select a file'}
-      </Button>
-    </div>
+    <FileUploadInput
+      value={Array.isArray(value) ? value : []}
+      onChange={onChange}
+      onSubmit={onSubmit}
+      config={config}
+      disabled={disabled}
+      error={error}
+      theme={theme}
+      showSubmitButton={true}
+    />
   );
 };
 
@@ -957,7 +770,7 @@ export const FileUploadBlock: BlockDefinition = {
           const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
           if (!data.acceptedFileTypes.includes(fileExtension)) {
             return `File type not allowed. Accepted types: ${data.acceptedFileTypes.join(
-              ', '
+              ', ',
             )}`;
           }
         }

@@ -1,16 +1,43 @@
-import React, { useState } from "react";
-import { BlockDefinition, ConditionalBlockProps, ContentBlockItemProps } from "../types";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
-import { Label } from "../components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Separator } from "../components/ui/separator";
-import { GitBranch, Eye, EyeOff, Code, Info, ChevronRight } from "lucide-react";
-import { useSurveyForm } from "../context/SurveyFormContext";
+import React, { useState, useEffect } from 'react';
+import {
+  BlockDefinition,
+  ConditionalBlockProps,
+  ContentBlockItemProps,
+  ChatRendererProps,
+} from '../types';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { Separator } from '../components/ui/separator';
+import {
+  GitBranch,
+  Eye,
+  EyeOff,
+  Code,
+  Info,
+  ChevronRight,
+  Check,
+  Upload,
+} from 'lucide-react';
+import { useSurveyForm } from '../context/SurveyFormContext';
+import { cn } from '../lib/utils';
+import { themes } from '../themes';
 // import { BlockRenderer } from "../renderer/renderers/BlockRenderer"; // Removed to avoid circular import
 
 // Form component for editing the block configuration
@@ -45,13 +72,15 @@ const ConditionalBlockForm: React.FC<ContentBlockItemProps> = ({
           <GitBranch className="w-4 h-4 text-primary" />
           <Label className="text-base font-medium">Conditional Logic</Label>
         </div>
-        
+
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="condition">Condition</Label>
+          <Label className="text-sm" htmlFor="condition">
+            Condition
+          </Label>
           <Textarea
             id="condition"
-            value={data.condition || ""}
-            onChange={(e) => handleChange("condition", e.target.value)}
+            value={data.condition || ''}
+            onChange={(e) => handleChange('condition', e.target.value)}
             placeholder={`// Show this block when condition is true
 return age >= 18 && country === "US";
 
@@ -61,27 +90,39 @@ return fieldA === "Yes";`}
             rows={5}
           />
           <p className="text-xs text-muted-foreground">
-            JavaScript expression that returns true/false. Use field names as variables.
+            JavaScript expression that returns true/false. Use field names as
+            variables.
           </p>
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-2">
             <strong>Examples:</strong>
             <div className="space-y-1">
-              <code className="block">return age {">"}= 18;</code>
-              <code className="block">return income {">"} 50000 && hasInsurance === true;</code>
-              <code className="block">return bmiCalculator?.category === "Overweight";</code>
-              <code className="block">return answers.includes("Option A");</code>
+              <code className="block">return age {'>'}= 18;</code>
+              <code className="block">
+                return income {'>'} 50000 && hasInsurance === true;
+              </code>
+              <code className="block">
+                return bmiCalculator?.category === "Overweight";
+              </code>
+              <code className="block">
+                return answers.includes("Option A");
+              </code>
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="dependencies">Dependencies</Label>
+          <Label className="text-sm" htmlFor="dependencies">
+            Dependencies
+          </Label>
           <Input
             id="dependencies"
-            value={data.dependencies?.join(', ') || ""}
+            value={data.dependencies?.join(', ') || ''}
             onChange={(e) => {
-              const dependencies = e.target.value.split(',').map(dep => dep.trim()).filter(dep => dep.length > 0);
-              handleChange("dependencies", dependencies);
+              const dependencies = e.target.value
+                .split(',')
+                .map((dep) => dep.trim())
+                .filter((dep) => dep.length > 0);
+              handleChange('dependencies', dependencies);
             }}
             placeholder="age, country, fieldA"
           />
@@ -106,16 +147,22 @@ return fieldA === "Yes";`}
             size="sm"
             onClick={() => setShowChildConfig(!showChildConfig)}
           >
-            {showChildConfig ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            {showChildConfig ? "Hide" : "Show"} Config
+            {showChildConfig ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+            {showChildConfig ? 'Hide' : 'Show'} Config
           </Button>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="childBlockType">Block Type</Label>
-          <Select 
-            value={data.childBlock?.type || "text"} 
-            onValueChange={(value) => handleChildBlockChange("type", value)}
+          <Label className="text-sm" htmlFor="childBlockType">
+            Block Type
+          </Label>
+          <Select
+            value={data.childBlock?.type || 'text'}
+            onValueChange={(value) => handleChildBlockChange('type', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select block type" />
@@ -137,57 +184,81 @@ return fieldA === "Yes";`}
         {showChildConfig && (
           <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
             <div className="space-y-2">
-              <Label className="text-sm" htmlFor="childLabel">Label</Label>
+              <Label className="text-sm" htmlFor="childLabel">
+                Label
+              </Label>
               <Input
                 id="childLabel"
-                value={data.childBlock?.label || ""}
-                onChange={(e) => handleChildBlockChange("label", e.target.value)}
+                value={data.childBlock?.label || ''}
+                onChange={(e) =>
+                  handleChildBlockChange('label', e.target.value)
+                }
                 placeholder="Enter label for the child block"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm" htmlFor="childFieldName">Field Name</Label>
+              <Label className="text-sm" htmlFor="childFieldName">
+                Field Name
+              </Label>
               <Input
                 id="childFieldName"
-                value={data.childBlock?.fieldName || ""}
-                onChange={(e) => handleChildBlockChange("fieldName", e.target.value)}
+                value={data.childBlock?.fieldName || ''}
+                onChange={(e) =>
+                  handleChildBlockChange('fieldName', e.target.value)
+                }
                 placeholder="conditionalField"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm" htmlFor="childDescription">Description</Label>
+              <Label className="text-sm" htmlFor="childDescription">
+                Description
+              </Label>
               <Textarea
                 id="childDescription"
-                value={data.childBlock?.description || ""}
-                onChange={(e) => handleChildBlockChange("description", e.target.value)}
+                value={data.childBlock?.description || ''}
+                onChange={(e) =>
+                  handleChildBlockChange('description', e.target.value)
+                }
                 placeholder="Optional description for the child block"
                 rows={2}
               />
             </div>
 
-            {(data.childBlock?.type === "text" || data.childBlock?.type === "textarea" || data.childBlock?.type === "number") && (
+            {(data.childBlock?.type === 'text' ||
+              data.childBlock?.type === 'textarea' ||
+              data.childBlock?.type === 'number') && (
               <div className="space-y-2">
-                <Label className="text-sm" htmlFor="childPlaceholder">Placeholder</Label>
+                <Label className="text-sm" htmlFor="childPlaceholder">
+                  Placeholder
+                </Label>
                 <Input
                   id="childPlaceholder"
-                  value={data.childBlock?.placeholder || ""}
-                  onChange={(e) => handleChildBlockChange("placeholder", e.target.value)}
+                  value={data.childBlock?.placeholder || ''}
+                  onChange={(e) =>
+                    handleChildBlockChange('placeholder', e.target.value)
+                  }
                   placeholder="Enter placeholder text"
                 />
               </div>
             )}
 
-            {(data.childBlock?.type === "select" || data.childBlock?.type === "radio" || data.childBlock?.type === "checkbox") && (
+            {(data.childBlock?.type === 'select' ||
+              data.childBlock?.type === 'radio' ||
+              data.childBlock?.type === 'checkbox') && (
               <div className="space-y-2">
-                <Label className="text-sm" htmlFor="childOptions">Options</Label>
+                <Label className="text-sm" htmlFor="childOptions">
+                  Options
+                </Label>
                 <Textarea
                   id="childOptions"
-                  value={data.childBlock?.options?.join('\n') || ""}
+                  value={data.childBlock?.options?.join('\n') || ''}
                   onChange={(e) => {
-                    const options = e.target.value.split('\n').filter(opt => opt.trim().length > 0);
-                    handleChildBlockChange("options", options);
+                    const options = e.target.value
+                      .split('\n')
+                      .filter((opt) => opt.trim().length > 0);
+                    handleChildBlockChange('options', options);
                   }}
                   placeholder="Option 1&#10;Option 2&#10;Option 3"
                   rows={3}
@@ -198,13 +269,17 @@ return fieldA === "Yes";`}
               </div>
             )}
 
-            {data.childBlock?.type === "html" && (
+            {data.childBlock?.type === 'html' && (
               <div className="space-y-2">
-                <Label className="text-sm" htmlFor="childHtml">HTML Content</Label>
+                <Label className="text-sm" htmlFor="childHtml">
+                  HTML Content
+                </Label>
                 <Textarea
                   id="childHtml"
-                  value={data.childBlock?.html || ""}
-                  onChange={(e) => handleChildBlockChange("html", e.target.value)}
+                  value={data.childBlock?.html || ''}
+                  onChange={(e) =>
+                    handleChildBlockChange('html', e.target.value)
+                  }
                   placeholder="<p>Your HTML content here</p>"
                   className="font-mono text-sm"
                   rows={4}
@@ -216,11 +291,13 @@ return fieldA === "Yes";`}
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="className">CSS Class Names</Label>
+        <Label className="text-sm" htmlFor="className">
+          CSS Class Names
+        </Label>
         <Input
           id="className"
-          value={data.className || ""}
-          onChange={(e) => handleChange("className", e.target.value)}
+          value={data.className || ''}
+          onChange={(e) => handleChange('className', e.target.value)}
           placeholder="conditional-block custom-styles"
         />
       </div>
@@ -248,13 +325,15 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
     // This is a simplified renderer - in a real implementation,
     // you'd use the actual block renderers from your block registry
     switch (childBlock.type) {
-      case "text":
-      case "number":
+      case 'text':
+      case 'number':
         return (
           <div className="space-y-2">
             {childBlock.label && <Label>{childBlock.label}</Label>}
             {childBlock.description && (
-              <p className="text-sm text-muted-foreground">{childBlock.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {childBlock.description}
+              </p>
             )}
             <Input
               type={childBlock.type}
@@ -263,7 +342,7 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
                 if (onUpdate && childBlock.fieldName) {
                   onUpdate({
                     ...data,
-                    [childBlock.fieldName]: e.target.value
+                    [childBlock.fieldName]: e.target.value,
                   });
                 }
               }}
@@ -271,12 +350,14 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
           </div>
         );
 
-      case "textarea":
+      case 'textarea':
         return (
           <div className="space-y-2">
             {childBlock.label && <Label>{childBlock.label}</Label>}
             {childBlock.description && (
-              <p className="text-sm text-muted-foreground">{childBlock.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {childBlock.description}
+              </p>
             )}
             <Textarea
               placeholder={childBlock.placeholder}
@@ -285,7 +366,7 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
                 if (onUpdate && childBlock.fieldName) {
                   onUpdate({
                     ...data,
-                    [childBlock.fieldName]: e.target.value
+                    [childBlock.fieldName]: e.target.value,
                   });
                 }
               }}
@@ -293,21 +374,25 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
           </div>
         );
 
-      case "select":
+      case 'select':
         return (
           <div className="space-y-2">
             {childBlock.label && <Label>{childBlock.label}</Label>}
             {childBlock.description && (
-              <p className="text-sm text-muted-foreground">{childBlock.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {childBlock.description}
+              </p>
             )}
-            <Select onValueChange={(value) => {
-              if (onUpdate && childBlock.fieldName) {
-                onUpdate({
-                  ...data,
-                  [childBlock.fieldName]: value
-                });
-              }
-            }}>
+            <Select
+              onValueChange={(value) => {
+                if (onUpdate && childBlock.fieldName) {
+                  onUpdate({
+                    ...data,
+                    [childBlock.fieldName]: value,
+                  });
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
@@ -322,9 +407,9 @@ const ConditionalBlockItem: React.FC<ContentBlockItemProps> = ({
           </div>
         );
 
-      case "html":
+      case 'html':
         return (
-          <div 
+          <div
             className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: childBlock.html || '' }}
           />
@@ -451,7 +536,7 @@ const ConditionalBlockRenderer: React.FC<ConditionalBlockProps> = ({
   }
 
   // If condition is met, render the child block directly
-  // Note: This is a simplified renderer. For full functionality, 
+  // Note: This is a simplified renderer. For full functionality,
   // the survey form should handle conditional rendering at a higher level
   return (
     <div className="conditional-block">
@@ -469,38 +554,531 @@ const ConditionalBlockRenderer: React.FC<ConditionalBlockProps> = ({
   );
 };
 
+/**
+ * Chat renderer for ConditionalBlock - provides a streamlined chat experience
+ * for conditionally displayed content based on child block type
+ */
+const ConditionalChatRenderer: React.FC<ChatRendererProps> = ({
+  block,
+  value,
+  onChange,
+  onSubmit,
+  theme,
+  disabled = false,
+  error,
+}) => {
+  const themeConfig = theme ?? themes.default;
+  const childBlock = block.childBlock;
+
+  // Initialize local state from value or default
+  const [localValue, setLocalValue] = useState<any>(() => {
+    if (value !== undefined) return value;
+    if (childBlock?.defaultValue !== undefined) return childBlock.defaultValue;
+    // Appropriate defaults based on type
+    switch (childBlock?.type) {
+      case 'checkbox':
+        return [];
+      case 'number':
+        return '';
+      default:
+        return '';
+    }
+  });
+
+  // Sync with external value changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  // Handle value changes
+  const handleChange = (newValue: any) => {
+    if (disabled) return;
+    setLocalValue(newValue);
+    onChange(newValue);
+  };
+
+  // Handle submit
+  const handleSubmit = () => {
+    // For HTML blocks, submit 'true' as acknowledgment since they don't collect user input
+    // This prevents ChatLayout's empty value validation from rejecting the submission
+    const submitValue = childBlock?.type === 'html' ? true : localValue;
+    onSubmit(submitValue);
+  };
+
+  // Render child block based on type
+  const renderChildBlock = () => {
+    if (!childBlock) {
+      return (
+        <div
+          className="p-4 border border-dashed rounded-xl text-center"
+          style={{ color: themeConfig.colors.text, opacity: 0.5 }}
+        >
+          <p className="text-sm">No child block configured</p>
+        </div>
+      );
+    }
+
+    const options = childBlock.options || [];
+
+    switch (childBlock.type) {
+      case 'text':
+      case 'number':
+        return (
+          <div className="space-y-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            <Input
+              type={childBlock.type}
+              value={localValue || ''}
+              placeholder={
+                childBlock.placeholder ||
+                `Enter ${childBlock.type === 'number' ? 'a number' : 'text'}...`
+              }
+              disabled={disabled}
+              onChange={(e) =>
+                handleChange(
+                  childBlock.type === 'number'
+                    ? e.target.value
+                    : e.target.value,
+                )
+              }
+              className={cn(
+                error && 'border-destructive',
+                themeConfig.field.input,
+              )}
+            />
+          </div>
+        );
+
+      case 'textarea':
+        return (
+          <div className="space-y-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            <Textarea
+              value={localValue || ''}
+              placeholder={childBlock.placeholder || 'Enter your response...'}
+              disabled={disabled}
+              onChange={(e) => handleChange(e.target.value)}
+              className={cn(
+                error && 'border-destructive',
+                themeConfig.field.textarea,
+              )}
+              rows={4}
+            />
+          </div>
+        );
+
+      case 'select':
+        return (
+          <div className="space-y-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            <Select
+              value={localValue || ''}
+              onValueChange={(val) => handleChange(val)}
+              disabled={disabled}
+            >
+              <SelectTrigger
+                className={cn(
+                  error && 'border-destructive',
+                  themeConfig.field.select,
+                )}
+              >
+                <SelectValue
+                  placeholder={childBlock.placeholder || 'Select an option...'}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option: string, index: number) => (
+                  <SelectItem key={index} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+
+      case 'radio':
+        return (
+          <div className="flex flex-col gap-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm mb-2', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            {options.map((option: string, index: number) => {
+              const isSelected = localValue === option;
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleChange(option)}
+                  disabled={disabled}
+                  className={cn(
+                    'relative w-full flex justify-between gap-6 items-center transition-all border',
+                    themeConfig.field.select,
+                    disabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                  style={{
+                    borderColor: isSelected
+                      ? themeConfig.colors.primary
+                      : undefined,
+                  }}
+                >
+                  <p
+                    className={cn(
+                      'text-left transition-colors mb-0',
+                      themeConfig.field.label,
+                    )}
+                    style={{
+                      color: isSelected
+                        ? themeConfig.colors.primary
+                        : themeConfig.colors.text,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {option}
+                  </p>
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded-full border bg-white shrink-0 relative transition-colors"
+                    style={{
+                      borderColor: isSelected
+                        ? themeConfig.colors.primary
+                        : themeConfig.colors.border,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isSelected && (
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: themeConfig.colors.primary }}
+                      />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        );
+
+      case 'checkbox':
+        const selectedValues = Array.isArray(localValue) ? localValue : [];
+        return (
+          <div className="flex flex-col gap-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm mb-2', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            {options.map((option: string, index: number) => {
+              const isSelected = selectedValues.includes(option);
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => {
+                    const newValues = isSelected
+                      ? selectedValues.filter((v: string) => v !== option)
+                      : [...selectedValues, option];
+                    handleChange(newValues);
+                  }}
+                  disabled={disabled}
+                  className={cn(
+                    'relative w-full flex justify-between gap-6 items-center transition-all border',
+                    themeConfig.field.select,
+                    disabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                  style={{
+                    borderColor: isSelected
+                      ? themeConfig.colors.primary
+                      : undefined,
+                  }}
+                >
+                  <p
+                    className={cn(
+                      'text-left transition-colors mb-0',
+                      themeConfig.field.label,
+                    )}
+                    style={{
+                      color: isSelected
+                        ? themeConfig.colors.primary
+                        : themeConfig.colors.text,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {option}
+                  </p>
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded border bg-white shrink-0 relative transition-colors"
+                    style={{
+                      borderColor: isSelected
+                        ? themeConfig.colors.primary
+                        : themeConfig.colors.border,
+                      flexShrink: 0,
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {isSelected && (
+                      <Check
+                        className="w-4 h-4"
+                        style={{ color: themeConfig.colors.primary }}
+                      />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        );
+
+      case 'date':
+        return (
+          <div className="space-y-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            <Input
+              type="date"
+              value={localValue || ''}
+              disabled={disabled}
+              onChange={(e) => handleChange(e.target.value)}
+              className={cn(
+                error && 'border-destructive',
+                themeConfig.field.input,
+              )}
+            />
+          </div>
+        );
+
+      case 'fileupload':
+      case 'file': {
+        // Use shared FileUploadInput component
+        const FileUploadInput =
+          require('../components/FileUploadInput').FileUploadInput;
+
+        const fileConfig = {
+          maxFiles: parseInt(String(childBlock.maxFiles || '1'), 10),
+          maxFileSize: parseFloat(String(childBlock.maxFileSize || '5')),
+          acceptedFileTypes: (childBlock.acceptedFileTypes as string[]) || [],
+          showPreview: childBlock.showPreview as boolean,
+          helpText: childBlock.helpText as string,
+        };
+
+        // Convert localValue to File[] if needed
+        const fileValue = Array.isArray(localValue)
+          ? localValue
+          : localValue
+            ? [localValue]
+            : [];
+
+        return (
+          <div className="space-y-2">
+            {childBlock.description && (
+              <p
+                className={cn('text-sm', themeConfig.field.description)}
+                style={{ color: themeConfig.colors.text, opacity: 0.7 }}
+              >
+                {childBlock.description}
+              </p>
+            )}
+            <FileUploadInput
+              value={fileValue}
+              onChange={(files: File[]) => handleChange(files)}
+              config={fileConfig}
+              disabled={disabled}
+              error={error}
+              theme={theme}
+              showSubmitButton={false}
+            />
+          </div>
+        );
+      }
+
+      case 'html':
+        return (
+          <div
+            className="prose prose-sm max-w-none p-4 rounded-xl"
+            style={{ backgroundColor: themeConfig.colors.background }}
+            dangerouslySetInnerHTML={{ __html: childBlock.html || '' }}
+          />
+        );
+
+      default:
+        return (
+          <div
+            className="p-4 border border-dashed rounded-xl text-center"
+            style={{ color: themeConfig.colors.text, opacity: 0.5 }}
+          >
+            <p className="text-sm">
+              Child block type "{childBlock.type}" is not supported in chat mode
+            </p>
+          </div>
+        );
+    }
+  };
+
+  // Determine if submit button should be enabled
+  const hasValue = () => {
+    if (!childBlock) return false;
+    switch (childBlock.type) {
+      case 'checkbox':
+        return Array.isArray(localValue) && localValue.length > 0;
+      case 'html':
+        return true; // HTML blocks can always be submitted
+      default:
+        return (
+          localValue !== undefined && localValue !== '' && localValue !== null
+        );
+    }
+  };
+
+  // Get button text based on child block type
+  const getButtonText = () => {
+    if (
+      childBlock?.type === 'checkbox' &&
+      Array.isArray(localValue) &&
+      localValue.length > 0
+    ) {
+      return `Continue with ${localValue.length} selected`;
+    }
+    return 'Continue';
+  };
+
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      {/* Child block label */}
+      {childBlock?.label && (
+        <Label
+          className={cn('text-base', themeConfig.field.label)}
+          style={{ color: themeConfig.colors.text }}
+        >
+          {childBlock.label}
+        </Label>
+      )}
+
+      {/* Child block content */}
+      {renderChildBlock()}
+
+      {/* Error message */}
+      {error && (
+        <p
+          className={cn('text-sm', themeConfig.field.error)}
+          style={{ color: themeConfig.colors.error }}
+        >
+          {error}
+        </p>
+      )}
+
+      {/* Submit button */}
+      <Button
+        type="button"
+        onClick={handleSubmit}
+        disabled={disabled || !hasValue()}
+        className={cn(
+          'h-12 rounded-xl w-full mt-2 font-semibold',
+          themeConfig.button.primary,
+        )}
+        style={{ backgroundColor: themeConfig.colors.primary }}
+      >
+        {getButtonText()}
+      </Button>
+    </div>
+  );
+};
+
 // Export the block definition
 export const ConditionalBlock: BlockDefinition = {
-  type: "conditional",
-  name: "Conditional Block",
-  description: "Display content only when specific conditions are met",
+  type: 'conditional',
+  name: 'Conditional Block',
+  description: 'Display content only when specific conditions are met',
   icon: <GitBranch className="w-4 h-4" />,
   defaultData: {
-    type: "conditional",
+    type: 'conditional',
     condition: `// Show when age is 18 or older
 return age >= 18;`,
-    dependencies: ["age"],
+    dependencies: ['age'],
     childBlock: {
-      type: "text",
-      label: "Additional Information",
-      fieldName: "additionalInfo",
-      placeholder: "Enter additional information",
-      description: "This field appears when you're 18 or older"
+      type: 'text',
+      label: 'Additional Information',
+      fieldName: 'additionalInfo',
+      placeholder: 'Enter additional information',
+      description: "This field appears when you're 18 or older",
     },
-    className: "",
+    className: '',
   },
   renderItem: (props) => <ConditionalBlockItem {...props} />,
   renderFormFields: (props) => <ConditionalBlockForm {...props} />,
   renderPreview: () => <ConditionalBlockPreview />,
-  renderBlock: (props: ConditionalBlockProps) => <ConditionalBlockRenderer {...props} />,
+  renderBlock: (props: ConditionalBlockProps) => (
+    <ConditionalBlockRenderer {...props} />
+  ),
   validate: (data) => {
-    if (!data.condition) return "Condition is required";
-    if (!data.childBlock) return "Child block configuration is required";
-    if (!data.childBlock.type) return "Child block type is required";
+    if (!data.condition) return 'Condition is required';
+    if (!data.childBlock) return 'Child block configuration is required';
+    if (!data.childBlock.type) return 'Child block type is required';
     if (!data.dependencies || data.dependencies.length === 0) {
-      return "At least one dependency field is required";
+      return 'At least one dependency field is required';
     }
     return null;
+  },
+  // Chat renderer for chat layout experience
+  chatRenderer: (props) => <ConditionalChatRenderer {...props} />,
+  // Input schema - describes expected input format based on child block type
+  // Since the child block type is dynamic, we use a union type
+  inputSchema: {
+    oneOf: [
+      { type: 'string' }, // For text, textarea, select, radio, date, number (as string), html
+      { type: 'array', items: { type: 'string' } }, // For checkbox (multi-select)
+      { type: 'object', properties: {} }, // For file upload
+    ],
+    discriminator: {
+      propertyName: 'childBlock.type',
+      mapping: {
+        text: 0,
+        textarea: 0,
+        number: 0,
+        select: 0,
+        radio: 0,
+        date: 0,
+        html: 0,
+        checkbox: 1,
+        file: 2,
+        fileupload: 2,
+      },
+    },
   },
   // Note: ConditionalBlock is a container block - its output schema depends on the child block
   // The actual output will match whatever the child block returns
