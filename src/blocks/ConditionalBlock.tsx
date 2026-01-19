@@ -33,11 +33,11 @@ import {
   Info,
   ChevronRight,
   Check,
-  Upload,
 } from 'lucide-react';
 import { useSurveyForm } from '../context/SurveyFormContext';
 import { cn } from '../lib/utils';
 import { themes } from '../themes';
+import { FileUploadInput } from '../components/FileUploadInput';
 // import { BlockRenderer } from "../renderer/renderers/BlockRenderer"; // Removed to avoid circular import
 
 // Form component for editing the block configuration
@@ -885,10 +885,6 @@ const ConditionalChatRenderer: React.FC<ChatRendererProps> = ({
 
       case 'fileupload':
       case 'file': {
-        // Use shared FileUploadInput component
-        const FileUploadInput =
-          require('../components/FileUploadInput').FileUploadInput;
-
         const fileConfig = {
           maxFiles: parseInt(String(childBlock.maxFiles || '1'), 10),
           maxFileSize: parseFloat(String(childBlock.maxFileSize || '5')),

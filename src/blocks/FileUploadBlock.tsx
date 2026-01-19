@@ -15,6 +15,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { generateFieldName } from './utils/GenFieldName';
 import { cn } from '../lib/utils';
 import { themes } from '../themes';
+import { FileUploadInput } from '../components/FileUploadInput';
 
 // Form component for editing the block configuration
 const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -671,10 +672,6 @@ const FileUploadChatRenderer: React.FC<ChatRendererProps> = ({
   disabled = false,
   error,
 }) => {
-  // Dynamically import FileUploadInput to avoid circular dependency issues
-  const FileUploadInput =
-    require('../components/FileUploadInput').FileUploadInput;
-
   // Parse block configuration
   const config = {
     maxFiles: parseInt(String(block.maxFiles || '1'), 10),
