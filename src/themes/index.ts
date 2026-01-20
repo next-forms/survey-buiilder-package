@@ -558,7 +558,7 @@ export const himsTheme: ThemeDefinition = {
     selectableBoxHover: 'hover:border-[#E67E4D]/50',
     selectableBoxFocus: 'focus-within:ring-0 focus-within:border-[#E67E4D]',
     selectableBoxDisabled: 'opacity-50 cursor-not-allowed',
-    selectableBoxContainer: 'space-y-4 max-w-xl mx-auto',
+    selectableBoxContainer: 'space-y-4 mx-auto',
     selectableBoxText: 'text-gray-900 text-base font-normal',
     selectableBoxTextSelected: 'text-gray-900 font-normal',
     selectableBoxIndicator: 'bg-[#E67E4D] text-white',
@@ -638,7 +638,7 @@ export const uniloop: ThemeDefinition = {
       'border border-gray-300 bg-white hover:border-[#948EC47F]',
     selectableBoxDisabled: 'opacity-50 cursor-not-allowed',
     selectableBoxSelected: 'border-2 border-[#948EC4] bg-white',
-    selectableBoxContainer: 'space-y-4 max-w-xl mx-auto',
+    selectableBoxContainer: 'space-y-4 max-w-full w-full mx-auto',
     selectableBoxIndicator: 'bg-[#E67E4D] text-white',
     selectableBoxTextSelected: 'text-gray-900 font-normal',
     selectableBoxIndicatorIcon: 'text-white',
@@ -691,7 +691,7 @@ export const uniloop: ThemeDefinition = {
   background: 'bg-white',
   description:
     'text-base font-medium text-center text-[#1C1C1C] sm:text-lg -tracking-[1%]',
-  containerLayout: 'relative bg-[#FAFAFA]',
+  containerLayout: 'w-full max-w-4xl flex-1 mx-auto h-full min-h-screen',
 };
 
 // Map of all themes

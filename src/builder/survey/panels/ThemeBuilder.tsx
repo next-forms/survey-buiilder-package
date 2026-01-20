@@ -1729,7 +1729,10 @@ export const ThemeBuilder: React.FC<ThemeBuilderProps> = ({onDataChange, customT
                         <Select
                           value={currentTheme.containerLayout.match(/max-w-\w+/)?.[0] || 'max-w-2xl'}
                           onValueChange={(val) => {
-                            const newLayout = currentTheme.containerLayout.replace(/max-w-\w+/, val);
+                            const hasWidth = /max-w-\w+/.test(currentTheme.containerLayout);
+                            const newLayout = hasWidth
+                              ? currentTheme.containerLayout.replace(/max-w-\w+/, val)
+                              : `${currentTheme.containerLayout} ${val}`.trim();
                             handleThemeUpdate({ containerLayout: newLayout });
                           }}
                         >

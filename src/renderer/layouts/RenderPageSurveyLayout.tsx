@@ -121,7 +121,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const bgColor = themeColors.background || '#FAFAFA';
   const textColor = themeColors.text || '#1C1C1C';
   const progressTrackBg = themeColors.background || '#FFFFFF';
-  const btnBg = themeColors.text || '#1C1C1C';
+  const btnBg = themeButton.primary || '#1C1C1C';
   const btnHoverBg = themeColors.text || '#1C1C1C';
   const gradientStart = themeColors.secondary || '#DC9EA8';
   const gradientEnd = themeColors.primary || '#948EC4';
@@ -297,7 +297,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       </header>
 
       {/* Main Content */}
-      <main className="relative flex-1 py-4 sm:py-7 w-full mx-auto">
+      <main className="relative flex-1 py-4 sm:py-7 w-full h-full mx-auto">
         {isReady && (
           <AnimatePresence mode="wait">
             <MotionFragment
