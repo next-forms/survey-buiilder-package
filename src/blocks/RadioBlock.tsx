@@ -1,15 +1,21 @@
-import React, { useState } from "react";
-import { BlockData, BlockDefinition, ContentBlockItemProps, ThemeDefinition } from "../types";
-import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Button } from "../components/ui/button";
-import { CircleCheck, CirclePlus, CircleX, GripVertical } from "lucide-react";
-import { Circle } from "lucide-react";  // optional, for an SVG circle
-import { v4 as uuidv4 } from "uuid";
-import { generateFieldName } from "./utils/GenFieldName";
-import { cn } from "../lib/utils";
-import { themes } from "../themes";
+import React, { useState } from 'react';
+import {
+  BlockData,
+  BlockDefinition,
+  ContentBlockItemProps,
+  ThemeDefinition,
+  ChatRendererProps,
+} from '../types';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Button } from '../components/ui/button';
+import { CircleCheck, CirclePlus, CircleX, GripVertical } from 'lucide-react';
+import { Circle } from 'lucide-react'; // optional, for an SVG circle
+import { v4 as uuidv4 } from 'uuid';
+import { generateFieldName } from './utils/GenFieldName';
+import { cn } from '../lib/utils';
+import { themes } from '../themes';
 import {
   DndContext,
   closestCenter,
@@ -17,16 +23,16 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
-} from "@dnd-kit/core";
+  DragEndEvent,
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface RadioOption {
   id: string;
@@ -39,11 +45,12 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
   data,
   onUpdate,
 }) => {
-  const [newLabel, setNewLabel] = useState("");
-  const [newValue, setNewValue] = useState("");
+  const [newLabel, setNewLabel] = useState('');
+  const [newValue, setNewValue] = useState('');
 
   // Convert legacy labels/values arrays to options format
-  const options: RadioOption[] = data.options ||
+  const options: RadioOption[] =
+    data.options ||
     (data.labels || []).map((label: string, index: number) => ({
       id: uuidv4(),
       label,
@@ -68,29 +75,33 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
         id: uuidv4(),
         label: newLabel,
         value: newValue || newLabel,
-      }
+      },
     ];
 
-    handleChange("options", newOptions);
-    setNewLabel("");
-    setNewValue("");
+    handleChange('options', newOptions);
+    setNewLabel('');
+    setNewValue('');
   };
 
   // Handle removing an option
   const handleRemoveOption = (index: number) => {
     const newOptions = [...options];
     newOptions.splice(index, 1);
-    handleChange("options", newOptions);
+    handleChange('options', newOptions);
   };
 
   // Handle updating an option
-  const handleUpdateOption = (index: number, field: "label" | "value", value: string) => {
+  const handleUpdateOption = (
+    index: number,
+    field: 'label' | 'value',
+    value: string
+  ) => {
     const newOptions = [...options];
     newOptions[index] = {
       ...newOptions[index],
       [field]: value,
     };
-    handleChange("options", newOptions);
+    handleChange('options', newOptions);
   };
 
   // Handle drag end for reordering options
@@ -102,7 +113,7 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
       const newIndex = options.findIndex((option) => option.id === over.id);
 
       const newOptions = arrayMove(options, oldIndex, newIndex);
-      handleChange("options", newOptions);
+      handleChange('options', newOptions);
     }
   };
 
@@ -121,11 +132,13 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">
+            Field Name
+          </Label>
           <Input
             id="fieldName"
-            value={data.fieldName || ""}
-            onChange={(e) => handleChange("fieldName", e.target.value)}
+            value={data.fieldName || ''}
+            onChange={(e) => handleChange('fieldName', e.target.value)}
             placeholder="radioOption1"
           />
           <p className="text-xs text-muted-foreground">
@@ -134,11 +147,13 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">
+            Question Label
+          </Label>
           <Input
             id="label"
-            value={data.label || ""}
-            onChange={(e) => handleChange("label", e.target.value)}
+            value={data.label || ''}
+            onChange={(e) => handleChange('label', e.target.value)}
             placeholder="Your question here?"
           />
           <p className="text-xs text-muted-foreground">
@@ -148,11 +163,13 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">
+          Description/Help Text
+        </Label>
         <Input
           id="description"
-          value={data.description || ""}
-          onChange={(e) => handleChange("description", e.target.value)}
+          value={data.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
           placeholder="Additional information about this question"
         />
       </div>
@@ -200,7 +217,8 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
                   placeholder="New option value (optional)"
                 />
               </div>
-              <Button type="button"
+              <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 onClick={handleAddOption}
@@ -216,31 +234,29 @@ const RadioBlockForm: React.FC<ContentBlockItemProps> = ({
 };
 
 // Component to render the block in the survey
-const RadioBlockItem: React.FC<ContentBlockItemProps> = ({
-  data,
-}) => {
+const RadioBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
   const options: RadioOption[] = data.options || [];
 
   return (
     <div className="space-y-4">
-      {data.label && (
-        <Label>{data.label}</Label>
-      )}
+      {data.label && <Label>{data.label}</Label>}
 
       {data.description && (
         <p className="text-sm text-muted-foreground">{data.description}</p>
       )}
 
-      <RadioGroup defaultValue={data.defaultValue as string} className="grid gap-2">
+      <RadioGroup
+        defaultValue={data.defaultValue as string}
+        className="grid gap-2"
+      >
         {options.map((option: RadioOption, index: number) => {
           const id = `${data.fieldName}-${index}`;
           return (
             <div key={option.id || id} className="flex items-center space-x-2">
-              <RadioGroupItem
-                value={option.value}
-                id={id}
-              />
-              <Label className="text-sm" htmlFor={id}>{option.label}</Label>
+              <RadioGroupItem value={option.value} id={id} />
+              <Label className="text-sm" htmlFor={id}>
+                {option.label}
+              </Label>
             </div>
           );
         })}
@@ -253,14 +269,21 @@ const RadioBlockItem: React.FC<ContentBlockItemProps> = ({
 const RadioBlockPreview: React.FC = () => {
   return (
     <div className="w-full flex items-center justify-center py-1">
-      <RadioGroup defaultValue="1" className="w-4/5 max-w-full space-y-1 grid gap-2">
+      <RadioGroup
+        defaultValue="1"
+        className="w-4/5 max-w-full space-y-1 grid gap-2"
+      >
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="1" id="preview-1" />
-          <Label className="text-sm" htmlFor="preview-1">Option 1</Label>
+          <Label className="text-sm" htmlFor="preview-1">
+            Option 1
+          </Label>
         </div>
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="2" id="preview-2" />
-          <Label className="text-sm" htmlFor="preview-2">Option 2</Label>
+          <Label className="text-sm" htmlFor="preview-2">
+            Option 2
+          </Label>
         </div>
       </RadioGroup>
     </div>
@@ -284,7 +307,7 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
   onBlur,
   error,
   disabled,
-  theme = null
+  theme = null,
 }) => {
   const themeConfig = theme ?? themes.default;
 
@@ -305,14 +328,19 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
     <div className="survey-radio space-y-3 w-full min-w-0">
       {/* Label */}
       {block.label && (
-        <Label className={cn("text-base block", themeConfig.field.label)}>
+        <Label className={cn('text-base block', themeConfig.field.label)}>
           {block.label}
         </Label>
       )}
 
       {/* Description */}
       {block.description && (
-        <div className={cn("text-sm text-muted-foreground", themeConfig.field.description)}>
+        <div
+          className={cn(
+            'text-sm text-muted-foreground',
+            themeConfig.field.description
+          )}
+        >
           {block.description}
         </div>
       )}
@@ -348,7 +376,12 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
 
       {/* Error message */}
       {error && (
-        <div className={cn("text-sm font-medium text-destructive", themeConfig.field.error)}>
+        <div
+          className={cn(
+            'text-sm font-medium text-destructive',
+            themeConfig.field.error
+          )}
+        >
           {error}
         </div>
       )}
@@ -360,7 +393,11 @@ const RadioRenderer: React.FC<RadioRendererProps> = ({
 interface SortableRadioOptionProps {
   option: RadioOption;
   index: number;
-  onUpdateOption: (index: number, field: "label" | "value", value: string) => void;
+  onUpdateOption: (
+    index: number,
+    field: 'label' | 'value',
+    value: string
+  ) => void;
   onRemoveOption: (index: number) => void;
 }
 
@@ -386,11 +423,7 @@ const SortableRadioOption: React.FC<SortableRadioOptionProps> = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
       <button
         type="button"
         className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
@@ -405,16 +438,17 @@ const SortableRadioOption: React.FC<SortableRadioOptionProps> = ({
       <div className="flex-grow grid grid-cols-2 gap-2">
         <Input
           value={option.label}
-          onChange={(e) => onUpdateOption(index, "label", e.target.value)}
+          onChange={(e) => onUpdateOption(index, 'label', e.target.value)}
           placeholder="Option label"
         />
         <Input
           value={option.value}
-          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          onChange={(e) => onUpdateOption(index, 'value', e.target.value)}
           placeholder="Option value"
         />
       </div>
-      <Button type="button"
+      <Button
+        type="button"
         variant="ghost"
         size="icon"
         onClick={() => onRemoveOption(index)}
@@ -428,77 +462,220 @@ const SortableRadioOption: React.FC<SortableRadioOptionProps> = ({
 
 // Export the block definition
 export const RadioBlock: BlockDefinition = {
-  type: "radio",
-  name: "Radio Buttons",
-  description: "Single selection from multiple options",
+  type: 'radio',
+  name: 'Radio Buttons',
+  description: 'Single selection from multiple options',
   icon: <CircleCheck className="w-4 h-4" />,
   defaultData: {
-    type: "radio",
-    fieldName: generateFieldName("radioOptions"),
-    label: "Select an option",
-    description: "",
+    type: 'radio',
+    fieldName: generateFieldName('radioOptions'),
+    label: 'Select an option',
+    description: '',
     options: [
       {
         id: uuidv4(),
-        label: "Option 1",
-        value: "1"
+        label: 'Option 1',
+        value: '1',
       },
       {
         id: uuidv4(),
-        label: "Option 2",
-        value: "2"
+        label: 'Option 2',
+        value: '2',
       },
       {
         id: uuidv4(),
-        label: "Option 3",
-        value: "3"
-      }
+        label: 'Option 3',
+        value: '3',
+      },
     ],
-    defaultValue: "1",
+    defaultValue: '1',
   },
   generateDefaultData: () => ({
-    type: "radio",
-    fieldName: generateFieldName("radioOptions"),
-    label: "Select an option",
-    description: "",
+    type: 'radio',
+    fieldName: generateFieldName('radioOptions'),
+    label: 'Select an option',
+    description: '',
     options: [
       {
         id: uuidv4(),
-        label: "Option 1",
-        value: "1"
+        label: 'Option 1',
+        value: '1',
       },
       {
         id: uuidv4(),
-        label: "Option 2",
-        value: "2"
+        label: 'Option 2',
+        value: '2',
       },
       {
         id: uuidv4(),
-        label: "Option 3",
-        value: "3"
-      }
+        label: 'Option 3',
+        value: '3',
+      },
     ],
-    defaultValue: "1",
+    defaultValue: '1',
   }),
 
   renderItem: (props) => <RadioBlockItem {...props} />,
   renderFormFields: (props) => <RadioBlockForm {...props} />,
-  renderPreview: () => <RadioBlockPreview/>,
+  renderPreview: () => <RadioBlockPreview />,
   renderBlock: (props) => <RadioRenderer {...props} />,
   validate: (data) => {
-    if (!data.fieldName) return "Field name is required";
-    if (!data.label) return "Label is required";
-    if (!data.labels || !data.labels.length) return "At least one option is required";
+    if (!data.fieldName) return 'Field name is required';
+    if (!data.label) return 'Label is required';
+    if (!data.labels || !data.labels.length)
+      return 'At least one option is required';
     return null;
   },
   validateValue: (value, data) => {
-    if (data.required && !value) return "This field is required";
+    if (data.required && !value) return 'This field is required';
     if (value && data.values && !data.values.includes(value))
-      return "Selected value is not valid";
+      return 'Selected value is not valid';
     return null;
   },
   // Output schema - this block returns a single selected value (string or number)
-  outputSchema: {
-    type: 'string'
+  inputSchema: {
+    type: 'object',
+    properties: {
+      value: { type: 'string', description: 'Selected Option' },
+    },
   },
+  outputSchema: {
+    type: 'string',
+  },
+  chatRenderer: (props) => <RadioChatRenderer {...props} />,
+};
+
+const RadioChatRenderer: React.FC<ChatRendererProps> = ({
+  block,
+  value,
+  onChange,
+  onSubmit,
+  error,
+  disabled,
+  theme = null,
+}) => {
+  const themeConfig = theme ?? themes.default;
+  const options: RadioOption[] = block.options || [];
+
+  const [selectedValue, setSelectedValue] = useState<string>(() => {
+    if (value !== undefined) return String(value);
+    if (block.defaultValue !== undefined) return String(block.defaultValue);
+    return '';
+  });
+
+  // Sync with external value changes
+  React.useEffect(() => {
+    if (value !== undefined) {
+      setSelectedValue(String(value));
+    }
+  }, [value]);
+
+  const handleSelect = (optionValue: string) => {
+    if (disabled) return;
+
+    setSelectedValue(optionValue);
+    if (onChange) {
+      onChange(optionValue);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (onSubmit && selectedValue) {
+      onSubmit(selectedValue);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-2">
+        {options.map((option, index) => {
+          const isSelected = selectedValue === option.value;
+          const id = option.id || `${block.fieldName}-${index}`;
+
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              disabled={disabled}
+              className={cn(
+                'relative w-full flex justify-between gap-6 items-center transition-all border',
+                // Base theme class for options/select
+                themeConfig.field.select,
+                // Active state styling
+                disabled && 'opacity-50 cursor-not-allowed'
+              )}
+              style={{
+                backgroundColor: themeConfig.colors.background,
+                borderColor: isSelected
+                  ? themeConfig.colors.primary
+                  : themeConfig.colors.border,
+              }}
+            >
+              {/* Label */}
+              <p
+                className={cn(
+                  'text-left transition-colors mb-0',
+                  themeConfig.field.label
+                )}
+                style={{
+                  color: isSelected ? themeConfig.colors.primary : undefined,
+                  marginBottom: 0,
+                }}
+              >
+                {option.label}
+              </p>
+
+              {/* Radio Indicator */}
+              <div
+                className="flex h-6 w-6 items-center justify-center rounded-full border bg-white shrink-0 relative transition-colors"
+                style={{
+                  borderColor: isSelected
+                    ? themeConfig.colors.primary
+                    : themeConfig.colors.border,
+                  flexShrink: 0,
+                  borderRadius: '50%', // Explicitly round for radio
+                }}
+              >
+                {isSelected && (
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: themeConfig.colors.primary }}
+                  />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <p
+          className={cn(
+            'text-xs',
+            themeConfig.field.error || 'text-destructive'
+          )}
+        >
+          {error}
+        </p>
+      )}
+
+      {/* Continue Button */}
+      <Button
+        type="button"
+        onClick={handleSubmit}
+        disabled={disabled || !selectedValue}
+        className={cn(
+          'h-12 rounded-xl w-full mt-2 font-semibold',
+          themeConfig.button.primary
+        )}
+        style={{
+          backgroundColor: themeConfig.colors.primary,
+        }}
+      >
+        Continue
+      </Button>
+    </div>
+  );
 };
