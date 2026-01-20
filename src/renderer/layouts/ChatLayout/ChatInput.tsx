@@ -389,7 +389,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-2 w-full"
+        className="flex flex-col gap-4 w-full"
       >
         <Textarea
           ref={textareaRef}
@@ -416,14 +416,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onClick={handleSubmitClick}
             disabled={disabled || !localValue}
             size="sm"
-            className="rounded-full"
+            className="rounded-full w-full flex-1 lg:w-fit lg:flex-0 flex gap-3 items-center"
             style={
               theme?.colors?.primary
                 ? { backgroundColor: theme.colors.primary }
                 : undefined
             }
           >
-            <Send className="w-4 h-4" />
+            <span className="inline-block">Continue</span>
+            <Send className="w-3 h-3 lg:w-4 lg:h-4" />
           </Button>
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -436,7 +437,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex gap-2 w-full"
+      className="relative w-full h-fit flex gap-2 lg:gap-4 items-center"
     >
       <Input
         ref={inputRef}
@@ -453,7 +454,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         placeholder={block.placeholder || placeholder}
         disabled={disabled}
         className={cn(
-          'flex-1 rounded-full px-4 py-2 h-12',
           theme?.field?.input,
           error && 'border-red-500',
         )}
@@ -462,15 +462,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         type="button"
         onClick={handleSubmitClick}
         disabled={disabled || !localValue}
-        size="icon"
-        className="rounded-full h-12 w-12 shrink-0"
+        className={cn(
+          theme?.button?.primary
+            ? theme?.button?.primary
+            : 'shadow-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'relative rounded-full shrink-0 flex items-center justify-center flex-none h-full w-auto aspect-square min-h-[64px]'
+        )}
         style={
           theme?.colors?.primary
             ? { backgroundColor: theme.colors.primary }
             : undefined
         }
       >
-        <Send className="w-5 h-5" />
+        <Send className="w-7 h-7 text-white" />
       </Button>
       {error && (
         <p className="absolute -bottom-6 left-0 text-sm text-red-500">
