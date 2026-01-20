@@ -110,16 +110,21 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     analytics,
   } = useSurveyForm();
 
-  // Theme-driven colors (fallbacks keep MedVi defaults)
+  // Theme-driven styling (fallbacks keep MedVi defaults)
   const themeColors = (theme as any)?.colors || {};
+  const themeButton = (theme as any)?.button || {};
+  const themeProgress = (theme as any)?.progress || {};
+  const themeContainer = (theme as any)?.containerLayout || '';
+  const themeBackground = (theme as any)?.background || '';
+
+  // Colors
   const bgColor = themeColors.background || '#FAFAFA';
   const textColor = themeColors.text || '#1C1C1C';
-  const ratingBg = themeColors.card || '#FFFFFF'; // optional theme color token
-  const progressTrackBg = themeColors.card || '#FFFFFF';
+  const progressTrackBg = themeColors.background || '#FFFFFF';
   const btnBg = themeColors.text || '#1C1C1C';
   const btnHoverBg = themeColors.text || '#1C1C1C';
-  const gradientStart = themeColors.accent || '#DC9EA8';
-  const gradientEnd = themeColors.secondary || '#948EC4';
+  const gradientStart = themeColors.secondary || '#DC9EA8';
+  const gradientEnd = themeColors.primary || '#948EC4';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -213,8 +218,12 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const layoutContent = (
     <div
       ref={containerRef}
-      className="medvi-layout relative flex flex-col w-full max-w-4xl mx-auto py-2 sm:py-8 px-6 sm:px-8"
-      style={{ minHeight: '70svh', color: textColor }}
+      className={cn(
+        'medvi-layout relative flex flex-col w-full py-2 sm:py-8 px-6 sm:px-8',
+        themeContainer || 'max-w-4xl mx-auto',
+        themeBackground,
+      )}
+      style={{ minHeight: '70svh', color: textColor, backgroundColor: bgColor }}
     >
       {/* Debug Panel */}
       {enableDebug && (
@@ -269,10 +278,14 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                 }}
               >
                 <motion.div
-                  className="h-full rounded-full"
-                  style={{
-                    background: `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`,
-                  }}
+                  className={cn('h-full rounded-full', themeProgress.bar)}
+                  style={
+                    !themeProgress.bar
+                      ? {
+                          background: `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`,
+                        }
+                      : undefined
+                  }
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -335,7 +348,10 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       {/* Footer (MedVi CTA) */}
       <footer className="py-16 px-4">
         {blockDisclaimer && (
-          <p className="text-xs text-[#1C1C1C]/60 leading-relaxed max-w-md mx-auto text-center mb-6">
+          <p
+            className="text-xs leading-relaxed max-w-md mx-auto text-center mb-6"
+            style={{ color: `${textColor}99` }}
+          >
             {blockDisclaimer}
           </p>
         )}
@@ -346,23 +362,32 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
               type="submit"
               disabled={!isValid}
               className={cn(
-                'w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 flex items-center gap-2.5 focus:outline-none',
+                'flex items-center gap-2.5',
+                themeButton.primary ||
+                  'w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 focus:outline-none',
                 !isValid
                   ? 'opacity-60 cursor-not-allowed'
                   : 'active:scale-[0.98] cursor-pointer',
               )}
-              style={{
-                backgroundColor: btnBg,
-                flexGrow: 1,
-                boxShadow:
-                  'inset 0 5px 8.8px rgba(255, 255, 255, 0.25), inset 0 -8px 9.9px rgba(0, 0, 0, 0.25)',
-              }}
+              style={
+                !themeButton.primary
+                  ? {
+                      backgroundColor: btnBg,
+                      flexGrow: 1,
+                      boxShadow:
+                        'inset 0 5px 8.8px rgba(255, 255, 255, 0.25), inset 0 -8px 9.9px rgba(0, 0, 0, 0.25)',
+                    }
+                  : undefined
+              }
               onMouseEnter={(e) => {
-                if (isValid)
+                if (isValid && !themeButton.primary) {
                   e.currentTarget.style.backgroundColor = `${btnHoverBg}CC`;
+                }
               }}
               onMouseLeave={(e) => {
-                if (isValid) e.currentTarget.style.backgroundColor = btnBg;
+                if (isValid && !themeButton.primary) {
+                  e.currentTarget.style.backgroundColor = btnBg;
+                }
               }}
             >
               {isFinalStep ? completeText : continueText}
