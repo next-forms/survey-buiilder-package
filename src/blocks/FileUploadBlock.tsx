@@ -1,14 +1,21 @@
-import React, { useRef, useState } from "react";
-import type { BlockData, BlockDefinition, ContentBlockItemProps, ThemeDefinition } from "../types";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Button } from "../components/ui/button";
-import { FileUp, Upload, UploadCloud, X } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
-import { Checkbox } from "../components/ui/checkbox";
-import { generateFieldName } from "./utils/GenFieldName";
-import { cn } from "../lib/utils";
-import { themes } from "../themes";
+import React, { useRef, useState } from 'react';
+import type {
+  BlockData,
+  BlockDefinition,
+  ContentBlockItemProps,
+  ThemeDefinition,
+  ChatRendererProps,
+} from '../types';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Button } from '../components/ui/button';
+import { FileUp, Upload, UploadCloud, X } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { Checkbox } from '../components/ui/checkbox';
+import { generateFieldName } from './utils/GenFieldName';
+import { cn } from '../lib/utils';
+import { themes } from '../themes';
+import { FileUploadInput } from '../components/FileUploadInput';
 
 // Form component for editing the block configuration
 const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
@@ -26,23 +33,25 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
   // Handle file extensions
   const handleFileExtensions = (extensionsStr: string) => {
     const extensions = extensionsStr
-      .split(",")
+      .split(',')
       .map((ext) => ext.trim())
       .filter((ext) => ext)
-      .map((ext) => (ext.startsWith(".") ? ext : `.${ext}`));
+      .map((ext) => (ext.startsWith('.') ? ext : `.${ext}`));
 
-    handleChange("acceptedFileTypes", extensions);
+    handleChange('acceptedFileTypes', extensions);
   };
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">
+            Field Name
+          </Label>
           <Input
             id="fieldName"
-            value={data.fieldName || ""}
-            onChange={(e) => handleChange("fieldName", e.target.value)}
+            value={data.fieldName || ''}
+            onChange={(e) => handleChange('fieldName', e.target.value)}
             placeholder="fileUpload1"
           />
           <p className="text-xs text-muted-foreground">
@@ -51,11 +60,13 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="label">Question Label</Label>
+          <Label className="text-sm" htmlFor="label">
+            Question Label
+          </Label>
           <Input
             id="label"
-            value={data.label || ""}
-            onChange={(e) => handleChange("label", e.target.value)}
+            value={data.label || ''}
+            onChange={(e) => handleChange('label', e.target.value)}
             placeholder="Your question here?"
           />
           <p className="text-xs text-muted-foreground">
@@ -65,21 +76,25 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="description">Description/Help Text</Label>
+        <Label className="text-sm" htmlFor="description">
+          Description/Help Text
+        </Label>
         <Input
           id="description"
-          value={data.description || ""}
-          onChange={(e) => handleChange("description", e.target.value)}
+          value={data.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
           placeholder="Additional information about this question"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="acceptedFileTypes">Accepted File Types</Label>
+          <Label className="text-sm" htmlFor="acceptedFileTypes">
+            Accepted File Types
+          </Label>
           <Input
             id="acceptedFileTypes"
-            value={(data.acceptedFileTypes || []).join(", ")}
+            value={(data.acceptedFileTypes || []).join(', ')}
             onChange={(e) => handleFileExtensions(e.target.value)}
             placeholder=".jpg, .png, .pdf"
           />
@@ -89,12 +104,14 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="maxFileSize">Maximum File Size (MB)</Label>
+          <Label className="text-sm" htmlFor="maxFileSize">
+            Maximum File Size (MB)
+          </Label>
           <Input
             id="maxFileSize"
             type="number"
-            value={data.maxFileSize || "5"}
-            onChange={(e) => handleChange("maxFileSize", e.target.value)}
+            value={data.maxFileSize || '5'}
+            onChange={(e) => handleChange('maxFileSize', e.target.value)}
             min="0.1"
             step="0.1"
           />
@@ -103,12 +120,14 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="maxFiles">Maximum Files</Label>
+          <Label className="text-sm" htmlFor="maxFiles">
+            Maximum Files
+          </Label>
           <Input
             id="maxFiles"
             type="number"
-            value={data.maxFiles || "1"}
-            onChange={(e) => handleChange("maxFiles", e.target.value)}
+            value={data.maxFiles || '1'}
+            onChange={(e) => handleChange('maxFiles', e.target.value)}
             min="1"
             step="1"
           />
@@ -120,20 +139,24 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
               id="showPreview"
               checked={data.showPreview === true}
               onCheckedChange={(checked) =>
-                handleChange("showPreview", !!checked)
+                handleChange('showPreview', !!checked)
               }
             />
-            <Label className="text-sm" htmlFor="showPreview">Show previews for images</Label>
+            <Label className="text-sm" htmlFor="showPreview">
+              Show previews for images
+            </Label>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="helpText">Upload Instructions</Label>
+        <Label className="text-sm" htmlFor="helpText">
+          Upload Instructions
+        </Label>
         <Input
           id="helpText"
-          value={data.helpText || ""}
-          onChange={(e) => handleChange("helpText", e.target.value)}
+          value={data.helpText || ''}
+          onChange={(e) => handleChange('helpText', e.target.value)}
           placeholder="Drag and drop files here or click to browse"
         />
       </div>
@@ -143,11 +166,11 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
           <Checkbox
             id="required"
             checked={data.required === true}
-            onCheckedChange={(checked) =>
-              handleChange("required", !!checked)
-            }
+            onCheckedChange={(checked) => handleChange('required', !!checked)}
           />
-          <Label className="text-sm" htmlFor="required">Required</Label>
+          <Label className="text-sm" htmlFor="required">
+            Required
+          </Label>
         </div>
       </div>
     </div>
@@ -155,9 +178,7 @@ const FileUploadBlockForm: React.FC<ContentBlockItemProps> = ({
 };
 
 // Component to render the block in the survey
-const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
-  data,
-}) => {
+const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({ data }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [files, setFiles] = React.useState<File[]>([]);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -166,9 +187,10 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
-    const maxFiles = parseInt(String(data.maxFiles || "1"), 10);
-    const maxFileSize = parseFloat(String(data.maxFileSize || "5")) * 1024 * 1024; // Convert MB to bytes
-    const acceptedTypes = data.acceptedFileTypes as string[] || [];
+    const maxFiles = parseInt(String(data.maxFiles || '1'), 10);
+    const maxFileSize =
+      parseFloat(String(data.maxFileSize || '5')) * 1024 * 1024; // Convert MB to bytes
+    const acceptedTypes = (data.acceptedFileTypes as string[]) || [];
 
     // Filter files based on accepted types and size
     const validFiles: File[] = [];
@@ -177,7 +199,8 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
       const file = selectedFiles[i];
       const fileExt = `.${file.name.split('.').pop()?.toLowerCase()}`;
 
-      const isValidType = acceptedTypes.length === 0 || acceptedTypes.includes(fileExt);
+      const isValidType =
+        acceptedTypes.length === 0 || acceptedTypes.includes(fileExt);
       const isValidSize = file.size <= maxFileSize;
 
       if (isValidType && isValidSize) {
@@ -223,7 +246,7 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
           className="flex items-center gap-2 p-2 rounded-md border bg-card mt-2"
         >
           {showPreview && (
-            <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden">
+            <div className="w-10 h-10 shrink-0 rounded overflow-hidden">
               <img
                 src={URL.createObjectURL(file)}
                 alt={file.name}
@@ -232,18 +255,19 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
             </div>
           )}
 
-          <div className="flex-grow truncate">
+          <div className="grow truncate">
             <p className="text-sm font-medium truncate">{file.name}</p>
             <p className="text-xs text-muted-foreground">
               {(file.size / 1024).toFixed(1)} KB
             </p>
           </div>
 
-          <Button type="button"
+          <Button
+            type="button"
             variant="ghost"
             size="icon"
             onClick={() => handleRemoveFile(index)}
-            className="flex-shrink-0"
+            className="shrink-0"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -255,7 +279,9 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
   return (
     <div className="space-y-2">
       {data.label && (
-        <Label className="text-sm" htmlFor={data.fieldName}>{data.label}</Label>
+        <Label className="text-sm" htmlFor={data.fieldName}>
+          {data.label}
+        </Label>
       )}
 
       {data.description && (
@@ -264,7 +290,9 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
 
       <div
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
-          isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20"
+          isDragging
+            ? 'border-primary bg-primary/5'
+            : 'border-muted-foreground/20'
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -273,15 +301,19 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
       >
         <FileUp className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
         <p className="text-sm font-medium mb-1">
-          {data.helpText || "Drag and drop files here or click to browse"}
+          {data.helpText || 'Drag and drop files here or click to browse'}
         </p>
 
         <p className="text-xs text-muted-foreground">
           {data.acceptedFileTypes && data.acceptedFileTypes.length > 0
-            ? `Accepted formats: ${(data.acceptedFileTypes as string[]).join(", ")}`
-            : "All file formats accepted"}
+            ? `Accepted formats: ${(data.acceptedFileTypes as string[]).join(
+                ', ',
+              )}`
+            : 'All file formats accepted'}
           {data.maxFileSize && ` • Max size: ${data.maxFileSize} MB`}
-          {data.maxFiles && parseInt(String(data.maxFiles), 10) > 1 && ` • Max files: ${data.maxFiles}`}
+          {data.maxFiles &&
+            parseInt(String(data.maxFiles), 10) > 1 &&
+            ` • Max files: ${data.maxFiles}`}
         </p>
 
         <input
@@ -289,8 +321,8 @@ const FileUploadBlockItem: React.FC<ContentBlockItemProps> = ({
           id={data.fieldName}
           type="file"
           className="hidden"
-          accept={(data.acceptedFileTypes as string[])?.join(",") || undefined}
-          multiple={parseInt(String(data.maxFiles || "1"), 10) > 1}
+          accept={(data.acceptedFileTypes as string[])?.join(',') || undefined}
+          multiple={parseInt(String(data.maxFiles || '1'), 10) > 1}
           onChange={(e) => handleFileSelect(e.target.files)}
         />
       </div>
@@ -331,7 +363,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
   onBlur,
   error,
   disabled,
-  theme = null
+  theme = null,
 }) => {
   const themeConfig = theme ?? themes.default;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -347,9 +379,10 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
   const [isDragging, setIsDragging] = useState(false);
 
   // Parse block configuration
-  const maxFiles = parseInt(String(block.maxFiles || "1"), 10);
-  const maxFileSize = parseFloat(String(block.maxFileSize || "5")) * 1024 * 1024; // Convert MB to bytes
-  const acceptedTypes = block.acceptedFileTypes as string[] || [];
+  const maxFiles = parseInt(String(block.maxFiles || '1'), 10);
+  const maxFileSize =
+    parseFloat(String(block.maxFileSize || '5')) * 1024 * 1024; // Convert MB to bytes
+  const acceptedTypes = (block.acceptedFileTypes as string[]) || [];
 
   // Handle file selection
   const handleFileSelect = (selectedFiles: FileList | null) => {
@@ -362,7 +395,8 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
       const file = selectedFiles[i];
       const fileExt = `.${file.name.split('.').pop()?.toLowerCase()}`;
 
-      const isValidType = acceptedTypes.length === 0 || acceptedTypes.includes(fileExt);
+      const isValidType =
+        acceptedTypes.length === 0 || acceptedTypes.includes(fileExt);
       const isValidSize = file.size <= maxFileSize;
 
       if (isValidType && isValidSize) {
@@ -426,7 +460,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
           className={`flex items-center gap-2 p-2 rounded-md mt-2 ${themeConfig.container.card}`}
         >
           {showPreview && (
-            <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden">
+            <div className="w-10 h-10 shrink-0 rounded overflow-hidden">
               <img
                 src={URL.createObjectURL(file)}
                 alt={file.name}
@@ -435,8 +469,10 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
             </div>
           )}
 
-          <div className="flex-grow truncate">
-            <p className={`text-sm font-medium truncate ${themeConfig.field.label}`}>
+          <div className="grow truncate">
+            <p
+              className={`text-sm font-medium truncate ${themeConfig.field.label}`}
+            >
               {file.name}
             </p>
             <p className={`text-xs ${themeConfig.field.description}`}>
@@ -448,11 +484,22 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
             <button
               type="button"
               onClick={() => handleRemoveFile(index)}
-              className={`flex-shrink-0 p-1 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500`}
+              className={`shrink-0 p-1 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500`}
               aria-label="Remove file"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -467,7 +514,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
       {block.label && (
         <Label
           htmlFor={block.fieldName}
-          className={cn("text-base", themeConfig.field.label)}
+          className={cn('text-base', themeConfig.field.label)}
         >
           {block.label}
         </Label>
@@ -475,7 +522,12 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
 
       {/* Description */}
       {block.description && (
-        <div className={cn("text-sm text-muted-foreground", themeConfig.field.description)}>
+        <div
+          className={cn(
+            'text-sm text-muted-foreground',
+            themeConfig.field.description,
+          )}
+        >
           {block.description}
         </div>
       )}
@@ -483,11 +535,11 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
       {/* Upload area */}
       <div
         className={cn(
-          "border-2 border-dashed rounded-md p-6 text-center transition-colors",
-          isDragging ? "border-primary bg-primary/5" : "border-input",
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-          error && "border-destructive",
-          themeConfig.container.border
+          'border-2 border-dashed rounded-md p-6 text-center transition-colors',
+          isDragging ? 'border-primary bg-primary/5' : 'border-input',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+          error && 'border-destructive',
+          themeConfig.container.border,
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -495,17 +547,25 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
         onClick={() => !disabled && fileInputRef.current?.click()}
       >
         <UploadCloud
-          className={cn("mx-auto h-10 w-10 mb-2 text-muted-foreground", themeConfig.field.description)}
+          className={cn(
+            'mx-auto h-10 w-10 mb-2 text-muted-foreground',
+            themeConfig.field.description,
+          )}
         />
 
-        <p className={cn("text-sm font-medium mb-1", themeConfig.field.text)}>
-          {block.helpText || "Drag and drop files here or click to browse"}
+        <p className={cn('text-sm font-medium mb-1', themeConfig.field.text)}>
+          {block.helpText || 'Drag and drop files here or click to browse'}
         </p>
 
-        <p className={cn("text-xs text-muted-foreground", themeConfig.field.description)}>
+        <p
+          className={cn(
+            'text-xs text-muted-foreground',
+            themeConfig.field.description,
+          )}
+        >
           {acceptedTypes && acceptedTypes.length > 0
-            ? `Accepted formats: ${acceptedTypes.join(", ")}`
-            : "All file formats accepted"}
+            ? `Accepted formats: ${acceptedTypes.join(', ')}`
+            : 'All file formats accepted'}
           {block.maxFileSize && ` • Max size: ${block.maxFileSize} MB`}
           {maxFiles > 1 && ` • Max files: ${maxFiles}`}
         </p>
@@ -515,7 +575,7 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
           id={block.fieldName}
           type="file"
           className="hidden"
-          accept={acceptedTypes?.join(",") || undefined}
+          accept={acceptedTypes?.join(',') || undefined}
           multiple={maxFiles > 1}
           onChange={(e) => handleFileSelect(e.target.files)}
           disabled={disabled}
@@ -533,12 +593,12 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
               <div
                 key={index}
                 className={cn(
-                  "flex items-center gap-2 p-2 rounded-md border",
-                  themeConfig.container.card
+                  'flex items-center gap-2 p-2 rounded-md border',
+                  themeConfig.container.card,
                 )}
               >
                 {showPreview && (
-                  <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden">
+                  <div className="w-10 h-10 shrink-0 rounded overflow-hidden">
                     <img
                       src={URL.createObjectURL(file)}
                       alt={file.name}
@@ -547,11 +607,21 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
                   </div>
                 )}
 
-                <div className="flex-grow truncate">
-                  <p className={cn("text-sm font-medium truncate", themeConfig.field.label)}>
+                <div className="grow truncate">
+                  <p
+                    className={cn(
+                      'text-sm font-medium truncate',
+                      themeConfig.field.label,
+                    )}
+                  >
                     {file.name}
                   </p>
-                  <p className={cn("text-xs text-muted-foreground", themeConfig.field.description)}>
+                  <p
+                    className={cn(
+                      'text-xs text-muted-foreground',
+                      themeConfig.field.description,
+                    )}
+                  >
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
@@ -576,7 +646,12 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
 
       {/* Error message */}
       {error && (
-        <div className={cn("text-sm font-medium text-destructive", themeConfig.field.error)}>
+        <div
+          className={cn(
+            'text-sm font-medium text-destructive',
+            themeConfig.field.error,
+          )}
+        >
           {error}
         </div>
       )}
@@ -584,54 +659,96 @@ const FileUploadRenderer: React.FC<FileUploadRendererProps> = ({
   );
 };
 
+/**
+ * Chat renderer for File Upload - provides a streamlined chat experience
+ * for uploading files with drag-and-drop support
+ */
+const FileUploadChatRenderer: React.FC<ChatRendererProps> = ({
+  block,
+  value,
+  onChange,
+  onSubmit,
+  theme,
+  disabled = false,
+  error,
+}) => {
+  // Parse block configuration
+  const config = {
+    maxFiles: parseInt(String(block.maxFiles || '1'), 10),
+    maxFileSize: parseFloat(String(block.maxFileSize || '5')),
+    acceptedFileTypes: (block.acceptedFileTypes as string[]) || [],
+    showPreview: block.showPreview as boolean,
+    helpText: block.helpText as string,
+  };
+
+  return (
+    <FileUploadInput
+      value={Array.isArray(value) ? value : []}
+      onChange={onChange}
+      onSubmit={onSubmit}
+      config={config}
+      disabled={disabled}
+      error={error}
+      theme={theme}
+      showSubmitButton={true}
+    />
+  );
+};
+
 // Export the block definition
 export const FileUploadBlock: BlockDefinition = {
-  type: "fileupload",
-  name: "File Upload",
-  description: "Component for uploading files",
+  type: 'fileupload',
+  name: 'File Upload',
+  description: 'Component for uploading files',
   icon: <Upload className="w-4 h-4" />,
   defaultData: {
-    type: "fileupload",
-    fieldName: generateFieldName("file"),
-    label: "Upload files",
-    description: "",
-    acceptedFileTypes: [".jpg", ".jpeg", ".png", ".pdf"],
-    maxFileSize: "5",
-    maxFiles: "1",
-    helpText: "Drag and drop files here or click to browse",
+    type: 'fileupload',
+    fieldName: generateFieldName('file'),
+    label: 'Upload files',
+    description: '',
+    acceptedFileTypes: ['.jpg', '.jpeg', '.png', '.pdf'],
+    maxFileSize: '5',
+    maxFiles: '1',
+    helpText: 'Drag and drop files here or click to browse',
     showPreview: true,
     required: false,
   },
   generateDefaultData: () => ({
-    type: "fileupload",
-    fieldName: generateFieldName("file"),
-    label: "Upload files",
-    description: "",
-    acceptedFileTypes: [".jpg", ".jpeg", ".png", ".pdf"],
-    maxFileSize: "5",
-    maxFiles: "1",
-    helpText: "Drag and drop files here or click to browse",
+    type: 'fileupload',
+    fieldName: generateFieldName('file'),
+    label: 'Upload files',
+    description: '',
+    acceptedFileTypes: ['.jpg', '.jpeg', '.png', '.pdf'],
+    maxFileSize: '5',
+    maxFiles: '1',
+    helpText: 'Drag and drop files here or click to browse',
     showPreview: true,
     required: false,
   }),
   renderItem: (props) => <FileUploadBlockItem {...props} />,
   renderFormFields: (props) => <FileUploadBlockForm {...props} />,
-  renderBlock: (props: FileUploadRendererProps) => <FileUploadRenderer {...props} />,
-  renderPreview: () => <FileUploadBlockPreview/>,
+  renderBlock: (props: FileUploadRendererProps) => (
+    <FileUploadRenderer {...props} />
+  ),
+  renderPreview: () => <FileUploadBlockPreview />,
+  chatRenderer: (props) => <FileUploadChatRenderer {...props} />,
   validate: (data) => {
-    if (!data.fieldName) return "Field name is required";
-    if (!data.label) return "Label is required";
+    if (!data.fieldName) return 'Field name is required';
+    if (!data.label) return 'Label is required';
     return null;
   },
   validateValue: (value, data) => {
-    if (data.required && (!value || (Array.isArray(value) && value.length === 0))) {
-      return "At least one file is required";
+    if (
+      data.required &&
+      (!value || (Array.isArray(value) && value.length === 0))
+    ) {
+      return 'At least one file is required';
     }
-    
+
     if (value) {
       const files = Array.isArray(value) ? value : [value];
-      const maxFiles = parseInt(data.maxFiles || "1", 10);
-      const maxFileSize = parseInt(data.maxFileSize || "5", 10) * 1024 * 1024; // Convert MB to bytes
+      const maxFiles = parseInt(data.maxFiles || '1', 10);
+      const maxFileSize = parseInt(data.maxFileSize || '5', 10) * 1024 * 1024; // Convert MB to bytes
 
       if (files.length > maxFiles) {
         return `Maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''} allowed`;
@@ -639,13 +756,19 @@ export const FileUploadBlock: BlockDefinition = {
 
       for (const file of files) {
         if (file.size && file.size > maxFileSize) {
-          return `File size must be less than ${data.maxFileSize || "5"}MB`;
+          return `File size must be less than ${data.maxFileSize || '5'}MB`;
         }
 
-        if (data.acceptedFileTypes && data.acceptedFileTypes.length > 0 && file.name) {
+        if (
+          data.acceptedFileTypes &&
+          data.acceptedFileTypes.length > 0 &&
+          file.name
+        ) {
           const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
           if (!data.acceptedFileTypes.includes(fileExtension)) {
-            return `File type not allowed. Accepted types: ${data.acceptedFileTypes.join(', ')}`;
+            return `File type not allowed. Accepted types: ${data.acceptedFileTypes.join(
+              ', ',
+            )}`;
           }
         }
       }
@@ -653,8 +776,13 @@ export const FileUploadBlock: BlockDefinition = {
 
     return null;
   },
-  // Output schema - this block returns a string (file URL) or object with file information
+  inputSchema: {
+    type: 'array',
+    items: { type: 'string' },
+  },
+  // Output schema - this block returns an array of strings (file URLs)
   outputSchema: {
-    type: 'string'
+    type: 'array',
+    items: { type: 'string' },
   },
 };
