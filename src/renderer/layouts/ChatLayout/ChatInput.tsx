@@ -15,6 +15,7 @@ import { Slider } from '../../../components/ui/slider';
 import { DatePickerPopover } from '../../../components/ui/datepicker-popover';
 import { ChatOptionButtons } from './ChatOptionButtons';
 import { SchemaBasedInput } from './SchemaBasedInput';
+import { FileUploadInput } from '../../../components/FileUploadInput';
 
 interface ChatInputProps {
   block: BlockData;
@@ -78,7 +79,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [block.uuid]);
 
   const handleTextChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
@@ -130,7 +131,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     TEXT_BLOCK_TYPES.includes(blockType) ||
     TEXTAREA_BLOCK_TYPES.includes(blockType) ||
     ['datepicker', 'date', 'range', 'slider', 'fileupload', 'file'].includes(
-      blockType
+      blockType,
     );
 
   // PRIORITY 3: For unknown blocks, check for inputSchema or outputSchema
@@ -306,7 +307,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         // Validate file size
         if (file.size > maxFileSize) {
           errors.push(
-            `${file.name}: File too large (max ${block.maxFileSize || '5'}MB)`
+            `${file.name}: File too large (max ${block.maxFileSize || '5'}MB)`,
           );
           continue;
         }
@@ -322,18 +323,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
     };
 
+    // Convert value to File[] if needed
+    const fileValue = Array.isArray(value) ? value : value ? [value] : [];
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full space-y-2"
+        className="w-full"
       >
         <label
           className={cn(
             'flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer',
             'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
             'hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -400,7 +404,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           disabled={disabled}
           className={cn(
             'min-h-[100px] resize-none rounded-xl',
-            theme?.field?.textarea
+            theme?.field?.textarea,
           )}
         />
         <div className="flex justify-between items-center">
@@ -440,8 +444,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           blockType === 'email'
             ? 'email'
             : blockType === 'number'
-            ? 'number'
-            : 'text'
+              ? 'number'
+              : 'text'
         }
         value={localValue}
         onChange={handleTextChange}
@@ -451,7 +455,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         className={cn(
           'flex-1 rounded-full px-4 py-2 h-12',
           theme?.field?.input,
-          error && 'border-red-500'
+          error && 'border-red-500',
         )}
       />
       <Button

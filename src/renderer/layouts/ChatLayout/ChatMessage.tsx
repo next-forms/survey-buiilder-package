@@ -30,11 +30,13 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     hidden: {
       opacity: 0,
       y: 10,
+      width: 0,
       scale: 0.95,
     },
     visible: {
       opacity: 1,
       y: 0,
+      width: 'auto',
       scale: 1,
       transition: {
         duration: 0.2,
@@ -46,7 +48,11 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   if (message.isLoading) {
     return (
       <motion.div
-        className={cn('flex', isAssistant ? 'justify-start' : 'justify-end', className)}
+        className={cn(
+          'flex origin-bottom-left',
+          isAssistant ? 'justify-start' : 'justify-end',
+          className
+        )}
         variants={messageVariants}
         initial="hidden"
         animate="visible"
@@ -73,9 +79,10 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           isAssistant
             ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md'
             : 'text-white rounded-br-md',
-          !isAssistant && (theme?.colors?.primary
-            ? `bg-[${theme.colors.primary}]`
-            : 'bg-blue-600')
+          !isAssistant &&
+            (theme?.colors?.primary
+              ? `bg-[${theme.colors.primary}]`
+              : 'bg-blue-600')
         )}
         style={
           !isAssistant && theme?.colors?.primary
@@ -83,7 +90,9 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             : undefined
         }
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
       </div>
 
       {showTimestamp && (
