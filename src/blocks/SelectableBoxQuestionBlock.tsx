@@ -1,16 +1,28 @@
-import React, { useState, useId, useEffect } from "react";
-import type { BlockData, BlockDefinition, ContentBlockItemProps, ThemeDefinition } from "../types";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { Checkbox } from "../components/ui/checkbox";
-import { CirclePlus, CircleX, CheckSquare, Check, GripVertical } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
-import { generateFieldName } from "./utils/GenFieldName";
-import { cn } from "../lib/utils";
-import { themes } from "../themes";
+import React, { useState, useId, useEffect } from 'react';
+import type {
+  BlockData,
+  BlockDefinition,
+  ContentBlockItemProps,
+  ThemeDefinition,
+  ChatRendererProps,
+} from '../types';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { Checkbox } from '../components/ui/checkbox';
+import {
+  CirclePlus,
+  CircleX,
+  CheckSquare,
+  Check,
+  GripVertical,
+} from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { generateFieldName } from './utils/GenFieldName';
+import { cn } from '../lib/utils';
+import { themes } from '../themes';
 import {
   DndContext,
   closestCenter,
@@ -18,18 +30,16 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
-} from "@dnd-kit/core";
+  DragEndEvent,
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+} from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface BoxOption {
   id: string;
@@ -42,14 +52,17 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
   data,
   onUpdate,
 }) => {
-  const [newOptionLabel, setNewOptionLabel] = useState("");
-  const [newOptionValue, setNewOptionValue] = useState("");
+  const [newOptionLabel, setNewOptionLabel] = useState('');
+  const [newOptionValue, setNewOptionValue] = useState('');
 
   // Extract options from block data
   const options: BoxOption[] = data.options || [];
 
   // Handle field changes
-  const handleChange = (field: string, value: string | BoxOption[] | boolean) => {
+  const handleChange = (
+    field: string,
+    value: string | BoxOption[] | boolean
+  ) => {
     onUpdate?.({
       ...data,
       [field]: value,
@@ -66,29 +79,33 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         id: uuidv4(),
         label: newOptionLabel,
         value: newOptionValue || newOptionLabel,
-      }
+      },
     ];
 
-    handleChange("options", newOptions);
-    setNewOptionLabel("");
-    setNewOptionValue("");
+    handleChange('options', newOptions);
+    setNewOptionLabel('');
+    setNewOptionValue('');
   };
 
   // Handle removing an option
   const handleRemoveOption = (index: number) => {
     const newOptions = [...options];
     newOptions.splice(index, 1);
-    handleChange("options", newOptions);
+    handleChange('options', newOptions);
   };
 
   // Handle updating an option
-  const handleUpdateOption = (index: number, field: "label" | "value", value: string) => {
+  const handleUpdateOption = (
+    index: number,
+    field: 'label' | 'value',
+    value: string
+  ) => {
     const newOptions = [...options];
     newOptions[index] = {
       ...newOptions[index],
       [field]: value,
     };
-    handleChange("options", newOptions);
+    handleChange('options', newOptions);
   };
 
   // Handle drag end for reordering options
@@ -100,7 +117,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
       const newIndex = options.findIndex((option) => option.id === over.id);
 
       const newOptions = arrayMove(options, oldIndex, newIndex);
-      handleChange("options", newOptions);
+      handleChange('options', newOptions);
     }
   };
 
@@ -119,11 +136,13 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="fieldName">Field Name</Label>
+          <Label className="text-sm" htmlFor="fieldName">
+            Field Name
+          </Label>
           <Input
             id="fieldName"
-            value={data.fieldName || ""}
-            onChange={(e) => handleChange("fieldName", e.target.value)}
+            value={data.fieldName || ''}
+            onChange={(e) => handleChange('fieldName', e.target.value)}
             placeholder="selectBox1"
           />
           <p className="text-xs text-muted-foreground">
@@ -132,22 +151,26 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm" htmlFor="label">Label</Label>
+          <Label className="text-sm" htmlFor="label">
+            Label
+          </Label>
           <Input
             id="label"
-            value={data.label || ""}
-            onChange={(e) => handleChange("label", e.target.value)}
+            value={data.label || ''}
+            onChange={(e) => handleChange('label', e.target.value)}
             placeholder="What's your goal?"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm" htmlFor="description">Description/Help Text (Optional)</Label>
+        <Label className="text-sm" htmlFor="description">
+          Description/Help Text (Optional)
+        </Label>
         <Input
           id="description"
-          value={data.description || ""}
-          onChange={(e) => handleChange("description", e.target.value)}
+          value={data.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
           placeholder="Additional information about this question"
         />
       </div>
@@ -163,7 +186,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
               name="selectionMode"
               value="single"
               checked={data.multiSelect !== true}
-              onChange={() => handleChange("multiSelect", false)}
+              onChange={() => handleChange('multiSelect', false)}
               className="rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="singleSelect" className="text-sm">
@@ -177,7 +200,7 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
               name="selectionMode"
               value="multi"
               checked={data.multiSelect === true}
-              onChange={() => handleChange("multiSelect", true)}
+              onChange={() => handleChange('multiSelect', true)}
               className="rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="multiSelect" className="text-sm">
@@ -218,12 +241,12 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
                   <div className="w-6 h-6 flex items-center justify-center">
                     <CirclePlus className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="flex-grow grid grid-cols-2 gap-2">
+                  <div className="grow grid grid-cols-2 gap-2">
                     <Input
                       value={newOptionLabel}
                       onChange={(e) => setNewOptionLabel(e.target.value)}
                       placeholder="New option label"
-                      onKeyDown={(e) => e.key === "Enter" && handleAddOption()}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddOption()}
                     />
                     <Input
                       value={newOptionValue}
@@ -231,7 +254,8 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
                       placeholder="New option value (optional)"
                     />
                   </div>
-                  <Button type="button"
+                  <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={handleAddOption}
@@ -248,13 +272,17 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
       {/* Optional visual configuration settings */}
       <div className="space-y-2 pt-2">
         <div className="space-y-2 pt-2">
-          <Label htmlFor="showSelectionIndicator" className="text-sm">Selection Style</Label>
+          <Label htmlFor="showSelectionIndicator" className="text-sm">
+            Selection Style
+          </Label>
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
               id="showSelectionIndicator"
               checked={data.showSelectionIndicator !== false}
-              onChange={(e) => handleChange("showSelectionIndicator", e.target.checked)}
+              onChange={(e) =>
+                handleChange('showSelectionIndicator', e.target.checked)
+              }
               className="rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="showSelectionIndicator" className="text-sm">
@@ -266,37 +294,43 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
         <Label className="text-sm">Visual Settings</Label>
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label className="text-sm" htmlFor="boxSpacing">Spacing Between Boxes</Label>
+            <Label className="text-sm" htmlFor="boxSpacing">
+              Spacing Between Boxes
+            </Label>
             <Input
               id="boxSpacing"
               type="number"
               min="0"
               max="8"
-              value={data.boxSpacing || "4"}
-              onChange={(e) => handleChange("boxSpacing", e.target.value)}
+              value={data.boxSpacing || '4'}
+              onChange={(e) => handleChange('boxSpacing', e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               Space between selectable boxes (0-8)
             </p>
           </div>
-          
+
           <div className="space-y-2">
-            <Label className="text-sm" htmlFor="defaultValue">Default Selected Value (Optional)</Label>
+            <Label className="text-sm" htmlFor="defaultValue">
+              Default Selected Value (Optional)
+            </Label>
             <Input
               id="defaultValue"
-              value={data.defaultValue || ""}
-              onChange={(e) => handleChange("defaultValue", e.target.value)}
-              placeholder={data.multiSelect ? "option-1,option-2 (comma-separated)" : "Leave blank for no default selection"}
+              value={data.defaultValue || ''}
+              onChange={(e) => handleChange('defaultValue', e.target.value)}
+              placeholder={
+                data.multiSelect
+                  ? 'option-1,option-2 (comma-separated)'
+                  : 'Leave blank for no default selection'
+              }
             />
             <p className="text-xs text-muted-foreground">
-              {data.multiSelect 
-                ? "For multi-select: Enter comma-separated values (e.g., option-1,option-2)"
-                : "Enter a single option value for default selection"
-              }
+              {data.multiSelect
+                ? 'For multi-select: Enter comma-separated values (e.g., option-1,option-2)'
+                : 'Enter a single option value for default selection'}
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -306,7 +340,11 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
 interface SortableOptionProps {
   option: BoxOption;
   index: number;
-  onUpdateOption: (index: number, field: "label" | "value", value: string) => void;
+  onUpdateOption: (
+    index: number,
+    field: 'label' | 'value',
+    value: string
+  ) => void;
   onRemoveOption: (index: number) => void;
 }
 
@@ -332,11 +370,7 @@ const SortableOption: React.FC<SortableOptionProps> = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
       <button
         type="button"
         className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
@@ -348,19 +382,20 @@ const SortableOption: React.FC<SortableOptionProps> = ({
       <div className="w-6 h-6 flex items-center justify-center">
         <span className="text-xs text-muted-foreground">{index + 1}</span>
       </div>
-      <div className="flex-grow grid grid-cols-2 gap-2">
+      <div className="grow grid grid-cols-2 gap-2">
         <Input
           value={option.label}
-          onChange={(e) => onUpdateOption(index, "label", e.target.value)}
+          onChange={(e) => onUpdateOption(index, 'label', e.target.value)}
           placeholder="Option label"
         />
         <Input
           value={option.value}
-          onChange={(e) => onUpdateOption(index, "value", e.target.value)}
+          onChange={(e) => onUpdateOption(index, 'value', e.target.value)}
           placeholder="Option value"
         />
       </div>
-      <Button type="button"
+      <Button
+        type="button"
         variant="ghost"
         size="icon"
         onClick={() => onRemoveOption(index)}
@@ -377,11 +412,17 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
   data,
 }) => {
   // Parse default value for multi-select mode
-  const parseDefaultValue = (defaultVal: string | string[] | undefined, multiSelect: boolean): string | string[] => {
+  const parseDefaultValue = (
+    defaultVal: string | string[] | undefined,
+    multiSelect: boolean
+  ): string | string[] => {
     if (multiSelect) {
       if (Array.isArray(defaultVal)) return defaultVal;
       if (typeof defaultVal === 'string' && defaultVal.trim()) {
-        return defaultVal.split(',').map(v => v.trim()).filter(v => v);
+        return defaultVal
+          .split(',')
+          .map((v) => v.trim())
+          .filter((v) => v);
       }
       return [];
     } else {
@@ -394,7 +435,7 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
   );
   const idPrefix = useId();
   const options: BoxOption[] = data.options || [];
-  const boxSpacing = data.boxSpacing || "4";
+  const boxSpacing = data.boxSpacing || '4';
   const showSelectionIndicator = data.showSelectionIndicator !== false;
   const isMultiSelect = data.multiSelect === true;
 
@@ -407,22 +448,22 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
     if (checked) {
       setSelectedValue([...currentValues, value]);
     } else {
-      setSelectedValue(currentValues.filter(v => v !== value));
+      setSelectedValue(currentValues.filter((v) => v !== value));
     }
   };
 
   const isSelected = (optionValue: string) => {
     if (isMultiSelect) {
-      return Array.isArray(selectedValue) && selectedValue.includes(optionValue);
+      return (
+        Array.isArray(selectedValue) && selectedValue.includes(optionValue)
+      );
     }
     return selectedValue === optionValue;
   };
 
   return (
     <div className="space-y-4">
-      {data.label && (
-        <h3 className="text-2xl font-bold">{data.label}</h3>
-      )}
+      {data.label && <h3 className="text-2xl font-bold">{data.label}</h3>}
 
       {data.description && (
         <p className="text-sm text-muted-foreground">{data.description}</p>
@@ -437,18 +478,20 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
                 <Checkbox
                   id={`${idPrefix}-${data.fieldName}-${option.id}`}
                   checked={selected}
-                  onCheckedChange={(checked) => handleMultiSelect(option.value, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleMultiSelect(option.value, checked as boolean)
+                  }
                   className="sr-only"
                 />
                 <Label
                   htmlFor={`${idPrefix}-${data.fieldName}-${option.id}`}
                   className="block w-full cursor-pointer"
                 >
-                  <Card 
+                  <Card
                     className={`p-4 transition-colors ${
-                      selected 
-                        ? "border-primary bg-primary/5 dark:bg-primary/20" 
-                        : "hover:bg-accent dark:hover:bg-accent/50"
+                      selected
+                        ? 'border-primary bg-primary/5 dark:bg-primary/20'
+                        : 'hover:bg-accent dark:hover:bg-accent/50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -466,8 +509,8 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
           })}
         </div>
       ) : (
-        <RadioGroup 
-          value={selectedValue as string} 
+        <RadioGroup
+          value={selectedValue as string}
           onValueChange={handleSingleSelect}
           className={`space-y-${boxSpacing}`}
         >
@@ -484,11 +527,11 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
                   htmlFor={`${idPrefix}-${data.fieldName}-${option.id}`}
                   className="block w-full cursor-pointer"
                 >
-                  <Card 
+                  <Card
                     className={`p-4 transition-colors ${
-                      selected 
-                        ? "border-primary bg-primary/5 dark:bg-primary/20" 
-                        : "hover:bg-accent dark:hover:bg-accent/50"
+                      selected
+                        ? 'border-primary bg-primary/5 dark:bg-primary/20'
+                        : 'hover:bg-accent dark:hover:bg-accent/50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -516,7 +559,9 @@ const SelectableBoxQuestionPreview: React.FC = () => {
     <div className="w-full flex items-center justify-center py-1">
       <div className="w-4/5 max-w-full h-10 border rounded-md flex items-center justify-center">
         <CheckSquare className="w-4 h-4 mr-2 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Selectable Box Question</span>
+        <span className="text-sm text-muted-foreground">
+          Selectable Box Question
+        </span>
       </div>
     </div>
   );
@@ -539,23 +584,29 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   onBlur,
   error,
   disabled,
-  theme = null
+  theme = null,
 }) => {
   const themeConfig = theme ?? themes.default;
   const idPrefix = useId();
-  
+
   // Parse options from block
   const options: BoxOption[] = block.options || [];
-  const boxSpacing = block.boxSpacing || "4";
+  const boxSpacing = block.boxSpacing || '4';
   const showSelectionIndicator = block.showSelectionIndicator !== false;
   const isMultiSelect = block.multiSelect === true;
-  
+
   // Parse default value for multi-select mode
-  const parseDefaultValue = (defaultVal: string | string[] | undefined, multiSelect: boolean): string | string[] => {
+  const parseDefaultValue = (
+    defaultVal: string | string[] | undefined,
+    multiSelect: boolean
+  ): string | string[] => {
     if (multiSelect) {
       if (Array.isArray(defaultVal)) return defaultVal;
       if (typeof defaultVal === 'string' && defaultVal.trim()) {
-        return defaultVal.split(',').map(v => v.trim()).filter(v => v);
+        return defaultVal
+          .split(',')
+          .map((v) => v.trim())
+          .filter((v) => v);
       }
       return [];
     } else {
@@ -567,16 +618,16 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   const [selectedValue, setSelectedValue] = useState<string | string[]>(
     parseDefaultValue(value || block.defaultValue, isMultiSelect)
   );
-  
+
   // Update local state when props change
   useEffect(() => {
     setSelectedValue(parseDefaultValue(value, isMultiSelect));
   }, [value, isMultiSelect]);
-  
+
   // Handle single select option selection
   const handleSingleSelect = (optionValue: string) => {
     // Allow deselection if clicking the same option
-    const newValue = selectedValue === optionValue ? "" : optionValue;
+    const newValue = selectedValue === optionValue ? '' : optionValue;
     setSelectedValue(newValue);
 
     if (onChange) {
@@ -592,19 +643,19 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   const handleMultiSelect = (optionValue: string, checked: boolean) => {
     const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
     let newValues: string[];
-    
+
     if (checked) {
       newValues = [...currentValues, optionValue];
     } else {
-      newValues = currentValues.filter(v => v !== optionValue);
+      newValues = currentValues.filter((v) => v !== optionValue);
     }
-    
+
     setSelectedValue(newValues);
-    
+
     if (onChange) {
       onChange(newValues);
     }
-    
+
     if (onBlur) {
       onBlur();
     }
@@ -613,87 +664,118 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   // Check if option is selected
   const isSelected = (optionValue: string) => {
     if (isMultiSelect) {
-      return Array.isArray(selectedValue) && selectedValue.includes(optionValue);
+      return (
+        Array.isArray(selectedValue) && selectedValue.includes(optionValue)
+      );
     }
     return selectedValue === optionValue;
   };
-  
+
   return (
     <div className="survey-box-question space-y-4 w-full min-w-0">
       {/* Label */}
       {block.label && (
         <Label
-          className={cn("text-lg font-bold block", themeConfig.field.label)}
+          className={cn('text-lg font-bold block', themeConfig.field.label)}
         >
           {block.label}
         </Label>
       )}
-      
+
       {/* Description */}
       {block.description && (
-        <div className={cn("text-sm text-muted-foreground", themeConfig.field.description)}>
+        <div
+          className={cn(
+            'text-sm text-muted-foreground',
+            themeConfig.field.description
+          )}
+        >
           {block.description}
         </div>
       )}
-      
+
       {/* Selectable Boxes */}
       {isMultiSelect ? (
-        <div className={cn(`space-y-${boxSpacing} my-8`, themeConfig.field.selectableBoxContainer || "space-y-3")}>
+        <div
+          className={cn(
+            `space-y-${boxSpacing} my-8`,
+            themeConfig.field.selectableBoxContainer || 'space-y-3'
+          )}
+        >
           {options.map((option) => {
             const selected = isSelected(option.value);
             const id = `${idPrefix}-${block.fieldName}-${option.id}`;
-            
+
             return (
               <div key={option.id} className="relative">
-                <Checkbox 
+                <Checkbox
                   id={id}
                   checked={selected}
-                  onCheckedChange={(checked) => handleMultiSelect(option.value, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleMultiSelect(option.value, checked as boolean)
+                  }
                   disabled={disabled}
                   className="sr-only"
                   aria-invalid={!!error}
                 />
-                <Label 
-                  htmlFor={id} 
+                <Label
+                  htmlFor={id}
                   className={cn(
-                    "block w-full cursor-pointer",
-                    disabled && "opacity-50 cursor-not-allowed"
+                    'block w-full cursor-pointer',
+                    disabled && 'opacity-50 cursor-not-allowed'
                   )}
                 >
-                  <div 
+                  <div
                     className={cn(
                       // Base box styling from theme
-                      themeConfig.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+                      themeConfig.field.selectableBox ||
+                        'p-5 transition-all duration-200 cursor-pointer rounded-lg',
                       // Selected state styling - use specific theme classes
-                      selected 
-                        ? themeConfig.field.selectableBoxSelected || "border border-gray-400 bg-gray-50" 
-                        : themeConfig.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
+                      selected
+                        ? themeConfig.field.selectableBoxSelected ||
+                            'border border-gray-400 bg-gray-50'
+                        : themeConfig.field.selectableBoxDefault ||
+                            'border border-gray-300 bg-white hover:bg-gray-50',
                       // Hover state styling
-                      !disabled && (themeConfig.field.selectableBoxHover || "hover:border-gray-400"),
+                      !disabled &&
+                        (themeConfig.field.selectableBoxHover ||
+                          'hover:border-gray-400'),
                       // Focus state styling
-                      themeConfig.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2",
+                      themeConfig.field.selectableBoxFocus ||
+                        'focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2',
                       // Disabled state styling
-                      disabled && (themeConfig.field.selectableBoxDisabled || "opacity-50 cursor-not-allowed")
+                      disabled &&
+                        (themeConfig.field.selectableBoxDisabled ||
+                          'opacity-50 cursor-not-allowed')
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center justify-between"
-                    )}>
-                      <span className={cn(
-                        themeConfig.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                        selected && (themeConfig.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                      )}>
+                    <div className={cn('flex items-center justify-between')}>
+                      <span
+                        className={cn(
+                          themeConfig.field.selectableBoxText ||
+                            'text-gray-900 text-base font-normal',
+                          selected &&
+                            (themeConfig.field.selectableBoxTextSelected ||
+                              'text-gray-900 font-normal')
+                        )}
+                      >
                         {option.label}
                       </span>
                       {selected && showSelectionIndicator && (
-                        <div className={cn(
-                          "flex h-5 w-5 items-center justify-center rounded-full",
-                          themeConfig.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                        )}>
-                          <Check className={cn(
-                            "h-3 w-3",
-                            themeConfig.field.selectableBoxIndicatorIcon || "text-white"
-                          )} />
+                        <div
+                          className={cn(
+                            'flex h-5 w-5 items-center justify-center rounded-full',
+                            themeConfig.field.selectableBoxIndicator ||
+                              'bg-gray-600 text-white'
+                          )}
+                        >
+                          <Check
+                            className={cn(
+                              'h-3 w-3',
+                              themeConfig.field.selectableBoxIndicatorIcon ||
+                                'text-white'
+                            )}
+                          />
                         </div>
                       )}
                     </div>
@@ -704,16 +786,19 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
           })}
         </div>
       ) : (
-        <RadioGroup 
-          value={selectedValue as string} 
+        <RadioGroup
+          value={selectedValue as string}
           onValueChange={handleSingleSelect}
           disabled={disabled}
-          className={cn(`space-y-${boxSpacing} my-8`, themeConfig.field.selectableBoxContainer || "space-y-3")}
+          className={cn(
+            `space-y-${boxSpacing} my-8`,
+            themeConfig.field.selectableBoxContainer || 'space-y-3'
+          )}
         >
           {options.map((option) => {
             const selected = isSelected(option.value);
             const id = `${idPrefix}-${block.fieldName}-${option.id}`;
-            
+
             return (
               <div key={option.id} className="relative">
                 <RadioGroupItem
@@ -729,47 +814,64 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
                     }
                   }}
                 />
-                <Label 
-                  htmlFor={id} 
+                <Label
+                  htmlFor={id}
                   className={cn(
-                    "block w-full cursor-pointer",
-                    disabled && "opacity-50 cursor-not-allowed"
+                    'block w-full cursor-pointer',
+                    disabled && 'opacity-50 cursor-not-allowed'
                   )}
                 >
-                  <div 
+                  <div
                     className={cn(
                       // Base box styling from theme
-                      themeConfig.field.selectableBox || "p-5 transition-all duration-200 cursor-pointer rounded-lg",
+                      themeConfig.field.selectableBox ||
+                        'p-5 transition-all duration-200 cursor-pointer rounded-lg',
                       // Selected state styling - use specific theme classes
-                      selected 
-                        ? themeConfig.field.selectableBoxSelected || "border border-gray-400 bg-gray-50" 
-                        : themeConfig.field.selectableBoxDefault || "border border-gray-300 bg-white hover:bg-gray-50",
+                      selected
+                        ? themeConfig.field.selectableBoxSelected ||
+                            'border border-gray-400 bg-gray-50'
+                        : themeConfig.field.selectableBoxDefault ||
+                            'border border-gray-300 bg-white hover:bg-gray-50',
                       // Hover state styling
-                      !disabled && (themeConfig.field.selectableBoxHover || "hover:border-gray-400"),
+                      !disabled &&
+                        (themeConfig.field.selectableBoxHover ||
+                          'hover:border-gray-400'),
                       // Focus state styling
-                      themeConfig.field.selectableBoxFocus || "focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2",
+                      themeConfig.field.selectableBoxFocus ||
+                        'focus-within:ring-2 focus-within:ring-gray-500 focus-within:ring-offset-2',
                       // Disabled state styling
-                      disabled && (themeConfig.field.selectableBoxDisabled || "opacity-50 cursor-not-allowed")
+                      disabled &&
+                        (themeConfig.field.selectableBoxDisabled ||
+                          'opacity-50 cursor-not-allowed')
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center justify-between"
-                    )}>
-                      <span className={cn(
-                        themeConfig.field.selectableBoxText || "text-gray-900 text-base font-normal",
-                        selected && (themeConfig.field.selectableBoxTextSelected || "text-gray-900 font-normal")
-                      )}>
+                    <div className={cn('flex items-center justify-between')}>
+                      <span
+                        className={cn(
+                          themeConfig.field.selectableBoxText ||
+                            'text-gray-900 text-base font-normal',
+                          selected &&
+                            (themeConfig.field.selectableBoxTextSelected ||
+                              'text-gray-900 font-normal')
+                        )}
+                      >
                         {option.label}
                       </span>
                       {selected && showSelectionIndicator && (
-                        <div className={cn(
-                          "flex h-5 w-5 items-center justify-center rounded-full",
-                          themeConfig.field.selectableBoxIndicator || "bg-gray-600 text-white"
-                        )}>
-                          <CheckSquare className={cn(
-                            "h-3 w-3",
-                            themeConfig.field.selectableBoxIndicatorIcon || "text-white"
-                          )} />
+                        <div
+                          className={cn(
+                            'flex h-5 w-5 items-center justify-center rounded-full',
+                            themeConfig.field.selectableBoxIndicator ||
+                              'bg-gray-600 text-white'
+                          )}
+                        >
+                          <CheckSquare
+                            className={cn(
+                              'h-3 w-3',
+                              themeConfig.field.selectableBoxIndicatorIcon ||
+                                'text-white'
+                            )}
+                          />
                         </div>
                       )}
                     </div>
@@ -780,10 +882,15 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
           })}
         </RadioGroup>
       )}
-      
+
       {/* Error message */}
       {error && (
-        <div className={cn("text-sm font-medium text-destructive", themeConfig.field.error)}>
+        <div
+          className={cn(
+            'text-sm font-medium text-destructive',
+            themeConfig.field.error
+          )}
+        >
           {error}
         </div>
       )}
@@ -791,80 +898,270 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   );
 };
 
+// Chat Renderer Implementation
+const SelectableBoxChatRenderer: React.FC<ChatRendererProps> = ({
+  block,
+  value,
+  onChange,
+  onSubmit,
+  theme,
+  disabled = false,
+  error,
+}) => {
+  const themeConfig = theme ?? themes.default;
+  const options: BoxOption[] = block.options || [];
+  const isMultiSelect = block.multiSelect === true;
+  const showSelectionIndicator = block.showSelectionIndicator !== false;
+
+  // Parse initial value based on selection mode
+  const parseValue = (val: any): string | string[] => {
+    if (isMultiSelect) {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim()) {
+        return val
+          .split(',')
+          .map((v) => v.trim())
+          .filter((v) => v);
+      }
+      return [];
+    }
+    return typeof val === 'string' ? val : '';
+  };
+
+  const [selectedValue, setSelectedValue] = useState<string | string[]>(() =>
+    parseValue(value ?? block.defaultValue)
+  );
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setSelectedValue(parseValue(value));
+    }
+  }, [value, isMultiSelect]);
+
+  const isSelected = (optionValue: string): boolean => {
+    if (isMultiSelect) {
+      return (
+        Array.isArray(selectedValue) && selectedValue.includes(optionValue)
+      );
+    }
+    return selectedValue === optionValue;
+  };
+
+  const handleOptionClick = (optionValue: string) => {
+    if (disabled) return;
+
+    if (isMultiSelect) {
+      const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
+      const newValues = currentValues.includes(optionValue)
+        ? currentValues.filter((v) => v !== optionValue)
+        : [...currentValues, optionValue];
+      setSelectedValue(newValues);
+      onChange(newValues);
+    } else {
+      // Single select - toggle or select
+      const newValue = selectedValue === optionValue ? '' : optionValue;
+      setSelectedValue(newValue);
+      onChange(newValue);
+
+      // Auto-submit on single select if configured
+      if (block.autoContinueOnSelect && newValue) {
+        onSubmit(newValue);
+      }
+    }
+  };
+
+  const handleSubmit = () => {
+    onSubmit(selectedValue);
+  };
+
+  const hasSelection = isMultiSelect
+    ? Array.isArray(selectedValue) && selectedValue.length > 0
+    : selectedValue !== '';
+
+  return (
+    <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-2">
+        {options.map((option, index) => {
+          const selected = isSelected(option.value);
+          return (
+            <button
+              key={option.id || `${block.fieldName}-${index}`}
+              type="button"
+              onClick={() => handleOptionClick(option.value)}
+              disabled={disabled}
+              className={cn(
+                // Base Layout
+                'relative w-full flex justify-between gap-6 items-center transition-all border p-4',
+                // Theme Application
+                themeConfig.field.select,
+                disabled && 'opacity-50 cursor-not-allowed'
+              )}
+              style={{
+                backgroundColor: themeConfig.colors.background,
+                borderColor: selected
+                  ? themeConfig.colors.primary
+                  : themeConfig.colors.border,
+              }}
+            >
+              <p className={cn(themeConfig.field.label, 'mb-0 text-left')}>
+                {option.label}
+              </p>
+              {/* Indicator */}
+              {showSelectionIndicator && (
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded border bg-background shrink-0 relative transition-colors"
+                  style={{
+                    borderColor: selected
+                      ? themeConfig.colors.primary
+                      : themeConfig.colors.border,
+                    flexShrink: 0,
+                    borderRadius: !isMultiSelect ? '50%' : '6px',
+                  }}
+                >
+                  {selected &&
+                    (isMultiSelect ? (
+                      <Check
+                        className="w-4 h-4"
+                        style={{ color: themeConfig.colors.primary }}
+                      />
+                    ) : (
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: themeConfig.colors.primary }}
+                      />
+                    ))}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {error && (
+        <div
+          className={cn(
+            'text-sm font-medium text-destructive',
+            themeConfig.field.error
+          )}
+        >
+          {error}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        onClick={handleSubmit}
+        disabled={disabled || !hasSelection}
+        className={cn(
+          'h-12 rounded-xl w-full mt-2 font-semibold',
+          themeConfig.button.primary
+        )}
+        style={{
+          backgroundColor: themeConfig.colors.primary,
+        }}
+      >
+        {isMultiSelect &&
+        Array.isArray(selectedValue) &&
+        selectedValue.length > 0
+          ? `Continue with ${selectedValue.length} selected`
+          : 'Continue'}
+      </Button>
+    </div>
+  );
+};
+
 // Export the block definition
 export const SelectableBoxQuestionBlock: BlockDefinition = {
-  type: "selectablebox",
-  name: "Selectable Box Question",
-  description: "Question with selectable box options",
+  type: 'selectablebox',
+  name: 'Selectable Box Question',
+  description: 'Question with selectable box options',
   icon: <CheckSquare className="w-4 h-4" />,
   defaultData: {
-    type: "selectablebox",
-    fieldName: generateFieldName("selectablebox"),
+    type: 'selectablebox',
+    fieldName: generateFieldName('selectablebox'),
     label: "What's your goal?",
-    description: "",
-    boxSpacing: "4",
-    defaultValue: "",
+    description: '',
+    boxSpacing: '4',
+    defaultValue: '',
     multiSelect: false,
     showSelectionIndicator: false,
     options: [
       {
-        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630",
-        label: "Option 1",
-        value: "option-1"
+        id: '38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630',
+        label: 'Option 1',
+        value: 'option-1',
       },
       {
-        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631",
-        label: "Option 2",
-        value: "option-2"
-      }
+        id: '38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631',
+        label: 'Option 2',
+        value: 'option-2',
+      },
     ],
   },
   generateDefaultData: () => ({
-    type: "selectablebox",
-    fieldName: generateFieldName("selectablebox"),
-    label: "Select an option",
-    description: "",
-    boxSpacing: "4",
-    defaultValue: "",
+    type: 'selectablebox',
+    fieldName: generateFieldName('selectablebox'),
+    label: 'Select an option',
+    description: '',
+    boxSpacing: '4',
+    defaultValue: '',
     multiSelect: false,
     showSelectionIndicator: false,
     options: [
       {
-        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630",
-        label: "Option 1",
-        value: "option-1"
+        id: '38eaf1b5-e7b8-49d7-b3d9-7afcc51f6630',
+        label: 'Option 1',
+        value: 'option-1',
       },
       {
-        id: "38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631",
-        label: "Option 2",
-        value: "option-2"
-      }
+        id: '38eaf1b5-e7b8-49d7-b3d9-7afcc51f6631',
+        label: 'Option 2',
+        value: 'option-2',
+      },
     ],
   }),
   renderItem: (props) => <SelectableBoxQuestionItem {...props} />,
   renderFormFields: (props) => <SelectableBoxQuestionForm {...props} />,
   renderPreview: () => <SelectableBoxQuestionPreview />,
   renderBlock: (props) => <SelectableBoxRenderer {...props} />,
+  chatRenderer: (props) => <SelectableBoxChatRenderer {...props} />,
   validate: (data) => {
-    if (!data.fieldName) return "Field name is required";
-    if (!data.label) return "Label is required";
-    if (!data.options || data.options.length === 0) return "At least one option is required";
+    if (!data.fieldName) return 'Field name is required';
+    if (!data.label) return 'Label is required';
+    if (!data.options || data.options.length === 0)
+      return 'At least one option is required';
     return null;
+  },
+  inputSchema: {
+    oneOf: [
+      { type: 'string' },
+      {
+        type: 'array',
+        items: { type: 'string' },
+      },
+    ],
+    discriminator: {
+      propertyName: 'multiSelect',
+      mapping: {
+        false: 0,
+        true: 1,
+      },
+    },
   },
   // Output schema - Union type based on multiSelect configuration
   // - Single select mode (multiSelect: false): returns string (e.g., "option-1")
   // - Multi-select mode (multiSelect: true): returns array (e.g., ["option-1", "option-2"])
   outputSchema: {
     oneOf: [
-      { type: 'string' },  // index 0: single select
-      { type: 'array', items: { type: 'string' } }  // index 1: multi-select
+      { type: 'string' }, // index 0: single select
+      { type: 'array', items: { type: 'string' } }, // index 1: multi-select
     ],
     discriminator: {
       propertyName: 'multiSelect',
       mapping: {
-        'false': 0,  // when multiSelect is false, use schema at index 0 (string)
-        'true': 1    // when multiSelect is true, use schema at index 1 (array)
-      }
-    }
+        false: 0, // when multiSelect is false, use schema at index 0 (string)
+        true: 1, // when multiSelect is true, use schema at index 1 (array)
+      },
+    },
   },
 };

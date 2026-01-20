@@ -458,7 +458,7 @@ export const himsTheme: ThemeDefinition = {
     header: "bg-white"
   },
   field: {
-    label: "block text-xl font-normal text-gray-900 mb-6 text-start",
+    label: "block text-xl font-normal text-gray-900 mb-6 text-center",
     input: "w-full rounded-xl border border-gray-300 focus:border-[#E67E4D] focus:ring-0 text-base py-4 px-5 bg-white hover:border-[#E67E4D]/50 transition-colors",
     description: "mt-2 text-sm text-gray-600 text-start",
     error: "mt-2 text-sm text-red-600 text-start",
@@ -516,75 +516,84 @@ export const himsTheme: ThemeDefinition = {
 
 // Uniloop theme - medical-friendly subtle version (unchanged as you already fixed it)
 export const uniloop: ThemeDefinition = {
-  "name": "uniloop",
-  "containerLayout": "max-w-xl mx-auto ",
-  "header": "mb-8",
-  "title": "text-3xl font-semibold text-slate-800 mb-4 text-left",
-  "description": "text-lg text-slate-600 mb-6 text-left",
-  "background": "bg-slate-50",
   "card": "bg-white rounded-none border-0 border-slate-100 shadow-none p-0 mb-6",
-  "container": {
-    "card": "bg-white border border-slate-100 rounded-lg shadow-sm",
-    "border": "border-slate-200",
-    "activeBorder": "border-emerald-400",
-    "activeBg": "bg-emerald-50",
-    "header": "bg-slate-50"
-  },
+  "name": "uniloop",
   "field": {
-    "label": "block text-base font-medium text-slate-700 mb-4",
-    "input": "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
-    "description": "mt-2 text-sm text-slate-500",
-    "error": "mt-2 text-sm text-red-500 font-medium",
-    "radio": "focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-slate-300",
-    "checkbox": "focus:ring-emerald-500 h-4 w-4 text-emerald-600 border-slate-300 rounded",
-    "select": "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
-    "textarea": "w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-base py-3 px-4 bg-white",
-    "file": "w-full text-base text-slate-700 border border-slate-200 rounded-lg cursor-pointer bg-white py-3 px-4",
-    "matrix": "border-collapse w-full text-base rounded-lg overflow-hidden",
-    "range": "accent-emerald-600",
-    "text": "text-slate-700",
-    "activeText": "text-slate-800",
-    "placeholder": "text-slate-400",
-    "boxBorder": "border-slate-200",
-    "selectableBox": "p-5 transition-all duration-200 cursor-pointer rounded-lg",
-    "selectableBoxDefault": "border border-slate-200 bg-white hover:bg-emerald-50",
-    "selectableBoxSelected": "border-2 border-emerald-500 bg-emerald-50",
-    "selectableBoxHover": "hover:border-emerald-400",
-    "selectableBoxFocus": "focus-within:ring-2 focus-within:ring-emerald-500 focus-within:ring-offset-2",
+    "file": "w-full text-base text-gray-700 border border-gray-300 rounded-3xl cursor-pointer bg-white px-5 py-4 hover:border-[#948EC47F] transition-colors",
+    "text": "text-gray-900",
+    "error": "mt-2 text-sm text-red-600 text-start",
+    "input": "text-base text-[#1C1C1C] bg-white rounded-3xl border border-[#1C1C1C1F] px-5 py-4 w-full focus:border-[#948EC4] focus:ring-0 focus:outline-none hover:border-[#948EC47F] transition-colors placeholder:font-medium placeholder:-tracking-[1%] min-h-[64px] shadow-none placeholder:text-[#1C1C1CB2] ring-0",
+    "label": "text-base font-semibold text-[#1C1C1C] mb-0 block relative",
+    "radio": "text-[#1C1C1C] border-[#1C1C1C1F] px-5 py-4 mb-4 transition-colors focus:border-[#948EC4] focus:ring-0 hover:border-[#948EC4] h-4 w-4 shadow-none",
+    "range": "accent-[#E67E4D]",
+    "matrix": "border-collapse w-full text-base rounded-3xl overflow-hidden",
+    "select": "text-base text-[#1C1C1C] bg-white rounded-3xl border border-[#1C1C1C1F] min-h-[64px] px-5 py-4 w-full focus:border-[#948EC4] focus:ring-0 hover:border-[#948EC47F] transition-colors shadow-none placeholder:text-[#1C1C1CB2] ring-0 data-[placeholder]:text-base data-[placeholder]:sm:text-sm data-[placeholder]:text-[#1C1C1CB2]",
+    "checkbox": "text-[#1C1C1C] rounded border border-[#1C1C1C1F] focus:ring-0 h-[1.75rem] w-[1.75rem] !bg-white rounded-full shadow-none",
+    "textarea": "h-[120px] w-full text-base bg-white rounded-3xl border border-[#1C1C1C1F] px-5 py-4 focus:border-[#948EC4] focus:ring-0 hover:border-[#948EC47F] focus:outline-none transition-colors placeholder:font-medium placeholder:-tracking-[1%] shadow-none placeholder:text-[#1C1C1CB2] ring-0",
+    "boxBorder": "border-gray-300",
+    "activeText": "text-[#E67E4D]",
+    "description": "mt-2 text-sm text-gray-600 text-start",
+    "placeholder": "text-gray-500",
+    "selectableBox": "px-5 py-4 n-all duration-200 cursor-pointer rounded-3xl text-left",
+    "agreementPanel": "rounded-3xl border border-gray-300 px-5 py-4 text-base whitespace-pre-wrap bg-white hover:border-[#948EC47F] transition-colors",
+    "signatureColor": "#E67E4D",
+    "signatureCanvas": "w-full h-40 border border-gray-300 rounded-3xl overflow-hidden bg-white hover:border-[#948EC47F] transition-colors",
+    "selectableBoxText": "text-gray-900 text-base font-normal",
+    "agreementContainer": "px-5 py-4 space-y-4",
+    "selectableBoxFocus": "focus-within:ring-0 focus-within:border-[#948EC4]",
+    "selectableBoxHover": "hover:border-[#948EC47F]",
+    "selectableBoxDefault": "border border-gray-300 bg-white hover:border-[#948EC47F]",
     "selectableBoxDisabled": "opacity-50 cursor-not-allowed",
-    "selectableBoxContainer": "space-y-3",
-    "selectableBoxText": "text-slate-700 text-base font-normal",
-    "selectableBoxTextSelected": "text-slate-800 font-medium",
-    "selectableBoxIndicator": "bg-emerald-600 text-white",
-    "selectableBoxIndicatorIcon": "text-white",
-    "agreementContainer": "p-5 space-y-4",
-    "agreementPanel": "rounded-lg border border-slate-200 p-4 text-base whitespace-pre-wrap bg-slate-50",
-    "signatureCanvas": "w-full h-40 border border-slate-200 rounded-lg overflow-hidden bg-white",
-    "signatureColor": "#334155"
+    "selectableBoxSelected": "border-2 border-[#948EC4] bg-white",
+    "selectableBoxContainer": "space-y-4 max-w-xl mx-auto",
+    "selectableBoxIndicator": "bg-[#E67E4D] text-white",
+    "selectableBoxTextSelected": "text-gray-900 font-normal",
+    "selectableBoxIndicatorIcon": "text-white"
   },
-  "progress": {
-    "bar": "h-2 bg-emerald-600 rounded-full overflow-hidden",
-    "dots": "flex space-x-2 justify-center",
-    "numbers": "flex space-x-2 justify-center",
-    "percentage": "text-right text-base text-slate-600 font-medium mb-2",
-    "label": "text-base text-slate-700 mb-2 font-medium"
+  "fonts": {
+    "body": "Manrope, sans-serif",
+    "urls": [
+      "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap",
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap"
+    ],
+    "heading": "DM Sans, sans-serif",
+    "primary": "Manrope, sans-serif"
   },
+  "title": "font-normal text-[1.25rem] text-center text-[#1C1C1C] -tracking-[4%] sm:text-[2rem]",
   "button": {
-    "primary": "inline-flex justify-center py-3 px-6 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm",
-    "secondary": "inline-flex justify-center py-3 px-6 border border-slate-200 text-base font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-sm",
-    "text": "text-base font-medium text-emerald-700 hover:text-emerald-800",
-    "navigation": "inline-flex items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors duration-200 shadow-sm"
+    "text": "text-base font-medium text-[#948EC4] hover:text-[#948EC4]",
+    "primary": "w-full justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 flex items-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[#1C1C1C]/80 active:scale-[0.98] cursor-pointer",
+    "secondary": "inline-flex justify-center py-3 px-8 border border-[#1C1C1C1F] text-base font-medium rounded-full bg-white hover:bg-neutral-200 text-[#1C1C1C] focus:outline-none focus:ring-0 transition-colors",
+    "navigation": "text-base font-normal bg-[#000000] rounded-full hover:bg-[#000000] py-3 px-8 inline-flex justify-center text-white fixed bottom-1 sm:bottom-4 3xl:bottom-12 sm:left-0 sm:right-0"
   },
   "colors": {
-    "primary": "#047857",
-    "secondary": "#64748B",
-    "accent": "#10B981",
-    "background": "#F8FAFC",
-    "text": "#334155",
-    "border": "#E2E8F0",
-    "error": "#EF4444",
-    "success": "#10B981"
-  }
+    "text": "#1C1C1C",
+    "error": "#FF0000",
+    "accent": "#00B67A",
+    "border": "#1C1C1C1F",
+    "primary": "#948EC4",
+    "success": "#10B981",
+    "secondary": "#DC9EA8",
+    "background": "#FFFFFF"
+  },
+  "header": "mb-8 text-start",
+  "progress": {
+    "bar": "bg-[#948EC4] rounded-full h-2 overflow-hidden",
+    "dots": "flex space-x-2 justify-center",
+    "label": "text-sm text-gray-600 mb-2",
+    "numbers": "flex space-x-2 justify-center",
+    "percentage": "text-right text-sm text-gray-600 mb-2"
+  },
+  "container": {
+    "card": "bg-white",
+    "border": "border-gray-300",
+    "header": "bg-white",
+    "activeBg": "bg-white",
+    "activeBorder": "border-[#948EC4]"
+  },
+  "background": "bg-white",
+  "description": "text-base font-medium text-center text-[#1C1C1C] sm:text-lg -tracking-[1%]",
+  "containerLayout": "relative bg-[#FAFAFA]"
 };
 
 // Map of all themes
