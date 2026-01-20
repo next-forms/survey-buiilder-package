@@ -1,23 +1,23 @@
 // RenderPageSurveyLayout (MedVi look-alike)
-import React, { useEffect, useRef, useState, Fragment } from "react";
-import { useSurveyForm } from "../../context/SurveyFormContext";
-import { BlockRenderer } from "../renderers/BlockRenderer";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { getSurveyPages, detectSurveyMode } from "../../utils/surveyUtils";
-import { AnalyticsTrackedLayout } from "./AnalyticsTrackedLayout";
+import React, { useEffect, useRef, useState, Fragment } from 'react';
+import { useSurveyForm } from '../../context/SurveyFormContext';
+import { BlockRenderer } from '../renderers/BlockRenderer';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { getSurveyPages, detectSurveyMode } from '../../utils/surveyUtils';
+import { AnalyticsTrackedLayout } from './AnalyticsTrackedLayout';
 
 interface RenderPageSurveyLayoutProps {
   progressBar?:
     | boolean
     | {
-        type?: "bar" | "dots" | "numbers" | "percentage";
+        type?: 'bar' | 'dots' | 'numbers' | 'percentage';
         showPercentage?: boolean;
         showStepInfo?: boolean;
         showStepTitles?: boolean;
         showStepNumbers?: boolean;
-        position?: "top" | "bottom";
+        position?: 'top' | 'bottom';
         color?: string;
         backgroundColor?: string;
         height?: number | string;
@@ -30,9 +30,9 @@ interface RenderPageSurveyLayoutProps {
     previousText?: string;
     nextText?: string;
     submitText?: string;
-    position?: "bottom" | "split";
-    align?: "left" | "center" | "right";
-    style?: "default" | "outlined" | "text";
+    position?: 'bottom' | 'split';
+    align?: 'left' | 'center' | 'right';
+    style?: 'default' | 'outlined' | 'text';
   };
   autoScroll?: boolean;
   autoFocus?: boolean;
@@ -74,17 +74,17 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     showPrevious: true,
     showNext: true,
     showSubmit: true,
-    previousText: "Previous",
-    nextText: "Continue",
-    submitText: "Complete Survey",
-    position: "bottom",
-    align: "center",
-    style: "default",
+    previousText: 'Previous',
+    nextText: 'Continue',
+    submitText: 'Complete Survey',
+    position: 'bottom',
+    align: 'center',
+    style: 'default',
   },
   autoScroll = true,
   autoFocus = true,
   showSummary = false,
-  submitText = "Complete Survey",
+  submitText = 'Complete Survey',
   enableDebug = false,
   showNavigationHistory = false,
   logo = null,
@@ -112,14 +112,14 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
 
   // Theme-driven colors (fallbacks keep MedVi defaults)
   const themeColors = (theme as any)?.colors || {};
-  const bgColor = themeColors.background || "#FAFAFA";
-  const textColor = themeColors.text || "#1C1C1C";
-  const ratingBg = themeColors.card || "#FFFFFF"; // optional theme color token
-  const progressTrackBg = themeColors.card || "#FFFFFF";
-  const btnBg = themeColors.text || "#1C1C1C";
-  const btnHoverBg = themeColors.text || "#1C1C1C";
-  const gradientStart = themeColors.accent || "#DC9EA8";
-  const gradientEnd = themeColors.secondary || "#948EC4";
+  const bgColor = themeColors.background || '#FAFAFA';
+  const textColor = themeColors.text || '#1C1C1C';
+  const ratingBg = themeColors.card || '#FFFFFF'; // optional theme color token
+  const progressTrackBg = themeColors.card || '#FFFFFF';
+  const btnBg = themeColors.text || '#1C1C1C';
+  const btnHoverBg = themeColors.text || '#1C1C1C';
+  const gradientStart = themeColors.accent || '#DC9EA8';
+  const gradientEnd = themeColors.secondary || '#948EC4';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -127,7 +127,8 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   // Detect survey mode and get the current page blocks from the surveyData in context
   const surveyMode = detectSurveyMode(surveyData.rootNode);
   const pages = getSurveyPages(surveyData.rootNode, surveyMode);
-  const currentPageBlocks = currentPage < pages.length ? pages[currentPage] : [];
+  const currentPageBlocks =
+    currentPage < pages.length ? pages[currentPage] : [];
   const visibleCurrentPageBlocks = getVisibleBlocks(currentPageBlocks);
 
   const progress = getActualProgress();
@@ -170,7 +171,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const currentBlock = currentPageBlocks[currentBlockIndex];
   const blockDisclaimer = currentBlock?.disclaimer;
 
-  const continueText = navigationButtons?.nextText || "Continue";
+  const continueText = navigationButtons?.nextText || 'Continue';
   const completeText = navigationButtons?.submitText || submitText;
 
   const isFinalStep =
@@ -197,9 +198,9 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     if (!logo) return null;
 
     // Support both logo() and logo(className)
-    if (typeof logo === "function") {
+    if (typeof logo === 'function') {
       try {
-        return logo("h-8 sm:h-9 w-auto");
+        return logo('h-8 sm:h-9 w-auto');
       } catch {
         return logo();
       }
@@ -213,7 +214,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
     <div
       ref={containerRef}
       className="medvi-layout relative flex flex-col w-full max-w-4xl mx-auto py-2 sm:py-8 px-6 sm:px-8"
-      style={{ minHeight: "70svh", color: textColor }}
+      style={{ minHeight: '70svh', color: textColor }}
     >
       {/* Debug Panel */}
       {enableDebug && (
@@ -230,12 +231,14 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       )}
 
       {/* Header */}
-      <header className="flex flex-col gap-3 sm:gap-2" style={{ color: textColor }}>
+      <header
+        className="flex flex-col gap-3 sm:gap-2"
+        style={{ color: textColor }}
+      >
         {/* Logo & Rating */}
         <div className="flex items-center justify-center gap-2.5 sm:gap-4">
           {/* Logo */}
           <div className="flex items-center">{renderLogo()}</div>
-
         </div>
 
         {/* Back Button & Progress Bar */}
@@ -246,10 +249,10 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
             onClick={canGoBack ? handlePrevious : undefined}
             disabled={!canGoBack}
             className={cn(
-              "flex items-center transition-opacity mt-1 duration-200 cursor-pointer focus:outline-none",
+              'flex items-center transition-opacity mt-1 duration-200 cursor-pointer focus:outline-none',
               canGoBack
-                ? "hover:opacity-80"
-                : "hidden opacity-0 pointer-events-none"
+                ? 'hover:opacity-80'
+                : 'hidden opacity-0 pointer-events-none',
             )}
           >
             <ChevronLeft className="size-6 mb-1" />
@@ -262,7 +265,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                 className="h-2 rounded-full overflow-hidden"
                 style={{
                   backgroundColor: progressTrackBg,
-                  boxShadow: "0 4px 15.7px 0 rgba(28, 28, 28, 0.05)",
+                  boxShadow: '0 4px 15.7px 0 rgba(28, 28, 28, 0.05)',
                 }}
               >
                 <motion.div
@@ -272,7 +275,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
                   }}
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
               </div>
             </div>
@@ -289,7 +292,7 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
               <div className="space-y-4">
                 {currentPageBlocks[currentBlockIndex] && (
@@ -343,24 +346,25 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
               type="submit"
               disabled={!isValid}
               className={cn(
-                "w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 flex items-center gap-2.5 focus:outline-none",
+                'w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 flex items-center gap-2.5 focus:outline-none',
                 !isValid
-                  ? "opacity-60 cursor-not-allowed"
-                  : "active:scale-[0.98] cursor-pointer"
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'active:scale-[0.98] cursor-pointer',
               )}
               style={{
                 backgroundColor: btnBg,
                 flexGrow: 1,
                 boxShadow:
-                  "inset 0 5px 8.8px rgba(255, 255, 255, 0.25), inset 0 -8px 9.9px rgba(0, 0, 0, 0.25)",
+                  'inset 0 5px 8.8px rgba(255, 255, 255, 0.25), inset 0 -8px 9.9px rgba(0, 0, 0, 0.25)',
               }}
               onMouseEnter={(e) => {
-                if (isValid) (e.currentTarget.style.backgroundColor = `${btnHoverBg}CC`);
+                if (isValid)
+                  e.currentTarget.style.backgroundColor = `${btnHoverBg}CC`;
               }}
               onMouseLeave={(e) => {
                 if (isValid) e.currentTarget.style.backgroundColor = btnBg;
               }}
-              >
+            >
               {isFinalStep ? completeText : continueText}
 
               {/* MedVi arrow icon */}

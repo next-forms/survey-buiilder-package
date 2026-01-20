@@ -8,9 +8,7 @@ interface PopoverProps {
 
 const Popover: React.FC<PopoverProps> = ({ children, className }) => {
   return (
-    <div className={cn("relative inline-block", className)}>
-      {children}
-    </div>
+    <div className={cn('relative inline-block', className)}>{children}</div>
   );
 };
 
@@ -27,10 +25,7 @@ const PopoverTrigger: React.FC<PopoverTriggerProps> = ({
   onClick,
 }) => {
   return (
-    <div
-      className={cn("cursor-pointer", className)}
-      onClick={onClick}
-    >
+    <div className={cn('cursor-pointer', className)} onClick={onClick}>
       {children}
     </div>
   );
@@ -40,6 +35,7 @@ interface PopoverContentProps {
   children: React.ReactNode;
   className?: string;
   align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'bottom';
   sideOffset?: number;
   open?: boolean;
   onClose?: () => void;
@@ -50,12 +46,36 @@ const PopoverContent: React.FC<PopoverContentProps> = ({
   className,
   open,
   onClose,
+  side = 'bottom',
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node) && open) {
+      const target = event.target as Node;
+
+      // Check if click is inside the popover content
+      if (ref.current && ref.current.contains(target)) {
+        return;
+      }
+
+      // Check if click is inside a Radix portal (Select, Dialog, etc.)
+      // Radix portals are appended to document.body with specific attributes
+      const radixPortal = (target as HTMLElement).closest?.(
+        [
+          '[data-radix-popper-content-wrapper]',
+          '[data-radix-select-viewport]',
+          '[data-radix-select-content]',
+          '[data-radix-scroll-area-viewport]',
+          '[role="listbox"]',
+          '[data-radix-collection-item]',
+        ].join(', ')
+      );
+      if (radixPortal) {
+        return;
+      }
+
+      if (open) {
         onClose?.();
       }
     };
@@ -68,11 +88,14 @@ const PopoverContent: React.FC<PopoverContentProps> = ({
 
   if (!open) return null;
 
+  const sideClasses = side === 'top' ? 'bottom-full mb-1' : 'mt-1';
+
   return (
     <div
       ref={ref}
       className={cn(
-        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-4 text-popover-foreground shadow-md animate-in zoom-in-95 mt-1",
+        'absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-4 text-popover-foreground shadow-md animate-in zoom-in-95',
+        sideClasses,
         className
       )}
     >
@@ -82,22 +105,51 @@ const PopoverContent: React.FC<PopoverContentProps> = ({
 };
 
 // Compound component for PopoverRoot with state handling
-const PopoverRoot: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [open, setOpen] = useState(false);
+interface PopoverRootProps {
+  children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+const PopoverRoot: React.FC<PopoverRootProps> = ({
+  children,
+  open: controlledOpen,
+  onOpenChange,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+    if (!isControlled) {
+      setInternalOpen(newOpen);
+    }
+  };
 
   // Clone children and add open state and handlers
-  const childrenWithProps = React.Children.map(children, child => {
+  const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
       if (child.type === PopoverTrigger) {
-        return React.cloneElement(child as React.ReactElement<PopoverTriggerProps>, {
-          onClick: () => setOpen(!open),
-        });
+        return React.cloneElement(
+          child as React.ReactElement<PopoverTriggerProps>,
+          {
+            onClick: () => handleOpenChange(!open),
+          }
+        );
       }
       if (child.type === PopoverContent) {
-        return React.cloneElement(child as React.ReactElement<PopoverContentProps>, {
-          open,
-          onClose: () => setOpen(false),
-        });
+        return React.cloneElement(
+          child as React.ReactElement<PopoverContentProps>,
+          {
+            open,
+            onClose: () => handleOpenChange(false),
+          }
+        );
       }
     }
     return child;

@@ -5,12 +5,13 @@ import type { AIHandler, AIHandlerResponse, AIHandlerContext } from '../types';
  * This is used when no AI handler is provided via customData.
  */
 export const defaultAIHandler: AIHandler = async (
-  context: AIHandlerContext
+  context: AIHandlerContext,
 ): Promise<AIHandlerResponse> => {
   const { block } = context;
 
   // Use the block's label, name, or a generic fallback
-  const questionText = block.label || block.name || 'Please answer this question:';
+  const questionText =
+    block.label || block.name || 'Please answer this question:';
 
   return {
     conversationalQuestion: questionText,
@@ -21,7 +22,12 @@ export const defaultAIHandler: AIHandler = async (
 /**
  * Helper to get options from a block (handles multiple formats)
  */
-function getBlockOptions(block: { options?: any[]; items?: any[]; labels?: string[]; values?: any[] }): Array<{ label: string; value: any }> {
+function getBlockOptions(block: {
+  options?: any[];
+  items?: any[];
+  labels?: string[];
+  values?: any[];
+}): Array<{ label: string; value: any }> {
   // Handle options array (preferred format)
   if (block.options && Array.isArray(block.options)) {
     return block.options.map((opt: any) => ({
@@ -52,7 +58,13 @@ function getBlockOptions(block: { options?: any[]; items?: any[]; labels?: strin
  */
 export function formatResponseForDisplay(
   value: any,
-  block: { type: string; options?: any[]; labels?: string[]; values?: any[]; items?: any[] }
+  block: {
+    type: string;
+    options?: any[];
+    labels?: string[];
+    values?: any[];
+    items?: any[];
+  },
 ): string {
   if (value === null || value === undefined) {
     return '';
@@ -62,7 +74,11 @@ export function formatResponseForDisplay(
   const options = getBlockOptions(block);
 
   // Handle radio/select - single value
-  if (blockType === 'radio' || blockType === 'select' || blockType === 'selectablebox') {
+  if (
+    blockType === 'radio' ||
+    blockType === 'select' ||
+    blockType === 'selectablebox'
+  ) {
     const option = options.find((opt) => opt.value === value);
     if (option) {
       return option.label;
@@ -110,6 +126,28 @@ export function formatResponseForDisplay(
   // Handle range/slider
   if (blockType === 'range' || blockType === 'slider') {
     return String(value);
+  }
+
+  // Handle conditional blocks (acknowledgment blocks)
+  // These often submit 'true' to indicate acknowledgment
+  if (blockType === 'conditional') {
+    if (value === true) {
+      return 'Understood!';
+    }
+    if (value === false) {
+      return 'Declined';
+    }
+    // For conditional blocks with actual input values, fall through to default
+    /* TODO: This displays "Got it!" for file uploads too. Message is good, but we can add attached files below it. Noted for future updates.  */
+    if (typeof value === 'string' && value) {
+      return value;
+    }
+    return 'Got it!';
+  }
+
+  // Handle boolean values in a human-friendly way
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
   }
 
   // Default: convert to string

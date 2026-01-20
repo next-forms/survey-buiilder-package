@@ -55,65 +55,112 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
 
   // Track mount/unmount
   React.useEffect(() => {
-    if(enableDebug)
+    if (enableDebug)
       console.log(`[SurveyForm] MOUNTED (instance: ${mountIdRef.current})`);
     return () => {
-      if(enableDebug)
+      if (enableDebug)
         console.log(`[SurveyForm] UNMOUNTED (instance: ${mountIdRef.current})`);
     };
   }, []);
 
   // Debug log - helps diagnose issues with the survey data and resume functionality
-  if(enableDebug) {
-    console.log(`[SurveyForm] Render #${renderCountRef.current} (instance: ${mountIdRef.current}) - Props received:`, {
-      initialValues,
-      startPage,
-      enableDebug,
-      hasDefaultValues: !!defaultValues && Object.keys(defaultValues).length > 0
-    });
+  if (enableDebug) {
+    console.log(
+      `[SurveyForm] Render #${renderCountRef.current} (instance: ${mountIdRef.current}) - Props received:`,
+      {
+        initialValues,
+        startPage,
+        enableDebug,
+        hasDefaultValues:
+          !!defaultValues && Object.keys(defaultValues).length > 0,
+      }
+    );
   }
 
   if (enableDebug) {
-    console.log('SurveyForm rendering with survey data:', survey?.rootNode?.type || 'No survey data');
+    console.log(
+      'SurveyForm rendering with survey data:',
+      survey?.rootNode?.type || 'No survey data'
+    );
   }
 
   // Get the selected theme - memoize to prevent recreation
-  const themeConfig = React.useMemo(() => survey?.theme ?? themes.uniloop, [survey?.theme]);
+  const themeConfig = React.useMemo(
+    () => survey?.theme ?? themes.uniloop,
+    [survey?.theme]
+  );
 
   // Load custom fonts from CDN URLs if provided in theme
   useFontLoader(themeConfig);
 
   // Determine if we should use dark theme based on the themeMode prop
-  const isDarkMode = React.useMemo(() =>
-    themeMode === 'dark' ||
-    (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches),
+  const isDarkMode = React.useMemo(
+    () =>
+      themeMode === 'dark' ||
+      (themeMode === 'system' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches),
     [themeMode]
   );
 
   // Get font CSS properties
-  const fontCSSProperties = React.useMemo(() => getFontCSSProperties(themeConfig), [themeConfig]);
+  const fontCSSProperties = React.useMemo(
+    () => getFontCSSProperties(themeConfig),
+    [themeConfig]
+  );
 
   // Create theme-specific CSS variables that override default values - memoize to prevent recreation
-  const surveyThemeStyle = React.useMemo(() => ({
-    // Use CSS custom properties to override within the survey scope
-    '--survey-primary': themeConfig.colors.primary,
-    '--survey-secondary': themeConfig.colors.secondary,
-    '--survey-accent': themeConfig.colors.accent,
-    '--survey-success': themeConfig.colors.success || (isDarkMode ? 'oklch(0.696 0.17 162.48)' : 'oklch(0.6 0.118 184.704)'),
-    '--survey-error': themeConfig.colors.error || (isDarkMode ? 'oklch(0.704 0.191 22.216)' : 'oklch(0.577 0.245 27.325)'),
-    '--survey-background': themeConfig.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
-    '--survey-text': themeConfig.colors.text || (isDarkMode ? 'oklch(0.985 0 0)' : 'oklch(0.141 0.005 285.823)'),
-    '--survey-border': themeConfig.colors.border || (isDarkMode ? 'oklch(1 0 0 / 12%)' : 'oklch(0.94 0.002 286.32)'),
-    '--survey-surface': isDarkMode ? 'oklch(0.21 0.006 285.885)' : 'oklch(1 0 0)',
-    '--survey-text-muted': isDarkMode ? 'oklch(0.705 0.015 286.067)' : 'oklch(0.552 0.016 285.938)',
-    '--survey-input': isDarkMode ? 'oklch(1 0 0 / 18%)' : 'oklch(0.96 0.002 286.32)',
-    '--survey-ring': isDarkMode ? 'oklch(0.552 0.016 285.938)' : 'oklch(0.705 0.015 286.067)',
-    '--survey-bg': themeConfig.colors.background || (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
-    '--survey-shadow': isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    '--survey-shadow-lg': isDarkMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    // Add font CSS properties
-    ...fontCSSProperties,
-  } as React.CSSProperties), [themeConfig, isDarkMode, fontCSSProperties]);
+  const surveyThemeStyle = React.useMemo(
+    () =>
+      ({
+        // Use CSS custom properties to override within the survey scope
+        '--survey-primary': themeConfig.colors.primary,
+        '--survey-secondary': themeConfig.colors.secondary,
+        '--survey-accent': themeConfig.colors.accent,
+        '--survey-success':
+          themeConfig.colors.success ||
+          (isDarkMode
+            ? 'oklch(0.696 0.17 162.48)'
+            : 'oklch(0.6 0.118 184.704)'),
+        '--survey-error':
+          themeConfig.colors.error ||
+          (isDarkMode
+            ? 'oklch(0.704 0.191 22.216)'
+            : 'oklch(0.577 0.245 27.325)'),
+        '--survey-background':
+          themeConfig.colors.background ||
+          (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
+        '--survey-text':
+          themeConfig.colors.text ||
+          (isDarkMode ? 'oklch(0.985 0 0)' : 'oklch(0.141 0.005 285.823)'),
+        '--survey-border':
+          themeConfig.colors.border ||
+          (isDarkMode ? 'oklch(1 0 0 / 12%)' : 'oklch(0.94 0.002 286.32)'),
+        '--survey-surface': isDarkMode
+          ? 'oklch(0.21 0.006 285.885)'
+          : 'oklch(1 0 0)',
+        '--survey-text-muted': isDarkMode
+          ? 'oklch(0.705 0.015 286.067)'
+          : 'oklch(0.552 0.016 285.938)',
+        '--survey-input': isDarkMode
+          ? 'oklch(1 0 0 / 18%)'
+          : 'oklch(0.96 0.002 286.32)',
+        '--survey-ring': isDarkMode
+          ? 'oklch(0.552 0.016 285.938)'
+          : 'oklch(0.705 0.015 286.067)',
+        '--survey-bg':
+          themeConfig.colors.background ||
+          (isDarkMode ? 'oklch(0.141 0.005 285.823)' : 'oklch(0.99 0.002 286)'),
+        '--survey-shadow': isDarkMode
+          ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+          : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        '--survey-shadow-lg': isDarkMode
+          ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)'
+          : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        // Add font CSS properties
+        ...fontCSSProperties,
+      } as React.CSSProperties),
+    [themeConfig, isDarkMode, fontCSSProperties]
+  );
 
   useEffect(() => {
     applyDynamicColors(themeConfig);
@@ -122,16 +169,21 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   // Determine theme class based on mode - memoize to prevent recreation
   const themeClass = React.useMemo(() => {
     switch (themeMode) {
-      case 'light': return 'survey-theme-light';
-      case 'dark': return 'survey-theme-dark';
-      case 'system': return 'survey-theme-system';
-      default: return 'survey-theme-light';
+      case 'light':
+        return 'survey-theme-light';
+      case 'dark':
+        return 'survey-theme-dark';
+      case 'system':
+        return 'survey-theme-system';
+      default:
+        return 'survey-theme-light';
     }
   }, [themeMode]);
 
   // Enhanced container class with better mobile responsiveness - memoize to prevent recreation
-  const containerClass = React.useMemo(() =>
-    `survey-form-container ${themeConfig.containerLayout} antialiased ${className}`,
+  const containerClass = React.useMemo(
+    () =>
+      `survey-form-container w-full ${themeConfig.containerLayout} antialiased ${className}`,
     [themeConfig.containerLayout, className]
   );
 
@@ -141,7 +193,8 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
       console.log('[SurveyForm] Getting layout component for:', {
         hasLayout: !!layout,
         layoutType: typeof layout,
-        layoutName: typeof layout === 'function' ? (layout.name || 'Anonymous') : layout,
+        layoutName:
+          typeof layout === 'function' ? layout.name || 'Anonymous' : layout,
       });
     }
     const component = getLayoutComponent(layout);
@@ -155,35 +208,57 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   }, [layout, enableDebug]);
 
   // Memoize layout props to prevent recreation
-  const layoutProps = React.useMemo(() => ({
-    enableDebug,
-    progressBar,
-    navigationButtons,
-    autoScroll,
-    autoFocus,
-    showSummary,
-    submitText,
-    logo
-  }), [enableDebug, progressBar, navigationButtons, autoScroll, autoFocus, showSummary, submitText, logo]);
+  const layoutProps = React.useMemo(
+    () => ({
+      enableDebug,
+      progressBar,
+      navigationButtons,
+      autoScroll,
+      autoFocus,
+      showSummary,
+      submitText,
+      logo,
+    }),
+    [
+      enableDebug,
+      progressBar,
+      navigationButtons,
+      autoScroll,
+      autoFocus,
+      showSummary,
+      submitText,
+      logo,
+    ]
+  );
 
   // Prepare analytics configuration - memoize to prevent recreation
-  const analyticsConfig: AnalyticsConfig = React.useMemo(() => analytics ? {
-    sessionId: analytics.sessionId,
-    userId: analytics.userId,
-    customDimensions: analytics.customDimensions,
-    googleAnalytics: analytics.googleAnalytics,
-    googleTagManager: analytics.googleTagManager,
-    meta: analytics.meta,
-    trackEvent: analytics.trackEvent,
-    trackPageView: analytics.trackPageView,
-    trackTiming: analytics.trackTiming,
-    setUserProperties: analytics.setUserProperties
-  } : {}, [analytics]);
+  const analyticsConfig: AnalyticsConfig = React.useMemo(
+    () =>
+      analytics
+        ? {
+            sessionId: analytics.sessionId,
+            userId: analytics.userId,
+            customDimensions: analytics.customDimensions,
+            googleAnalytics: analytics.googleAnalytics,
+            googleTagManager: analytics.googleTagManager,
+            meta: analytics.meta,
+            trackEvent: analytics.trackEvent,
+            trackPageView: analytics.trackPageView,
+            trackTiming: analytics.trackTiming,
+            setUserProperties: analytics.setUserProperties,
+          }
+        : {},
+    [analytics]
+  );
 
   // Determine if analytics should be enabled
-  const isAnalyticsEnabled = React.useMemo(() =>
-    analytics?.enabled !== false &&
-    (analytics?.googleAnalytics || analytics?.googleTagManager || analytics?.meta || analytics?.trackEvent),
+  const isAnalyticsEnabled = React.useMemo(
+    () =>
+      analytics?.enabled !== false &&
+      (analytics?.googleAnalytics ||
+        analytics?.googleTagManager ||
+        analytics?.meta ||
+        analytics?.trackEvent),
     [analytics]
   );
 
@@ -191,17 +266,19 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
     console.log('[SurveyForm] Analytics config:', {
       analytics,
       isAnalyticsEnabled,
-      analyticsConfig
+      analyticsConfig,
     });
   }
 
   const surveyContent = (
     <div
-      className={`survey-theme-container ${themeClass} min-h-screen`}
+      className={`relative survey-theme-container ${themeClass} flex-1 h-full flex flex-col`}
       style={surveyThemeStyle}
     >
-      <div className="survey-isolated-content">
-        <div className={`${containerClass} ${themeConfig.background} min-h-screen flex justify-center`}>
+      <div className="survey-isolated-content flex-1 flex flex-col h-full">
+        <div
+          className={`${containerClass} ${themeConfig.background} flex flex-col items-center justify-center flex-1 h-full`}
+        >
           <SurveyFormProvider
             surveyData={survey}
             defaultValues={defaultValues}
@@ -231,10 +308,14 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
   // Wrap with analytics provider if enabled
   if (isAnalyticsEnabled) {
     return (
-      <SurveyAnalyticsProvider 
+      <SurveyAnalyticsProvider
         config={analyticsConfig}
         enabled={analytics?.enabled !== false}
-        debug={enableDebug || analytics?.googleAnalytics?.debug || analytics?.googleTagManager?.debug}
+        debug={
+          enableDebug ||
+          analytics?.googleAnalytics?.debug ||
+          analytics?.googleTagManager?.debug
+        }
       >
         {surveyContent}
       </SurveyAnalyticsProvider>
