@@ -911,11 +911,13 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   // Track speaking state for transitions
   const hasStartedSpeakingRef = useRef(false);
   const hasTransitionedRef = useRef(false);
+  const hasStartedListeningRef = useRef(false);
 
   // Track when speaking starts
   useEffect(() => {
     if (isSpeaking && layoutMode === 'ai_speaking') {
       hasStartedSpeakingRef.current = true;
+      hasStartedListeningRef.current = false;
     }
   }, [isSpeaking, layoutMode]);
 
@@ -923,6 +925,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   useEffect(() => {
     hasTransitionedRef.current = false;
     hasStartedSpeakingRef.current = false;
+    hasStartedListeningRef.current = false;
   }, [currentQuestion]);
 
   // Transition to input mode when speaking finishes
@@ -942,23 +945,24 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     ) {
       hasTransitionedRef.current = true;
 
-      // Small delay to allow animation to complete
+      // Transition to input mode with minimal delay
       const timeout = setTimeout(() => {
         setLayoutMode('user_input');
 
-        // Auto-start listening for voice-friendly questions (with additional guard)
-        if (autoListen && currentInputMode !== 'visual' && !isListening) {
-          // Longer delay to ensure UI is ready
-          setTimeout(() => {
-            // Double-check we're still in input mode before starting
+        // Start listening immediately after mode change
+        // The WebSocket URL is pre-cached, so connection is fast
+        if (autoListen && currentInputMode !== 'visual' && !hasStartedListeningRef.current) {
+          hasStartedListeningRef.current = true;
+          // Small delay to ensure React has rendered the input screen
+          requestAnimationFrame(() => {
             startListening();
-          }, 500);
+          });
         }
-      }, 600);
+      }, 100);
 
       return () => clearTimeout(timeout);
     }
-  }, [isSpeaking, layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode, isListening]);
+  }, [isSpeaking, layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode]);
 
   // Ask question when block changes
   useEffect(() => {

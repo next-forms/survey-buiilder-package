@@ -18,6 +18,7 @@ import {
 } from '../VoiceStateManager';
 import { useAudioCapture } from './useAudioCapture';
 import { useAudioPlayback } from './useAudioPlayback';
+import { useStreamingAudioCapture } from './useStreamingAudioCapture';
 
 /**
  * Extended session config with optional handlers
@@ -295,6 +296,19 @@ export function useVoiceSession(
     handleSpeakEnd
   );
 
+  // Streaming audio capture hook (for custom STT)
+  const {
+    state: streamingCaptureState,
+    startCapture: startStreamingCapture,
+    stopCapture: stopStreamingCapture,
+    requestPermission: requestStreamingPermission,
+  } = useStreamingAudioCapture({
+    sampleRate: 16000,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  });
+
   /**
    * Initialize voice session
    * Session tracking is optional - voice will work without it
@@ -311,6 +325,25 @@ export function useVoiceSession(
           }));
           dispatch({ type: 'ERROR', payload: 'Microphone permission denied' });
           return;
+        }
+
+        // Pre-warm the STT session if using custom STT factory
+        // This fetches the WebSocket URL early so listening can start quickly
+        if (handlers?.sttSessionFactory) {
+          const tempSession = handlers.sttSessionFactory(
+            () => {}, // dummy transcript handler
+            undefined,
+            {
+              language: handlers.language || 'en-US',
+              sampleRate: 16000,
+            }
+          );
+          // Call prewarm if available (non-blocking)
+          if ('prewarm' in tempSession && typeof tempSession.prewarm === 'function') {
+            tempSession.prewarm().catch(() => {
+              // Prewarm errors are non-fatal
+            });
+          }
         }
 
         // Check if a custom session init handler is provided
@@ -596,7 +629,7 @@ export function useVoiceSession(
   const startListening = useCallback(async () => {
     // Check if custom STT is available
     if (handlers?.sttSessionFactory) {
-      // Use custom STT
+      // Use custom STT with streaming audio capture
       dispatch({ type: 'START_LISTENING' });
 
       // Create new STT session if needed
@@ -638,10 +671,21 @@ export function useVoiceSession(
       }
 
       try {
+        // Start the STT session first
         await customSTTSessionRef.current.start();
+
+        // Then start capturing audio and streaming it to the STT session
+        await startStreamingCapture(customSTTSessionRef.current);
       } catch (error) {
         console.error('Failed to start custom STT:', error);
         dispatch({ type: 'ERROR', payload: 'Failed to start speech recognition' });
+
+        // Clean up on error
+        if (customSTTSessionRef.current) {
+          customSTTSessionRef.current.end().catch(console.error);
+          customSTTSessionRef.current = null;
+        }
+        stopStreamingCapture();
       }
       return;
     }
@@ -654,18 +698,22 @@ export function useVoiceSession(
 
     dispatch({ type: 'START_LISTENING' });
     await startCapture();
-  }, [handlers, captureState.isSupported, startCapture, parseVoiceCommand]);
+  }, [handlers, captureState.isSupported, startCapture, startStreamingCapture, stopStreamingCapture, parseVoiceCommand]);
 
   /**
    * Stop listening
    */
   const stopListening = useCallback(() => {
-    // Stop custom STT if active
+    // Stop streaming audio capture (for custom STT)
+    stopStreamingCapture();
+
+    // Stop custom STT session if active
     if (customSTTSessionRef.current?.isActive) {
       customSTTSessionRef.current.end().catch(console.error);
+      customSTTSessionRef.current = null;
     }
 
-    // Also stop browser capture
+    // Also stop browser capture (for fallback STT)
     stopCapture();
     dispatch({ type: 'STOP_LISTENING' });
     // Clear interim transcript when stopping
@@ -673,7 +721,7 @@ export function useVoiceSession(
       ...prev,
       lastInterimTranscript: '',
     }));
-  }, [stopCapture]);
+  }, [stopCapture, stopStreamingCapture]);
 
   /**
    * Speak text with TTS (queues speech to avoid interruption)
@@ -842,6 +890,9 @@ export function useVoiceSession(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop streaming audio capture
+      stopStreamingCapture();
+
       // Stop browser-based capture and playback
       stopCapture();
       stopSpeaking();
@@ -865,7 +916,7 @@ export function useVoiceSession(
         audioContextRef.current.close().catch(console.error);
       }
     };
-  }, [stopCapture, stopSpeaking]);
+  }, [stopCapture, stopSpeaking, stopStreamingCapture]);
 
   return {
     // State
@@ -890,10 +941,12 @@ export function useVoiceSession(
     clearMessages,
 
     // Computed
-    isListening: captureState.isCapturing,
+    // isListening is true if either browser capture or streaming capture is active
+    isListening: captureState.isCapturing || streamingCaptureState.isCapturing,
     // isSpeaking is true if either browser TTS or custom TTS is playing
     isSpeaking: playbackState.isPlaying || isCustomTTSPlaying,
     isProcessing: voiceState.isProcessing,
-    volume: captureState.volume,
+    // Use volume from streaming capture if active, otherwise from browser capture
+    volume: streamingCaptureState.isCapturing ? streamingCaptureState.volume : captureState.volume,
   };
 }
