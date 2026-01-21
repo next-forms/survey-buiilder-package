@@ -331,3 +331,45 @@ export interface PCMEncoderConfig {
   bitDepth: 16 | 32;
   channels: number;
 }
+
+/**
+ * Voice answer validation types
+ */
+export interface VoiceValidationOption {
+  id?: string;
+  label: string;
+  value: string;
+}
+
+export interface VoiceValidationRequest {
+  transcript: string;
+  options: VoiceValidationOption[];
+  multiSelect: boolean;
+  questionLabel?: string;
+  blockType?: string;
+  previousSelections?: string[];
+  isConfirmation?: boolean;
+}
+
+export interface VoiceValidationResponse {
+  success: boolean;
+  isValid: boolean;
+  matchedOptions: VoiceValidationOption[];
+  matchedValues: string[];
+  confidence: 'high' | 'medium' | 'low';
+  needsConfirmation: boolean;
+  confirmationMessage?: string;
+  invalidReason?: string;
+  suggestedAction?: 'confirm' | 'reask' | 'add_more' | 'submit' | 'finish_multiselect';
+}
+
+/**
+ * Multi-select voice state
+ */
+export interface MultiSelectVoiceState {
+  isActive: boolean;
+  selectedValues: string[];
+  selectedLabels: string[];
+  awaitingConfirmation: boolean;
+  awaitingMoreSelections: boolean;
+}

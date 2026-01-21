@@ -11,6 +11,7 @@ export { VisualInputWrapper } from './components/VisualInputWrapper';
 export { useVoiceSession } from './hooks/useVoiceSession';
 export { useAudioCapture } from './hooks/useAudioCapture';
 export { useAudioPlayback } from './hooks/useAudioPlayback';
+export { useVoiceValidation } from './hooks/useVoiceValidation';
 
 // Types
 export type {
@@ -30,10 +31,14 @@ export type {
   VoiceOrbProps,
   AmbientProgressProps,
   VisualInputWrapperProps,
+  VoiceValidationOption,
+  VoiceValidationRequest,
+  VoiceValidationResponse,
+  MultiSelectVoiceState,
 } from './types';
 
 // Utilities
-export { classifyQuestion, matchVoiceToOption, isPrivacyBlock } from './QuestionClassifier';
+export { classifyQuestion, matchVoiceToOption, isPrivacyBlock, hasBlockOptions, isMultiSelectBlock } from './QuestionClassifier';
 export {
   voiceStateReducer,
   initialVoiceState,

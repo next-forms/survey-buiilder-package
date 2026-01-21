@@ -13,7 +13,8 @@ import type {
   InputMode,
   VoiceLayoutMode,
 } from './types';
-import { classifyQuestion, matchVoiceToOption } from './QuestionClassifier';
+import { classifyQuestion, matchVoiceToOption, hasBlockOptions } from './QuestionClassifier';
+import { useVoiceValidation } from './hooks/useVoiceValidation';
 import { useVoiceSession } from './hooks/useVoiceSession';
 import { VoiceOrb } from './components/VoiceOrb';
 import { OrbScreen } from './components/OrbScreen';
@@ -176,11 +177,24 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   const [layoutMode, setLayoutMode] = useState<VoiceLayoutMode>('welcome');
   const [currentQuestion, setCurrentQuestion] = useState<string>('');
   const [currentInputMode, setCurrentInputMode] = useState<InputMode>('hybrid');
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [pendingValidation, setPendingValidation] = useState<{
+    values: string[];
+    labels: string[];
+  } | null>(null);
 
   // Refs
   const askedBlocksRef = useRef<Set<string>>(new Set());
   const lastQuestionRef = useRef<string>('');
   const conversationHistoryRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+
+  // Refs for voice session functions (to break circular dependency)
+  const speakRef = useRef<(text: string) => Promise<void>>(() => Promise.resolve());
+  const stopListeningRef = useRef<() => void>(() => {});
+  const switchToVisualRef = useRef<() => void>(() => {});
+
+  // Voice validation hook for AI-powered answer matching
+  const { validateAnswer, resetMultiSelectState } = useVoiceValidation();
 
   // Get current block info
   const surveyMode = detectSurveyMode(surveyData.rootNode);
@@ -210,7 +224,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
           break;
         case 'repeat':
           if (lastQuestionRef.current) {
-            speak(lastQuestionRef.current);
+            speakRef.current(lastQuestionRef.current);
             setLayoutMode('ai_speaking');
           }
           break;
@@ -221,7 +235,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
           }
           break;
         case 'stop':
-          switchToVisual();
+          switchToVisualRef.current();
           setLayoutMode('user_input');
           break;
         default:
@@ -239,7 +253,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
    * Handle transcript from voice input
    */
   const handleTranscript = useCallback(
-    (transcript: string, isFinal: boolean) => {
+    async (transcript: string, isFinal: boolean) => {
       if (!currentBlock || !isFinal) {
         if (voiceCustomData?.onTranscript) {
           voiceCustomData.onTranscript(transcript, isFinal);
@@ -248,23 +262,146 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       }
 
       const fieldName = currentBlock.fieldName || currentBlock.name || '';
+      const blockType = currentBlock.type.toLowerCase();
 
-      // Try to match transcript to option for selection blocks
-      const classification = classifyQuestion(currentBlock);
-      if (
-        classification.inputMode !== 'visual' &&
-        ['radio', 'select', 'checkbox'].includes(currentBlock.type.toLowerCase())
-      ) {
-        const match = matchVoiceToOption(transcript, currentBlock);
-        if (match.matched) {
-          conversationHistoryRef.current.push({ role: 'user', content: transcript });
-          setValue(fieldName, match.value);
-          stopListening();
+      // Check if this is an option-based block that needs AI validation
+      const optionBasedBlocks = ['radio', 'select', 'checkbox', 'selectablebox', 'multiselect', 'dropdown'];
+      const isOptionBlock = optionBasedBlocks.includes(blockType) && hasBlockOptions(currentBlock);
 
-          setTimeout(() => {
-            goToNextBlock({ [fieldName]: match.value });
+      if (isOptionBlock) {
+        // Stop listening while we validate
+        stopListeningRef.current();
+        setLayoutMode('processing');
+
+        try {
+          // Use AI to validate the answer
+          const result = await validateAnswer(
+            transcript,
+            currentBlock,
+            awaitingConfirmation,
+            pendingValidation?.values || []
+          );
+
+          if (result.suggestedAction === 'submit' && result.isValid) {
+            // Valid answer - submit it
+            const isMulti = currentBlock.multiSelect === true || blockType === 'checkbox';
+            const finalValue = isMulti ? result.matchedValues : result.matchedValues[0];
+
+            // Build a confirmation message
+            const selectedLabels = result.matchedOptions.map(o => o.label).join(', ');
+            conversationHistoryRef.current.push({ role: 'user', content: selectedLabels });
+
+            setValue(fieldName, finalValue);
+            setAwaitingConfirmation(false);
+            setPendingValidation(null);
+            resetMultiSelectState();
+
+            setTimeout(() => {
+              goToNextBlock({ [fieldName]: finalValue });
+              setLayoutMode('ai_speaking');
+            }, 300);
+            return;
+          }
+
+          if (result.suggestedAction === 'confirm' && result.needsConfirmation) {
+            // Need confirmation - speak the confirmation message
+            // Merge with existing pending values, using Set to avoid duplicates
+            const newPendingValues = {
+              values: [...new Set([...(pendingValidation?.values || []), ...result.matchedValues])],
+              labels: [...new Set([...(pendingValidation?.labels || []), ...result.matchedOptions.map(o => o.label)])],
+            };
+            setPendingValidation(newPendingValues);
+            setAwaitingConfirmation(true);
+
+            // Update the form value so block renderer shows selections
+            const isMulti = currentBlock.multiSelect === true || blockType === 'checkbox';
+            if (isMulti) {
+              setValue(fieldName, newPendingValues.values);
+            }
+
+            // Show what was just added, not all selections
+            const justAdded = result.matchedOptions.map(o => o.label).join(', ');
+            const confirmMessage = result.confirmationMessage ||
+              (newPendingValues.values.length > result.matchedValues.length
+                ? `Added ${justAdded}. You now have ${newPendingValues.labels.join(', ')} selected. Would you like to add more, or say "done" to continue?`
+                : `You selected ${justAdded}. Would you like to add more, or say "done" to continue?`);
+            setCurrentQuestion(confirmMessage);
+            conversationHistoryRef.current.push({ role: 'assistant', content: confirmMessage });
             setLayoutMode('ai_speaking');
-          }, 300);
+            await speakRef.current(confirmMessage);
+            return;
+          }
+
+          if (result.suggestedAction === 'add_more') {
+            // User wants to add more to multi-select
+            // Keep the existing pending values (result.matchedValues contains the previous selections)
+            const newPendingValues = {
+              values: [...new Set([...result.matchedValues])],
+              labels: [...new Set([...result.matchedOptions.map(o => o.label)])],
+            };
+            setPendingValidation(newPendingValues);
+            // Set to false so next voice input is treated as new option selection, not confirmation
+            setAwaitingConfirmation(false);
+
+            // Update the form value so block renderer shows already selected options
+            setValue(fieldName, newPendingValues.values);
+
+            const addMoreMessage = result.confirmationMessage ||
+              `Which additional option would you like to add? Or say "done" to continue.`;
+            setCurrentQuestion(addMoreMessage);
+            conversationHistoryRef.current.push({ role: 'assistant', content: addMoreMessage });
+            setLayoutMode('ai_speaking');
+            await speakRef.current(addMoreMessage);
+            return;
+          }
+
+          // Handle "done" / "finished" / "that's all" when user has pending selections
+          if (result.suggestedAction === 'finish_multiselect' && pendingValidation && pendingValidation.values.length > 0) {
+            // User is done selecting - submit the pending values
+            const isMulti = currentBlock.multiSelect === true || blockType === 'checkbox';
+            const finalValue = isMulti ? pendingValidation.values : pendingValidation.values[0];
+
+            conversationHistoryRef.current.push({ role: 'user', content: pendingValidation.labels.join(', ') });
+            setValue(fieldName, finalValue);
+            setAwaitingConfirmation(false);
+            setPendingValidation(null);
+            resetMultiSelectState();
+
+            setTimeout(() => {
+              goToNextBlock({ [fieldName]: finalValue });
+              setLayoutMode('ai_speaking');
+            }, 300);
+            return;
+          }
+
+          if (result.suggestedAction === 'reask' || !result.isValid) {
+            // Invalid answer - reask
+            const reaskMessage = result.invalidReason ||
+              "I couldn't match your answer to any option. Please try again or select an option from the list.";
+            setCurrentQuestion(reaskMessage);
+            conversationHistoryRef.current.push({ role: 'assistant', content: reaskMessage });
+            setLayoutMode('ai_speaking');
+            await speakRef.current(reaskMessage);
+            return;
+          }
+        } catch (error) {
+          console.error('Voice validation error:', error);
+          // Fallback to basic matching
+          const match = matchVoiceToOption(transcript, currentBlock);
+          if (match.matched) {
+            conversationHistoryRef.current.push({ role: 'user', content: transcript });
+            setValue(fieldName, match.value);
+            setTimeout(() => {
+              goToNextBlock({ [fieldName]: match.value });
+              setLayoutMode('ai_speaking');
+            }, 300);
+            return;
+          }
+          // If fallback also fails, show error
+          const errorMessage = "I'm having trouble understanding. Please try again or select an option directly.";
+          setCurrentQuestion(errorMessage);
+          setLayoutMode('ai_speaking');
+          await speakRef.current(errorMessage);
           return;
         }
       }
@@ -272,14 +409,14 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       // Use transcript as value for text blocks
       conversationHistoryRef.current.push({ role: 'user', content: transcript });
       setValue(fieldName, transcript);
-      stopListening();
+      stopListeningRef.current();
 
       setTimeout(() => {
         goToNextBlock({ [fieldName]: transcript });
         setLayoutMode('ai_speaking');
       }, 300);
     },
-    [currentBlock, setValue, goToNextBlock, voiceCustomData]
+    [currentBlock, setValue, goToNextBlock, voiceCustomData, validateAnswer, awaitingConfirmation, pendingValidation, resetMultiSelectState]
   );
 
   // Voice session hook
@@ -303,6 +440,13 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     handleVoiceCommand,
     voiceCustomData?.onStateChange
   );
+
+  // Update refs with voice session functions
+  useEffect(() => {
+    speakRef.current = speak;
+    stopListeningRef.current = stopListening;
+    switchToVisualRef.current = switchToVisual;
+  }, [speak, stopListening, switchToVisual]);
 
   /**
    * Ask the current question with AI rephrasing

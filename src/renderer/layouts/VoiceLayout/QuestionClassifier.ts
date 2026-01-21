@@ -399,3 +399,21 @@ export function isPrivacyBlock(block: BlockData): boolean {
 
   return sensitivePatterns.some((pattern) => fieldName.includes(pattern));
 }
+
+/**
+ * Check if block has options (for validation purposes)
+ */
+export function hasBlockOptions(block: BlockData): boolean {
+  return getOptionCount(block) > 0;
+}
+
+/**
+ * Check if block is a multi-select type
+ */
+export function isMultiSelectBlock(block: BlockData): boolean {
+  return (
+    block.type.toLowerCase() === 'checkbox' ||
+    block.multiSelect === true ||
+    block.type.toLowerCase() === 'multiselect'
+  );
+}
