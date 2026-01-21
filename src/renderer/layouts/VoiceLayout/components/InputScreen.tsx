@@ -74,7 +74,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({
               onClick={onBack}
               className={cn(
                 'mb-4 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700',
-                'transition-colors duration-200'
+                'transition-colors duration-200',
               )}
             >
               <svg
@@ -123,6 +123,18 @@ export const InputScreen: React.FC<InputScreenProps> = ({
           onKeyDown={handleKeyDown}
           className="max-w-2xl mx-auto"
         >
+          {/* Interim transcript when listening */}
+          {isListening && interimTranscript && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100"
+            >
+              <p className="text-gray-600 italic text-center">
+                "{interimTranscript}"
+              </p>
+            </motion.div>
+          )}
           {/* Block renderer with light theme */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -141,7 +153,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({
               '[&_[role="radio"]]:border-gray-400',
               '[&_[data-state="checked"]]:bg-blue-500 [&_[data-state="checked"]]:border-blue-500',
               '[&_.text-muted-foreground]:text-gray-500',
-              '[&_.text-destructive]:text-red-500'
+              '[&_.text-destructive]:text-red-500',
             )}
           >
             <BlockRenderer
@@ -164,19 +176,6 @@ export const InputScreen: React.FC<InputScreenProps> = ({
               {error}
             </motion.p>
           )}
-
-          {/* Interim transcript when listening */}
-          {isListening && interimTranscript && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100"
-            >
-              <p className="text-gray-600 italic text-center">
-                "{interimTranscript}"
-              </p>
-            </motion.div>
-          )}
         </form>
       </div>
 
@@ -192,20 +191,76 @@ export const InputScreen: React.FC<InputScreenProps> = ({
                 transition={{ delay: 0.3 }}
                 onClick={onVoiceInput}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-full',
+                  'relative flex items-center gap-3 px-4 py-2.5 rounded-full',
                   'text-sm font-medium transition-all duration-200',
                   isListening
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/40'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800',
                 )}
               >
-                {/* Inline mic icon instead of nested VoiceOrb button */}
-                <span className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center',
-                  isListening ? 'bg-blue-400' : 'bg-gray-200'
-                )}>
+                {/* Pulse animation rings when listening - more visible */}
+                {isListening && (
+                  <>
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-green-500/30"
+                      animate={{
+                        scale: [1, 1.25, 1],
+                        opacity: [0.4, 0.8, 0.4],
+                      }}
+                      transition={{
+                        duration: 1.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-green-500/20"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.3, 0.6, 0.3],
+                      }}
+                      transition={{
+                        duration: 1.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: 0.2,
+                      }}
+                    />
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-green-400/15"
+                      animate={{
+                        scale: [1, 1.8, 1],
+                        opacity: [0.2, 0.5, 0.2],
+                      }}
+                      transition={{
+                        duration: 1.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: 0.4,
+                      }}
+                    />
+                  </>
+                )}
+                {/* Inline mic icon with matching orb colors */}
+                <motion.span
+                  className={cn(
+                    'relative w-8 h-8 rounded-full flex items-center justify-center',
+                    isListening
+                      ? 'bg-green-400 shadow-md shadow-green-500/50'
+                      : 'bg-gray-200',
+                  )}
+                  animate={isListening ? { scale: [1, 1.15, 1] } : {}}
+                  transition={{
+                    duration: 0.6,
+                    repeat: isListening ? Infinity : 0,
+                    ease: 'easeInOut',
+                  }}
+                >
                   <svg
-                    className={cn('w-4 h-4', isListening ? 'text-white' : 'text-gray-500')}
+                    className={cn(
+                      'w-4 h-4',
+                      isListening ? 'text-white' : 'text-gray-500',
+                    )}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -216,8 +271,10 @@ export const InputScreen: React.FC<InputScreenProps> = ({
                     <line x1="12" y1="19" x2="12" y2="23" />
                     <line x1="8" y1="23" x2="16" y2="23" />
                   </svg>
+                </motion.span>
+                <span className="relative">
+                  {isListening ? 'Listening...' : 'Tap to speak'}
                 </span>
-                {isListening ? 'Listening...' : 'Tap to speak'}
               </motion.button>
             )}
 
@@ -232,9 +289,11 @@ export const InputScreen: React.FC<InputScreenProps> = ({
               className={cn(
                 'flex-1 max-w-xs ml-auto px-6 py-3 rounded-full',
                 'text-sm font-semibold transition-all duration-200',
-                'bg-blue-500 text-white hover:bg-blue-600',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                'focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+                canSubmit
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'bg-green-300 text-white hover:bg-green-300',
               )}
             >
               Continue

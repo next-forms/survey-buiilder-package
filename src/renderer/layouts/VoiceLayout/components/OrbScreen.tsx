@@ -26,7 +26,10 @@ export const OrbScreen: React.FC<OrbScreenProps> = ({
   theme,
   orbStyle = 'breathe',
   volume = 0,
+  isLoading = false,
 }) => {
+  // Show loading state when waiting for AI response
+  const effectiveVoiceState = isLoading && !isSpeaking ? 'loading' : voiceState;
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -94,7 +97,7 @@ export const OrbScreen: React.FC<OrbScreenProps> = ({
           className="mb-12"
         >
           <VoiceOrb
-            state={voiceState}
+            state={effectiveVoiceState}
             theme={theme}
             style={orbStyle}
             size="xxl"

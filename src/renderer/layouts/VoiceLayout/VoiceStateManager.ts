@@ -190,6 +190,7 @@ export function canTransition(
     visual_input: ['RETURN_TO_VOICE', 'START_LISTENING', 'ERROR', 'COMPLETE'],
     error: ['START_LISTENING', 'SWITCH_TO_VISUAL', 'RESET'],
     complete: ['RESET'],
+    loading: ['START_SPEAKING', 'SWITCH_TO_VISUAL', 'ERROR', 'RESET'], // UI-only state for API loading
   };
 
   return validTransitions[fromState]?.includes(action) ?? false;
@@ -207,6 +208,7 @@ export function getStateDescription(state: VoiceState): string {
     visual_input: 'Enter your answer',
     error: 'Something went wrong',
     complete: 'Complete',
+    loading: 'Loading...',
   };
 
   return descriptions[state];

@@ -10,7 +10,8 @@ export type VoiceState =
   | 'speaking'
   | 'visual_input'
   | 'error'
-  | 'complete';
+  | 'complete'
+  | 'loading'; // Loading state for API calls (distinct from processing user input)
 
 /**
  * Voice layout mode - controls which screen is shown
@@ -271,6 +272,8 @@ export interface OrbScreenProps {
   theme?: ThemeDefinition;
   orbStyle?: 'pulse' | 'wave' | 'glow' | 'minimal' | 'breathe';
   volume?: number;
+  /** Whether the AI is loading/processing a response */
+  isLoading?: boolean;
 }
 
 /**

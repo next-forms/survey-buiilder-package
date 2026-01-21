@@ -58,6 +58,12 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
           inner: 'bg-amber-500',
           glow: 'shadow-amber-500/50',
         };
+      case 'loading':
+        return {
+          outer: 'bg-blue-400/20',
+          inner: 'bg-gradient-to-br from-blue-400 to-blue-600',
+          glow: 'shadow-blue-500/40',
+        };
       case 'speaking':
         return {
           outer: 'bg-green-500/20',
@@ -108,6 +114,12 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
         rotate: [0, 180, 360],
       };
     }
+    if (state === 'loading') {
+      return {
+        scale: [1, 1.12, 1],
+        opacity: [0.4, 0.7, 0.4],
+      };
+    }
     if (state === 'speaking') {
       return {
         scale: [1, 1.08, 1],
@@ -138,6 +150,12 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
     if (state === 'speaking') {
       return {
         scale: [baseScale * 0.95, baseScale * 1.1, baseScale * 0.95],
+        opacity: [0.5, 0.8, 0.5],
+      };
+    }
+    if (state === 'loading') {
+      return {
+        scale: [1, 1.08, 1],
         opacity: [0.5, 0.8, 0.5],
       };
     }
@@ -177,6 +195,27 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
           >
             <circle cx="12" cy="12" r="10" strokeDasharray="40" strokeDashoffset="10" />
           </motion.svg>
+        );
+      case 'loading':
+        return (
+          <div className={cn(iconSizeClasses[size], 'flex items-center justify-center gap-1')}>
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="w-1.5 h-1.5 bg-white rounded-full"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 0.8,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: i * 0.2,
+                }}
+              />
+            ))}
+          </div>
         );
       case 'speaking':
         return (
@@ -266,6 +305,7 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
   };
 
   const isActive = state !== 'idle' && state !== 'complete';
+  const isLoading = state === 'loading';
 
   const containerClassName = cn(
     'relative flex items-center justify-center',
@@ -388,11 +428,13 @@ export const VoiceOrb: React.FC<VoiceOrbProps> = ({
             ? { scale: [1, 1.05, 1] }
             : state === 'speaking'
             ? { scale: [1, 1.03, 1] }
+            : state === 'loading'
+            ? { scale: [1, 1.04, 1] }
             : {}
         }
         transition={{
-          duration: 0.5,
-          repeat: state === 'listening' || state === 'speaking' ? Infinity : 0,
+          duration: state === 'loading' ? 0.8 : 0.5,
+          repeat: state === 'listening' || state === 'speaking' || state === 'loading' ? Infinity : 0,
           ease: 'easeInOut',
         }}
       >

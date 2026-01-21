@@ -1203,6 +1203,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             theme={theme}
             orbStyle={orbStyle}
             volume={volume}
+            isLoading={!isSpeaking}
           />
         )}
 
