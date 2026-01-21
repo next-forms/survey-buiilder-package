@@ -332,6 +332,11 @@ export function useVoiceSession(
   const stopListening = useCallback(() => {
     stopCapture();
     dispatch({ type: 'STOP_LISTENING' });
+    // Clear interim transcript when stopping
+    setSessionState(prev => ({
+      ...prev,
+      lastInterimTranscript: '',
+    }));
   }, [stopCapture]);
 
   /**

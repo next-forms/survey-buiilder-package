@@ -14,6 +14,7 @@ import type {
   VoiceLayoutMode,
 } from './types';
 import { classifyQuestion, matchVoiceToOption, hasBlockOptions } from './QuestionClassifier';
+import { getBlockDefinition } from '../../../blocks';
 import { useVoiceValidation } from './hooks/useVoiceValidation';
 import { useVoiceSession } from './hooks/useVoiceSession';
 import { VoiceOrb } from './components/VoiceOrb';
@@ -143,6 +144,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     goToNextBlock,
     goToPreviousBlock,
     isSubmitting,
+    isValid,
+    isLastPage,
     theme,
     surveyData,
     customData,
@@ -187,6 +190,21 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   const askedBlocksRef = useRef<Set<string>>(new Set());
   const lastQuestionRef = useRef<string>('');
   const conversationHistoryRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  // Track if we're navigating backwards (to skip AI speaking on back navigation)
+  const isNavigatingBackRef = useRef<boolean>(false);
+  // Store questions for each block to restore when going back
+  const blockQuestionsRef = useRef<Map<string, string>>(new Map());
+
+  // Track original value when navigating back (to detect if user changed it)
+  const originalValueOnBackRef = useRef<{ blockId: string; value: unknown } | null>(null);
+  // Track conversation history checkpoint for each block (index where block's conversation starts)
+  const conversationCheckpointsRef = useRef<Map<string, number>>(new Map());
+  // Track the submitted value for each block (to detect navigation target changes)
+  const submittedValuesRef = useRef<Map<string, unknown>>(new Map());
+  // Track visited blocks in order (to know which blocks to clear when going back)
+  const visitedBlocksOrderRef = useRef<string[]>([]);
+  // Track if we should skip AI speaking on next block (for forward nav with unchanged value)
+  const skipNextAISpeakingRef = useRef<boolean>(false);
 
   // Refs for voice session functions (to break circular dependency)
   const speakRef = useRef<(text: string) => Promise<void>>(() => Promise.resolve());
@@ -209,6 +227,20 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     0
   );
   const currentQuestionIndex = getCurrentStepPosition?.() ?? 0;
+
+  // Get block definition to check for disableAudioInput
+  const currentBlockDefinition = currentBlock ? getBlockDefinition(currentBlock.type) : undefined;
+
+  // Check if audio input should be disabled (check both block instance and definition)
+  const shouldDisableAudioInput =
+    currentBlock?.disableAudioInput === true ||
+    currentBlockDefinition?.disableAudioInput === true;
+
+  // Check if this is the final step (will trigger submit)
+  // This follows the same logic as RenderPageSurveyLayout
+  const isFinalStep =
+    currentBlock?.isEndBlock === true ||
+    (isLastPage && currentBlockIndex === visibleBlocks.length - 1);
 
   /**
    * Handle voice command
@@ -250,6 +282,84 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   );
 
   /**
+   * Helper to check if value changed from original (when navigating back)
+   */
+  const didValueChange = useCallback((blockId: string, newValue: unknown): boolean => {
+    const original = originalValueOnBackRef.current;
+    if (!original || original.blockId !== blockId) {
+      return true; // Not coming from back navigation, treat as changed
+    }
+    // Deep comparison for objects/arrays
+    return JSON.stringify(original.value) !== JSON.stringify(newValue);
+  }, []);
+
+  /**
+   * Helper to clear subsequent blocks' data when value changes after back navigation
+   */
+  const clearSubsequentBlocksData = useCallback((currentBlockId: string) => {
+    const visitedOrder = visitedBlocksOrderRef.current;
+    const currentIndex = visitedOrder.indexOf(currentBlockId);
+
+    if (currentIndex === -1) return;
+
+    // Get blocks that come after the current one
+    const subsequentBlocks = visitedOrder.slice(currentIndex + 1);
+
+    // Clear their data
+    subsequentBlocks.forEach(blockId => {
+      // Clear from submittedValuesRef
+      submittedValuesRef.current.delete(blockId);
+
+      // Clear conversation checkpoint
+      conversationCheckpointsRef.current.delete(blockId);
+
+      // Clear stored question
+      blockQuestionsRef.current.delete(blockId);
+
+      // Clear from askedBlocks so they can be asked again
+      askedBlocksRef.current.delete(blockId);
+    });
+
+    // Truncate visitedBlocksOrder to current block
+    visitedBlocksOrderRef.current = visitedOrder.slice(0, currentIndex + 1);
+
+    // Clear form values for subsequent blocks
+    // We need to find the fieldNames for these blocks and clear them
+    subsequentBlocks.forEach(blockId => {
+      // The blockId might be uuid or fieldName, try to clear the value
+      setValue(blockId, undefined);
+    });
+  }, [setValue]);
+
+  /**
+   * Helper to proceed to next step or submit
+   * Follows the same pattern as RenderPageSurveyLayout
+   */
+  const proceedToNextOrSubmit = useCallback(
+    (fieldName: string, value: unknown) => {
+      // Stop any ongoing listening to clear isListening and interimTranscript
+      stopListeningRef.current();
+
+      // Track the submitted value for this block
+      const blockId = currentBlock?.uuid || currentBlock?.fieldName || fieldName;
+      submittedValuesRef.current.set(blockId, value);
+
+      // Clear original value ref since we're proceeding
+      originalValueOnBackRef.current = null;
+
+      if (!isFinalStep) {
+        // Not final step - show AI speaking for next question
+        setLayoutMode('ai_speaking');
+      }
+
+      // Let goToNextBlock handle submission on final step to avoid race condition
+      // goToNextBlock will call submit() internally when it's the final step
+      goToNextBlock({ [fieldName]: value });
+    },
+    [isFinalStep, goToNextBlock, currentBlock]
+  );
+
+  /**
    * Handle transcript from voice input
    */
   const handleTranscript = useCallback(
@@ -263,10 +373,97 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
       const fieldName = currentBlock.fieldName || currentBlock.name || '';
       const blockType = currentBlock.type.toLowerCase();
+      const blockId = currentBlock.uuid || fieldName;
 
-      // Check if this is an option-based block that needs AI validation
+      // If coming from back navigation, clear subsequent blocks' data
+      // (voice input always provides new value, so we always need to handle this)
+      if (originalValueOnBackRef.current?.blockId === blockId) {
+        clearSubsequentBlocksData(blockId);
+        originalValueOnBackRef.current = null;
+      }
+
+      // Get block definition to check for skipAIValidation
+      const blockDefinition = getBlockDefinition(currentBlock.type);
+
+      // Check if AI validation should be skipped (check both block instance and definition)
+      const shouldSkipAIValidation =
+        currentBlock.skipAIValidation === true ||
+        blockDefinition?.skipAIValidation === true;
+
+      // If skipAIValidation is true, just use the transcript as-is
+      if (shouldSkipAIValidation) {
+        conversationHistoryRef.current.push({ role: 'user', content: transcript });
+        setValue(fieldName, transcript);
+        stopListeningRef.current();
+
+        setTimeout(() => {
+          proceedToNextOrSubmit(fieldName, transcript);
+        }, 300);
+        return;
+      }
+
+      // Check if this block has a schema for structured data extraction
+      // Schema can be on the block instance OR on the block definition
+      const blockSchema = currentBlock.outputSchema || currentBlock.inputSchema;
+      const definitionSchema = blockDefinition?.outputSchema || blockDefinition?.inputSchema;
+      const hasSchema = blockSchema || definitionSchema;
+
+      // Merge schema from definition into block for validation API
+      const blockWithSchema = {
+        ...currentBlock,
+        outputSchema: currentBlock.outputSchema || blockDefinition?.outputSchema,
+        inputSchema: currentBlock.inputSchema || blockDefinition?.inputSchema,
+      };
+
+      // Check if this is an option-based block
       const optionBasedBlocks = ['radio', 'select', 'checkbox', 'selectablebox', 'multiselect', 'dropdown'];
       const isOptionBlock = optionBasedBlocks.includes(blockType) && hasBlockOptions(currentBlock);
+
+      // Use schema-based validation for ALL blocks that have a schema (not just option-based)
+      // This allows custom blocks like BMI calculator to use AI to extract structured data
+      if (hasSchema && !isOptionBlock) {
+        stopListeningRef.current();
+        setLayoutMode('processing');
+
+        try {
+          const result = await validateAnswer(
+            transcript,
+            blockWithSchema,
+            false,
+            []
+          );
+
+          if (result.isValid && result.extractedData !== undefined && result.extractedData !== null) {
+            // Successfully extracted structured data
+            // Note: We check !== undefined/null to allow falsy values like 0, false, ""
+            conversationHistoryRef.current.push({ role: 'user', content: transcript });
+            setValue(fieldName, result.extractedData);
+
+            setTimeout(() => {
+              proceedToNextOrSubmit(fieldName, result.extractedData);
+            }, 300);
+            return;
+          }
+
+          if (!result.isValid || result.suggestedAction === 'reask') {
+            // Couldn't extract data, ask for clarification
+            const reaskMessage = result.confirmationMessage ||
+              "I couldn't understand your response. Could you please provide the information more clearly?";
+            setCurrentQuestion(reaskMessage);
+            conversationHistoryRef.current.push({ role: 'assistant', content: reaskMessage });
+            setLayoutMode('ai_speaking');
+            await speakRef.current(reaskMessage);
+            return;
+          }
+        } catch (error) {
+          console.error('Schema validation error:', error);
+          const errorMessage = "I had trouble understanding. Could you please repeat that?";
+          setCurrentQuestion(errorMessage);
+          setLayoutMode('ai_speaking');
+          await speakRef.current(errorMessage);
+          return;
+        }
+      }
 
       if (isOptionBlock) {
         // Stop listening while we validate
@@ -297,8 +494,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             resetMultiSelectState();
 
             setTimeout(() => {
-              goToNextBlock({ [fieldName]: finalValue });
-              setLayoutMode('ai_speaking');
+              proceedToNextOrSubmit(fieldName, finalValue);
             }, 300);
             return;
           }
@@ -368,8 +564,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             resetMultiSelectState();
 
             setTimeout(() => {
-              goToNextBlock({ [fieldName]: finalValue });
-              setLayoutMode('ai_speaking');
+              proceedToNextOrSubmit(fieldName, finalValue);
             }, 300);
             return;
           }
@@ -392,8 +587,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             conversationHistoryRef.current.push({ role: 'user', content: transcript });
             setValue(fieldName, match.value);
             setTimeout(() => {
-              goToNextBlock({ [fieldName]: match.value });
-              setLayoutMode('ai_speaking');
+              proceedToNextOrSubmit(fieldName, match.value);
             }, 300);
             return;
           }
@@ -412,11 +606,10 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       stopListeningRef.current();
 
       setTimeout(() => {
-        goToNextBlock({ [fieldName]: transcript });
-        setLayoutMode('ai_speaking');
+        proceedToNextOrSubmit(fieldName, transcript);
       }, 300);
     },
-    [currentBlock, setValue, goToNextBlock, voiceCustomData, validateAnswer, awaitingConfirmation, pendingValidation, resetMultiSelectState]
+    [currentBlock, setValue, voiceCustomData, validateAnswer, awaitingConfirmation, pendingValidation, resetMultiSelectState, proceedToNextOrSubmit, clearSubsequentBlocksData]
   );
 
   // Voice session hook
@@ -460,6 +653,16 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         return;
       }
       askedBlocksRef.current.add(blockId);
+
+      // Save conversation checkpoint BEFORE adding this block's conversation
+      // This allows us to truncate back to this point when user navigates back
+      conversationCheckpointsRef.current.set(blockId, conversationHistoryRef.current.length);
+
+      // Track visited blocks order for cleanup when navigating back
+      const existingIndex = visitedBlocksOrderRef.current.indexOf(blockId);
+      if (existingIndex === -1) {
+        visitedBlocksOrderRef.current.push(blockId);
+      }
 
       // Handle read-only blocks
       if (isReadOnlyBlock(block)) {
@@ -507,6 +710,9 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         lastQuestionRef.current = questionText;
         setCurrentQuestion(questionText);
 
+        // Store the question for this block (for back navigation)
+        blockQuestionsRef.current.set(blockId, questionText);
+
         // Add to conversation history
         conversationHistoryRef.current.push({ role: 'assistant', content: questionText });
 
@@ -540,21 +746,86 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     (value: unknown) => {
       if (!currentBlock) return;
 
+      // Stop any ongoing listening to clear isListening and interimTranscript
+      stopListeningRef.current();
+
       const fieldName = currentBlock.fieldName || currentBlock.name || '';
+      const blockId = currentBlock.uuid || fieldName;
+
+      // Check if this is from back navigation and value hasn't changed
+      const valueChanged = didValueChange(blockId, value);
+
+      if (!valueChanged) {
+        // Value unchanged - skip AI validation and conversation update
+        // Just proceed to next block with existing value
+        originalValueOnBackRef.current = null;
+
+        if (!isFinalStep) {
+          // Skip AI speaking on next block since nothing changed
+          skipNextAISpeakingRef.current = true;
+        }
+
+        // Let goToNextBlock handle submission on final step to avoid race condition
+        goToNextBlock({ [fieldName]: value });
+        return;
+      }
+
+      // Value changed - clear subsequent blocks' data and re-add AI question to conversation
+      const isFromBackNavigation = originalValueOnBackRef.current?.blockId === blockId;
+      if (isFromBackNavigation) {
+        clearSubsequentBlocksData(blockId);
+
+        // Re-add the AI question to conversation history (it was removed during back navigation truncation)
+        const storedQuestion = blockQuestionsRef.current.get(blockId);
+        if (storedQuestion) {
+          conversationHistoryRef.current.push({ role: 'assistant', content: storedQuestion });
+        }
+      }
 
       // Format display value for conversation history
+      // For option-based blocks, use labels instead of raw values (which might be random IDs)
       let displayValue = String(value);
-      if (Array.isArray(value)) {
+      const blockOptions = getBlockOptions(currentBlock);
+
+      if (blockOptions.length > 0) {
+        // This is an option-based block - map values to labels
+        if (Array.isArray(value)) {
+          // Multi-select: map each value to its label
+          const labels = value.map(v => {
+            const option = blockOptions.find(opt => opt.value === v);
+            return option ? option.label : String(v);
+          });
+          displayValue = labels.join(', ');
+        } else {
+          // Single select: find the label for this value
+          const option = blockOptions.find(opt => opt.value === value);
+          displayValue = option ? option.label : String(value);
+        }
+      } else if (Array.isArray(value)) {
+        // Non-option block with array value
         displayValue = value.join(', ');
       }
 
       conversationHistoryRef.current.push({ role: 'user', content: displayValue });
 
       setValue(fieldName, value);
-      setLayoutMode('ai_speaking');
+
+      // Track the submitted value
+      submittedValuesRef.current.set(blockId, value);
+
+      // Clear original value ref
+      originalValueOnBackRef.current = null;
+
+      if (!isFinalStep) {
+        // Not the final step - show AI speaking for next question
+        setLayoutMode('ai_speaking');
+      }
+
+      // Let goToNextBlock handle submission on final step to avoid race condition
+      // goToNextBlock will call submit() internally when it's the final step
       goToNextBlock({ [fieldName]: value });
     },
-    [currentBlock, setValue, goToNextBlock]
+    [currentBlock, setValue, goToNextBlock, isFinalStep, didValueChange, clearSubsequentBlocksData]
   );
 
   /**
@@ -583,12 +854,16 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
   /**
    * Handle back navigation
+   * Goes directly to user_input mode without AI speaking
    */
   const handleBack = useCallback(() => {
+    // Stop any ongoing listening to clear isListening and interimTranscript
+    stopListening();
+    // Set flag to skip AI speaking when block changes
+    isNavigatingBackRef.current = true;
+    // Go to previous block
     goToPreviousBlock();
-    askedBlocksRef.current.clear();
-    setLayoutMode('ai_speaking');
-  }, [goToPreviousBlock]);
+  }, [goToPreviousBlock, stopListening]);
 
   /**
    * Start the survey (user interaction required for TTS)
@@ -681,11 +956,89 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
   // Ask question when block changes
   useEffect(() => {
+    // Don't run if submitting (survey is complete)
+    if (isSubmitting) return;
+
     if (currentBlock && layoutMode !== 'welcome' && layoutMode !== 'complete' && sessionState.isInitialized) {
+      // Check if we're navigating back
+      if (isNavigatingBackRef.current) {
+        // Reset the flag
+        isNavigatingBackRef.current = false;
+
+        // Get block identifiers
+        const blockId = currentBlock.uuid || currentBlock.fieldName || '';
+        const fieldName = currentBlock.fieldName || currentBlock.name || '';
+
+        // Store the original value so we can detect if user changes it
+        const currentValue = values[fieldName];
+        originalValueOnBackRef.current = { blockId, value: currentValue };
+
+        // Truncate conversation to this block's checkpoint (remove conversation from this block onwards)
+        const checkpoint = conversationCheckpointsRef.current.get(blockId);
+        if (checkpoint !== undefined) {
+          conversationHistoryRef.current = conversationHistoryRef.current.slice(0, checkpoint);
+        }
+
+        // Get the stored question for this block (if available)
+        const storedQuestion = blockQuestionsRef.current.get(blockId);
+
+        if (storedQuestion) {
+          // Restore the question and go directly to input mode
+          setCurrentQuestion(storedQuestion);
+          lastQuestionRef.current = storedQuestion;
+        } else {
+          // Fallback to block label if no stored question
+          setCurrentQuestion(currentBlock.label || currentBlock.name || '');
+        }
+
+        // Classify the question for input mode
+        const classification = classifyQuestion(currentBlock);
+        setCurrentInputMode(classification.inputMode);
+
+        // Go directly to user input mode (skip AI speaking)
+        setLayoutMode('user_input');
+        return;
+      }
+
+      // Check if we should skip AI speaking (forward nav with unchanged value)
+      if (skipNextAISpeakingRef.current) {
+        // Reset the flag
+        skipNextAISpeakingRef.current = false;
+
+        // Get block identifiers
+        const blockId = currentBlock.uuid || currentBlock.fieldName || '';
+        const fieldName = currentBlock.fieldName || currentBlock.name || '';
+
+        // Store the original value so we can detect if user changes it
+        const currentValue = values[fieldName];
+        originalValueOnBackRef.current = { blockId, value: currentValue };
+
+        // Get the stored question for this block (if available)
+        const storedQuestion = blockQuestionsRef.current.get(blockId);
+
+        if (storedQuestion) {
+          // Restore the question and go directly to input mode
+          setCurrentQuestion(storedQuestion);
+          lastQuestionRef.current = storedQuestion;
+        } else {
+          // Fallback to block label if no stored question
+          setCurrentQuestion(currentBlock.label || currentBlock.name || '');
+        }
+
+        // Classify the question for input mode
+        const classification = classifyQuestion(currentBlock);
+        setCurrentInputMode(classification.inputMode);
+
+        // Go directly to user input mode (skip AI speaking)
+        setLayoutMode('user_input');
+        return;
+      }
+
+      // Normal forward navigation - ask the question with AI
       setLayoutMode('ai_speaking');
       askQuestion(currentBlock);
     }
-  }, [currentBlock?.uuid, currentBlock?.fieldName, sessionState.isInitialized]);
+  }, [currentBlock?.uuid, currentBlock?.fieldName, sessionState.isInitialized, isSubmitting]);
 
   // Handle completion
   useEffect(() => {
@@ -861,7 +1214,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             value={values[currentBlock.fieldName || currentBlock.name || '']}
             onChange={handleVisualChange}
             onSubmit={handleVisualSubmit}
-            onVoiceInput={handleVoiceInputToggle}
+            onVoiceInput={shouldDisableAudioInput ? undefined : handleVoiceInputToggle}
             onBack={currentQuestionIndex > 0 ? handleBack : undefined}
             currentStep={currentQuestionIndex}
             totalSteps={totalQuestions}
@@ -870,6 +1223,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             error={errors[currentBlock.fieldName || currentBlock.name || '']}
             isListening={isListening}
             interimTranscript={sessionState.lastInterimTranscript}
+            isValid={isValid}
           />
         )}
 

@@ -184,6 +184,9 @@ export function useVoiceValidation(
           blockType: block.type,
           previousSelections: selections,
           isConfirmation,
+          // Include schema for structured data extraction
+          outputSchema: block.outputSchema,
+          inputSchema: block.inputSchema,
         };
 
         const response = await fetch(apiEndpoint, {

@@ -94,6 +94,18 @@ export interface BlockDefinition {
   outputSchema?: OutputSchema;
   inputSchema?: OutputSchema;
   blockFunctions?: BlockFunctionDef[];
+  /**
+   * Skip AI validation for voice/chat layouts.
+   * When true, the block will not use AI to validate/transform voice input.
+   * Useful for blocks that handle their own input processing.
+   */
+  skipAIValidation?: boolean;
+  /**
+   * Disable audio input for voice layouts.
+   * When true, the voice input button will be hidden and only visual input allowed.
+   * Useful for blocks that require precise visual input (signatures, file uploads, etc.)
+   */
+  disableAudioInput?: boolean;
 }
 
 export type BlockParameterDef = {
@@ -626,6 +638,16 @@ export interface BlockData {
   isCustom?: boolean;
   /** Explicitly define the next block to navigate to (overrides sequential flow) */
   nextBlockId?: string;
+  /**
+   * Skip AI validation for voice/chat layouts.
+   * When true, the block will not use AI to validate/transform voice input.
+   */
+  skipAIValidation?: boolean;
+  /**
+   * Disable audio input for voice layouts.
+   * When true, the voice input button will be hidden and only visual input allowed.
+   */
+  disableAudioInput?: boolean;
   [key: string]: any;
 }
 

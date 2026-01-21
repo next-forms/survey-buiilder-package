@@ -291,6 +291,11 @@ export interface InputScreenProps {
   error?: string;
   isListening?: boolean;
   interimTranscript?: string;
+  /**
+   * Whether the current block's value passes validation.
+   * When false, the continue button will be disabled.
+   */
+  isValid?: boolean;
 }
 
 /**
@@ -361,6 +366,9 @@ export interface VoiceValidationResponse {
   confirmationMessage?: string;
   invalidReason?: string;
   suggestedAction?: 'confirm' | 'reask' | 'add_more' | 'submit' | 'finish_multiselect';
+  // Schema-based extraction results
+  extractedData?: Record<string, unknown>;
+  missingFields?: string[];
 }
 
 /**

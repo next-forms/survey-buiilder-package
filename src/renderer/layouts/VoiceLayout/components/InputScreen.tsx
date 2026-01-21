@@ -29,11 +29,18 @@ export const InputScreen: React.FC<InputScreenProps> = ({
   error,
   isListening = false,
   interimTranscript,
+  isValid = true,
 }) => {
+  // Determine if continue button should be enabled
+  // Use isValid from context (which checks block validation rules)
+  // Also require a value to be present (not undefined, null, or empty string for simple values)
+  const hasValue = value !== undefined && value !== null && value !== '';
+  const canSubmit = isValid && hasValue && !disabled;
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value !== undefined && value !== null && value !== '') {
+    if (canSubmit) {
       onSubmit(value);
     }
   };
@@ -42,7 +49,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && block.type !== 'textarea') {
       e.preventDefault();
-      if (value !== undefined && value !== null && value !== '') {
+      if (canSubmit) {
         onSubmit(value);
       }
     }
@@ -221,7 +228,7 @@ export const InputScreen: React.FC<InputScreenProps> = ({
               transition={{ delay: 0.4 }}
               type="submit"
               onClick={handleSubmit}
-              disabled={disabled || value === undefined || value === null || value === ''}
+              disabled={!canSubmit}
               className={cn(
                 'flex-1 max-w-xs ml-auto px-6 py-3 rounded-full',
                 'text-sm font-semibold transition-all duration-200',
