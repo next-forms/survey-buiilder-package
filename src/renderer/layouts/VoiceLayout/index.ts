@@ -35,7 +35,27 @@ export type {
   VoiceValidationRequest,
   VoiceValidationResponse,
   MultiSelectVoiceState,
+  // Handler types for customization
+  VoiceValidationHandler,
+  VoiceSessionInitHandler,
+  VoiceSessionEndHandler,
+  VoiceSessionInitRequest,
+  VoiceSessionInitResponse,
+  VoiceSessionEndRequest,
+  AIHandler,
+  // TTS/STT types for custom audio handlers
+  TTSHandler,
+  TTSRequest,
+  TTSResponse,
+  STTHandler,
+  STTRequest,
+  STTResponse,
+  STTStreamingSession,
+  STTStreamingSessionFactory,
 } from './types';
+
+// Hook types
+export type { VoiceSessionHandlers } from './hooks/useVoiceSession';
 
 // Utilities
 export { classifyQuestion, matchVoiceToOption, isPrivacyBlock, hasBlockOptions, isMultiSelectBlock } from './QuestionClassifier';

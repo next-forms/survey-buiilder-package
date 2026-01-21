@@ -16,11 +16,11 @@ import type {
 import { classifyQuestion, matchVoiceToOption, hasBlockOptions } from './QuestionClassifier';
 import { getBlockDefinition } from '../../../blocks';
 import { useVoiceValidation } from './hooks/useVoiceValidation';
-import { useVoiceSession } from './hooks/useVoiceSession';
+import { useVoiceSession, type VoiceSessionHandlers } from './hooks/useVoiceSession';
 import { VoiceOrb } from './components/VoiceOrb';
 import { OrbScreen } from './components/OrbScreen';
 import { InputScreen } from './components/InputScreen';
-import type { AIHandler, AIHandlerContext, AIHandlerResponse } from '../ChatLayout/types';
+import type { AIHandlerContext, AIHandlerResponse } from '../ChatLayout/types';
 
 // Read-only block types (content only, no input required)
 const READ_ONLY_BLOCK_TYPES = [
@@ -63,36 +63,26 @@ const getReadOnlyContent = (block: BlockData): string => {
 };
 
 /**
- * Default AI handler that uses the chat-survey API
+ * Default AI handler that simply returns the block label without any API call.
+ * This makes VoiceLayout work out of the box without requiring a backend.
+ * For conversational AI rephrasing, provide a custom aiHandler via customData.
  */
-const defaultAIHandler: AIHandler = async (context: AIHandlerContext): Promise<AIHandlerResponse> => {
-  try {
-    const response = await fetch('/api/chat-survey', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        originalQuestion: context.block.label || context.block.name,
-        blockType: context.block.type,
-        options: getBlockOptions(context.block),
-        questionNumber: context.currentQuestionIndex + 1,
-        totalQuestions: context.totalQuestions,
-        previousResponses: context.previousResponses,
-        conversationHistory: context.conversationHistory
-          .filter((m) => !m.isLoading)
-          .map((m) => ({ role: m.role, content: m.content })),
-      }),
-    });
+const defaultAIHandler = async (context: AIHandlerContext): Promise<AIHandlerResponse> => {
+  // Just return the block's label/name as-is - no API call needed
+  const questionText = context.block.label || context.block.name || 'Please answer this question';
 
-    const data = await response.json();
+  // For option-based blocks, optionally list the options
+  const options = getBlockOptions(context.block);
+  if (options.length > 0 && options.length <= 5) {
+    const optionsList = options.map(o => o.label).join(', ');
     return {
-      conversationalQuestion: data.question || context.block.label || 'Please answer this question',
-    };
-  } catch (error) {
-    console.error('AI handler error:', error);
-    return {
-      conversationalQuestion: context.block.label || context.block.name || 'Please answer this question',
+      conversationalQuestion: `${questionText} Options: ${optionsList}`,
     };
   }
+
+  return {
+    conversationalQuestion: questionText,
+  };
 };
 
 /**
@@ -155,11 +145,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   } = useSurveyForm();
 
   // Voice configuration from customData
-  const voiceCustomData = customData as (VoiceCustomData & {
-    orbStyle?: 'pulse' | 'wave' | 'glow' | 'minimal' | 'breathe';
-    aiHandler?: AIHandler;
-    typingDelay?: number;
-  }) | undefined;
+  // VoiceCustomData already includes all options (orbStyle, aiHandler, typingDelay, handlers, etc.)
+  const voiceCustomData = customData as VoiceCustomData | undefined;
 
   // Resolve props with customData fallbacks
   const welcomeMessage =
@@ -212,7 +199,10 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   const switchToVisualRef = useRef<() => void>(() => {});
 
   // Voice validation hook for AI-powered answer matching
-  const { validateAnswer, resetMultiSelectState } = useVoiceValidation();
+  // Pass custom validation handler from customData if provided
+  const { validateAnswer, resetMultiSelectState } = useVoiceValidation({
+    validationHandler: voiceCustomData?.validationHandler,
+  });
 
   // Get current block info
   const surveyMode = detectSurveyMode(surveyData.rootNode);
@@ -612,6 +602,21 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     [currentBlock, setValue, voiceCustomData, validateAnswer, awaitingConfirmation, pendingValidation, resetMultiSelectState, proceedToNextOrSubmit, clearSubsequentBlocksData]
   );
 
+  // Prepare session handlers from customData (including TTS/STT)
+  const sessionHandlers: VoiceSessionHandlers | undefined = (
+    voiceCustomData?.sessionInitHandler ||
+    voiceCustomData?.sessionEndHandler ||
+    voiceCustomData?.ttsHandler ||
+    voiceCustomData?.sttSessionFactory
+  ) ? {
+    sessionInitHandler: voiceCustomData?.sessionInitHandler,
+    sessionEndHandler: voiceCustomData?.sessionEndHandler,
+    ttsHandler: voiceCustomData?.ttsHandler,
+    sttSessionFactory: voiceCustomData?.sttSessionFactory,
+    language: voiceCustomData?.language,
+    ttsVoice: voiceCustomData?.ttsVoice,
+  } : undefined;
+
   // Voice session hook
   const {
     voiceState,
@@ -631,7 +636,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     voiceCustomData?.sessionConfig || {},
     handleTranscript,
     handleVoiceCommand,
-    voiceCustomData?.onStateChange
+    voiceCustomData?.onStateChange,
+    sessionHandlers
   );
 
   // Update refs with voice session functions
@@ -716,7 +722,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         // Add to conversation history
         conversationHistoryRef.current.push({ role: 'assistant', content: questionText });
 
-        // Speak the question
+        // Speak the question using TTS handler (which returns streaming URL for fast playback)
         await speak(questionText);
 
         // Transition to input mode after speaking completes

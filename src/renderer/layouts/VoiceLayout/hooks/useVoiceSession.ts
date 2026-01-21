@@ -6,7 +6,11 @@ import type {
   VoiceCommand,
   InputMode,
   VoiceStateContext,
-  VoiceStateAction,
+  VoiceSessionInitHandler,
+  VoiceSessionEndHandler,
+  TTSHandler,
+  STTStreamingSessionFactory,
+  STTStreamingSession,
 } from '../types';
 import {
   voiceStateReducer,
@@ -14,6 +18,46 @@ import {
 } from '../VoiceStateManager';
 import { useAudioCapture } from './useAudioCapture';
 import { useAudioPlayback } from './useAudioPlayback';
+
+/**
+ * Extended session config with optional handlers
+ */
+export interface VoiceSessionHandlers {
+  /**
+   * Custom session initialization handler.
+   * If not provided, session tracking will be skipped (voice still works).
+   */
+  sessionInitHandler?: VoiceSessionInitHandler;
+
+  /**
+   * Custom session end handler.
+   * If not provided, session end will be skipped.
+   */
+  sessionEndHandler?: VoiceSessionEndHandler;
+
+  /**
+   * Custom TTS (Text-to-Speech) handler.
+   * If provided, this will be used instead of browser's Web Speech Synthesis.
+   */
+  ttsHandler?: TTSHandler;
+
+  /**
+   * Custom STT (Speech-to-Text) streaming session factory.
+   * If provided, this will be used instead of browser's SpeechRecognition.
+   */
+  sttSessionFactory?: STTStreamingSessionFactory;
+
+  /**
+   * Language code for TTS/STT (e.g., 'en-US').
+   * @default 'en-US'
+   */
+  language?: string;
+
+  /**
+   * Voice ID for TTS (e.g., AWS Polly voice ID).
+   */
+  ttsVoice?: string;
+}
 
 /**
  * Voice session state
@@ -29,6 +73,15 @@ interface VoiceSessionState {
 }
 
 /**
+ * Pre-generated audio data (e.g., from AI response)
+ */
+interface PreGeneratedAudio {
+  audio: string;
+  format: string;
+  sampleRate?: number;
+}
+
+/**
  * Voice session result
  */
 interface UseVoiceSessionResult {
@@ -39,7 +92,8 @@ interface UseVoiceSessionResult {
   // Audio controls
   startListening: () => Promise<void>;
   stopListening: () => void;
-  speak: (text: string) => Promise<void>;
+  /** Speak text, optionally using pre-generated audio (skips TTS call if provided) */
+  speak: (text: string, preGeneratedAudio?: PreGeneratedAudio) => Promise<void>;
   speakImmediate: (text: string) => Promise<void>;
   stopSpeaking: () => void;
 
@@ -72,15 +126,31 @@ function generateMessageId(): string {
  *
  * Combines audio capture, playback, and state management into
  * a unified interface for voice-based survey interaction.
+ *
+ * Session tracking (init/end) is optional - if no handlers are provided,
+ * the voice functionality still works without external session management.
  */
 export function useVoiceSession(
   config: VoiceSessionConfig = {},
   onTranscript?: (transcript: string, isFinal: boolean) => void,
   onCommand?: (command: VoiceCommand) => void,
-  onStateChange?: (state: VoiceState) => void
+  onStateChange?: (state: VoiceState) => void,
+  handlers?: VoiceSessionHandlers
 ): UseVoiceSessionResult {
   // Voice state machine
   const [voiceState, dispatch] = useReducer(voiceStateReducer, initialVoiceState);
+
+  // Refs for custom TTS/STT
+  const customSTTSessionRef = useRef<STTStreamingSession | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  // HTML Audio element for streaming TTS (better for perceived performance)
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  // Track custom TTS playing state (browser TTS uses playbackState.isPlaying)
+  const [isCustomTTSPlaying, setIsCustomTTSPlaying] = useState(false);
+  // Also track with a ref for synchronous access
+  const isCustomTTSPlayingRef = useRef(false);
 
   // Session state
   const [sessionState, setSessionState] = useState<VoiceSessionState>({
@@ -227,6 +297,7 @@ export function useVoiceSession(
 
   /**
    * Initialize voice session
+   * Session tracking is optional - voice will work without it
    */
   const initSession = useCallback(
     async (sessionConfig: VoiceSessionConfig = {}) => {
@@ -242,31 +313,48 @@ export function useVoiceSession(
           return;
         }
 
-        // Initialize session with API
-        const response = await fetch('/api/voice-survey', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'init',
+        // Check if a custom session init handler is provided
+        if (handlers?.sessionInitHandler) {
+          // Use custom handler
+          const result = await handlers.sessionInitHandler({
             sessionId: sessionConfig.sessionId,
             surveyId: sessionConfig.surveyId,
             userId: sessionConfig.userId,
             language: sessionConfig.language,
-          }),
-        });
+          });
 
-        const data = await response.json();
+          // If handler returns null, skip session tracking
+          if (result === null) {
+            setSessionState((prev) => ({
+              ...prev,
+              sessionId: null,
+              isInitialized: true,
+              error: null,
+            }));
+            dispatch({ type: 'RESET' });
+            return;
+          }
 
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to initialize session');
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to initialize session');
+          }
+
+          setSessionState((prev) => ({
+            ...prev,
+            sessionId: result.sessionId || null,
+            isInitialized: true,
+            error: null,
+          }));
+        } else {
+          // No session handler provided - just initialize locally without session tracking
+          // This allows voice to work without any backend dependency
+          setSessionState((prev) => ({
+            ...prev,
+            sessionId: null,
+            isInitialized: true,
+            error: null,
+          }));
         }
-
-        setSessionState((prev) => ({
-          ...prev,
-          sessionId: data.sessionId,
-          isInitialized: true,
-          error: null,
-        }));
 
         dispatch({ type: 'RESET' });
       } catch (error) {
@@ -279,25 +367,22 @@ export function useVoiceSession(
         dispatch({ type: 'ERROR', payload: errorMsg });
       }
     },
-    [requestPermission]
+    [requestPermission, handlers]
   );
 
   /**
    * End voice session
+   * Session end tracking is optional
    */
   const endSession = useCallback(async () => {
     stopCapture();
     stopSpeaking();
 
-    if (sessionState.sessionId) {
+    // Only call end handler if session was tracked and handler is provided
+    if (sessionState.sessionId && handlers?.sessionEndHandler) {
       try {
-        await fetch('/api/voice-survey', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'end',
-            sessionId: sessionState.sessionId,
-          }),
+        await handlers.sessionEndHandler({
+          sessionId: sessionState.sessionId,
         });
       } catch (error) {
         console.error('Failed to end session:', error);
@@ -311,12 +396,257 @@ export function useVoiceSession(
     }));
 
     dispatch({ type: 'COMPLETE' });
-  }, [sessionState.sessionId, stopCapture, stopSpeaking]);
+  }, [sessionState.sessionId, stopCapture, stopSpeaking, handlers]);
+
+  /**
+   * Helper to update custom TTS playing state (both state and ref)
+   */
+  const setCustomTTSPlaying = useCallback((playing: boolean) => {
+    isCustomTTSPlayingRef.current = playing;
+    setIsCustomTTSPlaying(playing);
+  }, []);
+
+  /**
+   * Play audio from a streaming URL using HTML Audio element.
+   * This allows playback to start before the full file is downloaded.
+   */
+  const playAudioFromStreamUrl = useCallback(async (url: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      // Stop any currently playing audio
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current.src = '';
+        audioElementRef.current = null;
+      }
+
+      // Create new audio element
+      const audio = new Audio();
+      audioElementRef.current = audio;
+
+      // Set up event handlers BEFORE setting src
+      audio.oncanplaythrough = () => {
+        // Audio has buffered enough to play through - but we'll start earlier
+      };
+
+      audio.onplay = () => {
+        // Audio started playing - mark as speaking
+        setCustomTTSPlaying(true);
+      };
+
+      audio.onended = () => {
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        resolve();
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        reject(new Error('Audio playback failed'));
+      };
+
+      // Set preload to auto for faster start
+      audio.preload = 'auto';
+
+      // Set the source - this starts loading
+      audio.src = url;
+
+      // Start playing as soon as possible (browser may wait for some buffering)
+      audio.play().catch((error) => {
+        console.error('Audio play() failed:', error);
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        reject(error);
+      });
+    });
+  }, [setCustomTTSPlaying]);
+
+  /**
+   * Play audio from TTS response using Web Audio API
+   */
+  const playAudioFromTTS = useCallback(async (audio: string | ArrayBuffer, format: string, sampleRate?: number): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      // Safety timeout - if audio doesn't end within 60 seconds, force cleanup
+      const safetyTimeout = setTimeout(() => {
+        console.warn('TTS playback safety timeout reached');
+        if (currentAudioSourceRef.current) {
+          try {
+            currentAudioSourceRef.current.stop();
+          } catch (e) {
+            // Ignore
+          }
+          currentAudioSourceRef.current = null;
+        }
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        resolve();
+      }, 60000);
+
+      try {
+        // Mark as playing (update both state and ref)
+        setCustomTTSPlaying(true);
+
+        // Create or reuse audio context
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new AudioContext();
+        }
+        const audioContext = audioContextRef.current;
+
+        // Resume if suspended (browser autoplay policy)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        // Convert base64 to ArrayBuffer if needed
+        let audioData: ArrayBuffer;
+        if (typeof audio === 'string') {
+          const binaryString = atob(audio);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          audioData = bytes.buffer;
+        } else {
+          // Clone the ArrayBuffer to avoid detached buffer issues
+          audioData = audio.slice(0);
+        }
+
+        // Decode audio data (need to clone as decodeAudioData detaches the buffer)
+        const audioDataCopy = audioData.slice(0);
+        const audioBuffer = await audioContext.decodeAudioData(audioDataCopy);
+
+        // Stop any currently playing audio
+        if (currentAudioSourceRef.current) {
+          currentAudioSourceRef.current.stop();
+          currentAudioSourceRef.current = null;
+        }
+
+        // Create and play source
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        currentAudioSourceRef.current = source;
+
+        source.onended = () => {
+          clearTimeout(safetyTimeout);
+          currentAudioSourceRef.current = null;
+          // Small delay before clearing state to ensure React has processed the "playing" state
+          setTimeout(() => {
+            setCustomTTSPlaying(false);
+            dispatch({ type: 'STOP_SPEAKING' });
+            resolve();
+          }, 50);
+        };
+
+        // Wait for React to process the state update (isCustomTTSPlaying = true)
+        // This ensures VoiceLayout's useEffect sees isSpeaking=true and sets hasStartedSpeakingRef
+        // We use multiple animation frames to guarantee a render cycle has completed
+        await new Promise<void>(resolve => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // Additional small delay to ensure useEffect has run
+              setTimeout(resolve, 50);
+            });
+          });
+        });
+
+        source.start();
+      } catch (error) {
+        clearTimeout(safetyTimeout);
+        console.error('Error playing TTS audio:', error);
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        reject(error);
+      }
+    });
+  }, [setCustomTTSPlaying]);
+
+  /**
+   * Stop custom TTS audio playback (both Web Audio API and HTML Audio element)
+   */
+  const stopCustomTTS = useCallback(() => {
+    // Stop Web Audio API source
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+      } catch (e) {
+        // Ignore errors
+      }
+      currentAudioSourceRef.current = null;
+    }
+
+    // Stop HTML Audio element
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.src = '';
+      audioElementRef.current = null;
+    }
+
+    setCustomTTSPlaying(false);
+  }, [setCustomTTSPlaying]);
 
   /**
    * Start listening for voice input
+   * Uses custom STT session if provided, otherwise falls back to browser's SpeechRecognition
    */
   const startListening = useCallback(async () => {
+    // Check if custom STT is available
+    if (handlers?.sttSessionFactory) {
+      // Use custom STT
+      dispatch({ type: 'START_LISTENING' });
+
+      // Create new STT session if needed
+      if (!customSTTSessionRef.current || !customSTTSessionRef.current.isActive) {
+        customSTTSessionRef.current = handlers.sttSessionFactory(
+          (transcript, isFinal) => {
+            // Update session state
+            setSessionState((prev) => ({
+              ...prev,
+              lastTranscript: isFinal ? transcript : prev.lastTranscript,
+              lastInterimTranscript: isFinal ? '' : transcript,
+            }));
+
+            // Check for voice commands
+            if (isFinal) {
+              const command = parseVoiceCommand(transcript);
+              if (command) {
+                if (onCommandRef.current) {
+                  onCommandRef.current(command);
+                }
+                return;
+              }
+            }
+
+            // Pass to transcript handler
+            if (onTranscriptRef.current) {
+              onTranscriptRef.current(transcript, isFinal);
+            }
+          },
+          (error) => {
+            console.error('Custom STT error:', error);
+            dispatch({ type: 'ERROR', payload: error });
+          },
+          {
+            language: handlers.language || 'en-US',
+            sampleRate: 16000,
+          }
+        );
+      }
+
+      try {
+        await customSTTSessionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start custom STT:', error);
+        dispatch({ type: 'ERROR', payload: 'Failed to start speech recognition' });
+      }
+      return;
+    }
+
+    // Fall back to browser's SpeechRecognition
     if (!captureState.isSupported) {
       dispatch({ type: 'ERROR', payload: 'Speech recognition not supported' });
       return;
@@ -324,12 +654,18 @@ export function useVoiceSession(
 
     dispatch({ type: 'START_LISTENING' });
     await startCapture();
-  }, [captureState.isSupported, startCapture]);
+  }, [handlers, captureState.isSupported, startCapture, parseVoiceCommand]);
 
   /**
    * Stop listening
    */
   const stopListening = useCallback(() => {
+    // Stop custom STT if active
+    if (customSTTSessionRef.current?.isActive) {
+      customSTTSessionRef.current.end().catch(console.error);
+    }
+
+    // Also stop browser capture
     stopCapture();
     dispatch({ type: 'STOP_LISTENING' });
     // Clear interim transcript when stopping
@@ -341,9 +677,65 @@ export function useVoiceSession(
 
   /**
    * Speak text with TTS (queues speech to avoid interruption)
+   * Uses custom TTS handler if provided, otherwise falls back to browser's Web Speech Synthesis
+   *
+   * @param text - Text to speak
+   * @param preGeneratedAudio - Optional pre-generated audio (e.g., from AI response)
    */
   const speak = useCallback(
-    async (text: string) => {
+    async (text: string, preGeneratedAudio?: { audio?: string; format?: string; sampleRate?: number; streamUrl?: string }) => {
+      // If a streaming URL is provided, use it (best for perceived performance)
+      if (preGeneratedAudio?.streamUrl) {
+        dispatch({ type: 'START_SPEAKING' });
+        try {
+          await playAudioFromStreamUrl(preGeneratedAudio.streamUrl);
+        } catch (error) {
+          console.error('Error playing streaming audio:', error);
+          dispatch({ type: 'STOP_SPEAKING' });
+        }
+        return;
+      }
+
+      // If pre-generated audio data is provided, use it directly (no TTS API call needed)
+      if (preGeneratedAudio?.audio) {
+        dispatch({ type: 'START_SPEAKING' });
+        try {
+          await playAudioFromTTS(preGeneratedAudio.audio, preGeneratedAudio.format || 'mp3', preGeneratedAudio.sampleRate);
+        } catch (error) {
+          console.error('Error playing pre-generated audio:', error);
+          dispatch({ type: 'STOP_SPEAKING' });
+        }
+        return;
+      }
+
+      // Check if custom TTS handler is available
+      if (handlers?.ttsHandler) {
+        dispatch({ type: 'START_SPEAKING' });
+        try {
+          const response = await handlers.ttsHandler({
+            text,
+            language: handlers.language || 'en-US',
+            voice: handlers.ttsVoice,
+            rate: 1.0,
+          });
+
+          // Prefer streaming URL if provided
+          if (response.streamUrl) {
+            await playAudioFromStreamUrl(response.streamUrl);
+          } else if (response.audio) {
+            await playAudioFromTTS(response.audio, response.format || 'mp3', response.sampleRate);
+          } else {
+            console.warn('TTS handler returned no audio');
+            dispatch({ type: 'STOP_SPEAKING' });
+          }
+        } catch (error) {
+          console.error('Custom TTS error:', error);
+          dispatch({ type: 'STOP_SPEAKING' });
+        }
+        return;
+      }
+
+      // Fall back to browser TTS
       if (!playbackState.isSupported && !config.useBrowserTTS) {
         // Fall back to visual display
         console.warn('TTS not supported, falling back to visual');
@@ -354,7 +746,7 @@ export function useVoiceSession(
       // Use queue to prevent interrupting current speech
       queueSpeechText(text);
     },
-    [playbackState.isSupported, config.useBrowserTTS, queueSpeechText]
+    [handlers, playbackState.isSupported, config.useBrowserTTS, queueSpeechText, playAudioFromTTS, playAudioFromStreamUrl]
   );
 
   /**
@@ -362,8 +754,29 @@ export function useVoiceSession(
    */
   const speakImmediate = useCallback(
     async (text: string) => {
+      // Stop any current custom TTS
+      stopCustomTTS();
+
+      // Check if custom TTS is available
+      if (handlers?.ttsHandler) {
+        dispatch({ type: 'START_SPEAKING' });
+        try {
+          const response = await handlers.ttsHandler({
+            text,
+            language: handlers.language || 'en-US',
+            voice: handlers.ttsVoice,
+            rate: 1.0,
+          });
+          await playAudioFromTTS(response.audio, response.format, response.sampleRate);
+        } catch (error) {
+          console.error('Custom TTS error:', error);
+          dispatch({ type: 'STOP_SPEAKING' });
+        }
+        return;
+      }
+
+      // Fall back to browser TTS
       if (!playbackState.isSupported && !config.useBrowserTTS) {
-        // Fall back to visual display
         console.warn('TTS not supported, falling back to visual');
         return;
       }
@@ -371,7 +784,7 @@ export function useVoiceSession(
       dispatch({ type: 'START_SPEAKING' });
       await speakText(text);
     },
-    [playbackState.isSupported, config.useBrowserTTS, speakText]
+    [handlers, playbackState.isSupported, config.useBrowserTTS, speakText, playAudioFromTTS, stopCustomTTS]
   );
 
   /**
@@ -429,8 +842,28 @@ export function useVoiceSession(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop browser-based capture and playback
       stopCapture();
       stopSpeaking();
+
+      // Stop custom STT session
+      if (customSTTSessionRef.current?.isActive) {
+        customSTTSessionRef.current.end().catch(console.error);
+      }
+
+      // Stop custom TTS playback
+      if (currentAudioSourceRef.current) {
+        try {
+          currentAudioSourceRef.current.stop();
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      // Close audio context
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(console.error);
+      }
     };
   }, [stopCapture, stopSpeaking]);
 
@@ -458,7 +891,8 @@ export function useVoiceSession(
 
     // Computed
     isListening: captureState.isCapturing,
-    isSpeaking: playbackState.isPlaying,
+    // isSpeaking is true if either browser TTS or custom TTS is playing
+    isSpeaking: playbackState.isPlaying || isCustomTTSPlaying,
     isProcessing: voiceState.isProcessing,
     volume: captureState.volume,
   };

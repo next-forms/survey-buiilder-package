@@ -80,6 +80,19 @@ export interface AIHandlerContext {
 export interface AIHandlerResponse {
   conversationalQuestion: string;
   additionalContext?: string;
+  /**
+   * Optional TTS audio data (base64 encoded).
+   * If provided, VoiceLayout will use this directly instead of making a separate TTS call.
+   */
+  audio?: string;
+  /**
+   * Audio format (required if audio is provided)
+   */
+  audioFormat?: 'mp3' | 'pcm' | 'ogg' | 'wav';
+  /**
+   * Audio sample rate in Hz (for PCM format)
+   */
+  audioSampleRate?: number;
 }
 
 /**

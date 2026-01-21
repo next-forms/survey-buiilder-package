@@ -1,4 +1,5 @@
 import type { BlockData, LayoutProps, ThemeDefinition } from '../../../types';
+import type { AIHandler } from '../ChatLayout/types';
 
 /**
  * Voice state machine states
@@ -185,18 +186,78 @@ export interface VoiceLayoutProps extends LayoutProps {
 }
 
 /**
- * Custom data passed to VoiceLayout via SurveyForm
+ * Custom data passed to VoiceLayout via SurveyForm.
+ * All handlers are optional - if not provided, defaults will be used or
+ * features requiring backend will be disabled gracefully.
  */
 export interface VoiceCustomData {
+  // Messages
   welcomeMessage?: string;
   completionMessage?: string;
+
+  // Behavior options
   autoListen?: boolean;
   silenceTimeout?: number;
   maxListenTime?: number;
+  typingDelay?: number;
+  orbStyle?: 'pulse' | 'wave' | 'glow' | 'minimal' | 'breathe';
+
+  // Session configuration
   sessionConfig?: VoiceSessionConfig;
+
+  // Event callbacks
   onVoiceCommand?: (command: VoiceCommand) => void;
   onTranscript?: (transcript: string, isFinal: boolean) => void;
   onStateChange?: (state: VoiceState) => void;
+
+  /**
+   * Custom AI handler for generating conversational questions.
+   * If not provided, the block's label/name will be used as-is.
+   */
+  aiHandler?: AIHandler;
+
+  /**
+   * Custom voice validation handler for matching voice input to options.
+   * If not provided, basic local matching will be used (no AI validation).
+   */
+  validationHandler?: VoiceValidationHandler;
+
+  /**
+   * Custom session initialization handler.
+   * If not provided, session tracking will be skipped (voice still works).
+   */
+  sessionInitHandler?: VoiceSessionInitHandler;
+
+  /**
+   * Custom session end handler.
+   * If not provided, session end will be skipped.
+   */
+  sessionEndHandler?: VoiceSessionEndHandler;
+
+  /**
+   * Custom TTS (Text-to-Speech) handler.
+   * If provided, this will be used instead of browser's Web Speech Synthesis.
+   * Use this for cloud-based TTS like AWS Polly for better quality and cross-browser support.
+   */
+  ttsHandler?: TTSHandler;
+
+  /**
+   * Custom STT (Speech-to-Text) streaming session factory.
+   * If provided, this will be used instead of browser's SpeechRecognition.
+   * Use this for cloud-based STT like AWS Transcribe for better accuracy and cross-browser support.
+   */
+  sttSessionFactory?: STTStreamingSessionFactory;
+
+  /**
+   * Language code for TTS/STT (e.g., 'en-US', 'es-ES').
+   * @default 'en-US'
+   */
+  language?: string;
+
+  /**
+   * Voice ID for TTS (e.g., AWS Polly voice ID like 'Joanna', 'Matthew').
+   */
+  ttsVoice?: string;
 }
 
 /**
@@ -384,3 +445,167 @@ export interface MultiSelectVoiceState {
   awaitingConfirmation: boolean;
   awaitingMoreSelections: boolean;
 }
+
+/**
+ * Voice validation handler function signature.
+ * Can be provided via customData to replace the default API call.
+ */
+export type VoiceValidationHandler = (
+  request: VoiceValidationRequest
+) => Promise<VoiceValidationResponse>;
+
+/**
+ * Session initialization request
+ */
+export interface VoiceSessionInitRequest {
+  sessionId?: string;
+  surveyId?: string;
+  userId?: string;
+  language?: string;
+}
+
+/**
+ * Session initialization response
+ */
+export interface VoiceSessionInitResponse {
+  success: boolean;
+  sessionId?: string;
+  error?: string;
+}
+
+/**
+ * Session end request
+ */
+export interface VoiceSessionEndRequest {
+  sessionId: string;
+}
+
+/**
+ * Voice session initialization handler function signature.
+ * Can be provided via customData to replace the default API call.
+ * Return null to skip session tracking entirely.
+ */
+export type VoiceSessionInitHandler = (
+  request: VoiceSessionInitRequest
+) => Promise<VoiceSessionInitResponse | null>;
+
+/**
+ * Voice session end handler function signature.
+ * Can be provided via customData to replace the default API call.
+ */
+export type VoiceSessionEndHandler = (
+  request: VoiceSessionEndRequest
+) => Promise<void>;
+
+// Re-export AIHandler for convenience
+export type { AIHandler };
+
+/**
+ * TTS (Text-to-Speech) handler function signature.
+ * Implement this to provide custom TTS (e.g., AWS Polly, Google TTS, etc.)
+ *
+ * Can return either:
+ * - Audio data (base64 or ArrayBuffer) for immediate playback
+ * - A streaming URL that the browser can play directly (preferred for better perceived performance)
+ */
+export type TTSHandler = (request: TTSRequest) => Promise<TTSResponse>;
+
+/**
+ * TTS request
+ */
+export interface TTSRequest {
+  text: string;
+  /** Language code (e.g., 'en-US') */
+  language?: string;
+  /** Voice ID or name */
+  voice?: string;
+  /** Speech rate (0.5-2.0, default 1.0) */
+  rate?: number;
+}
+
+/**
+ * TTS response
+ */
+export interface TTSResponse {
+  /** Audio data as base64 encoded string or ArrayBuffer (for Web Audio API playback) */
+  audio?: string | ArrayBuffer;
+  /** Audio format (e.g., 'mp3', 'pcm', 'ogg') */
+  format?: 'mp3' | 'pcm' | 'ogg' | 'wav';
+  /** Sample rate in Hz (for PCM) */
+  sampleRate?: number;
+  /**
+   * Streaming URL for the audio (preferred for better perceived performance).
+   * If provided, uses HTML Audio element which can start playing before full download.
+   * Example: '/api/voice-survey/tts?text=Hello&voice=Joanna'
+   */
+  streamUrl?: string;
+}
+
+/**
+ * STT (Speech-to-Text) handler function signature.
+ * Implement this to provide custom STT (e.g., AWS Transcribe, Google STT, etc.)
+ *
+ * This handler receives audio chunks and returns transcripts.
+ * For streaming STT, the handler may be called multiple times.
+ */
+export type STTHandler = (request: STTRequest) => Promise<STTResponse>;
+
+/**
+ * STT request
+ */
+export interface STTRequest {
+  /** Audio data as base64 encoded string or ArrayBuffer */
+  audio: string | ArrayBuffer;
+  /** Audio format */
+  format: 'pcm' | 'wav' | 'mp3' | 'ogg' | 'webm';
+  /** Sample rate in Hz */
+  sampleRate: number;
+  /** Language code (e.g., 'en-US') */
+  language?: string;
+  /** Whether this is the final chunk (for streaming) */
+  isFinal?: boolean;
+  /** Session ID for streaming sessions */
+  sessionId?: string;
+}
+
+/**
+ * STT response
+ */
+export interface STTResponse {
+  /** Transcribed text */
+  transcript: string;
+  /** Whether this is a final transcript or interim */
+  isFinal: boolean;
+  /** Confidence score (0-1) */
+  confidence?: number;
+  /** Session ID for streaming sessions */
+  sessionId?: string;
+}
+
+/**
+ * Streaming STT session manager.
+ * For real-time streaming STT like AWS Transcribe Streaming.
+ */
+export interface STTStreamingSession {
+  /** Start the streaming session */
+  start: () => Promise<void>;
+  /** Send audio chunk to the stream */
+  sendAudio: (audio: ArrayBuffer) => void;
+  /** End the streaming session */
+  end: () => Promise<void>;
+  /** Whether the session is active */
+  isActive: boolean;
+}
+
+/**
+ * Factory function to create a streaming STT session.
+ * Implement this for real-time streaming STT support.
+ */
+export type STTStreamingSessionFactory = (
+  onTranscript: (transcript: string, isFinal: boolean) => void,
+  onError?: (error: string) => void,
+  config?: {
+    language?: string;
+    sampleRate?: number;
+  }
+) => STTStreamingSession;
