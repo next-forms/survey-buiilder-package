@@ -57,7 +57,8 @@ export const ChatOptionButtons: React.FC<ChatOptionButtonsProps> = ({
   disabled = false,
 }) => {
   const options = getOptionsFromBlock(block);
-  const isMultiSelect = block.type === 'checkbox';
+  // Multi-select can be checkbox type OR selectablebox/radio with multiSelect: true
+  const isMultiSelect = block.type === 'checkbox' || block.multiSelect === true;
   const [selectedValues, setSelectedValues] = useState<any[]>(
     Array.isArray(value) ? value : value ? [value] : []
   );
@@ -74,13 +75,10 @@ export const ChatOptionButtons: React.FC<ChatOptionButtonsProps> = ({
       onChange(newValues);
     } else {
       // For radio/single-select, set the value and auto-submit
-      console.log("Here1")
       onChange(optionValue);
       if (onSubmit) {
-      console.log("Here2")
         // Small delay to show selection, then submit with the value
         setTimeout(() => onSubmit(optionValue), 150);
-      console.log("Here3")
       }
     }
   };

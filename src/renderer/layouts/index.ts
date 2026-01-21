@@ -1,6 +1,7 @@
 import type { LayoutDefinition, LayoutProps } from "../../types";
 import { RenderPageSurveyLayout } from "./RenderPageSurveyLayout";
 import { ChatLayout } from "./ChatLayout";
+import { VoiceLayout } from "./VoiceLayout";
 import { createLayout } from "./createLayout";
 import React from "react";
 
@@ -20,6 +21,11 @@ export const layoutRegistry: Record<string, LayoutDefinition> = {
     name: "chat",
     description: "Conversational chat-style layout with AI-powered questions",
     component: ChatLayout,
+  },
+  voice: {
+    name: "voice",
+    description: "Conversational voice + visual intake form with speech-to-speech interaction",
+    component: VoiceLayout,
   },
 };
 
@@ -90,6 +96,20 @@ export type {
   ChatCustomData,
   ChatRendererProps,
 } from './ChatLayout';
+
+// Export VoiceLayout and its types
+export { VoiceLayout } from './VoiceLayout';
+export type {
+  VoiceLayoutProps,
+  VoiceCustomData,
+  VoiceState,
+  VoiceMessage as VoiceMessageType,
+  VoiceCommand,
+  VoiceCommandType,
+  InputMode,
+  QuestionClassification,
+  VoiceSessionConfig,
+} from './VoiceLayout';
 
 // Export helper components and utilities
 export { CurrentBlock, NavigationButtons, ProgressIndicator } from './helpers';
