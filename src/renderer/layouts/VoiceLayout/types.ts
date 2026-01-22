@@ -427,6 +427,12 @@ export interface VoiceValidationRequest {
   blockType?: string;
   previousSelections?: string[];
   isConfirmation?: boolean;
+  /**
+   * Conversation history for the current question.
+   * Used to provide context for schema-based validation when AI needs
+   * clarification (e.g., user provides partial info like height but not weight).
+   */
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export interface VoiceValidationResponse {

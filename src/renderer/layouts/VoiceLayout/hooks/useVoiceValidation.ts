@@ -28,7 +28,8 @@ interface UseVoiceValidationReturn {
     transcript: string,
     block: BlockData,
     isConfirmation?: boolean,
-    previousSelections?: string[]
+    previousSelections?: string[],
+    conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
   ) => Promise<VoiceValidationResponse>;
   multiSelectState: MultiSelectVoiceState;
   resetMultiSelectState: () => void;
@@ -288,7 +289,8 @@ export function useVoiceValidation(
       transcript: string,
       block: BlockData,
       isConfirmation: boolean = false,
-      previousSelections?: string[]
+      previousSelections?: string[],
+      conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
     ): Promise<VoiceValidationResponse> => {
       setIsValidating(true);
 
@@ -314,6 +316,7 @@ export function useVoiceValidation(
           blockType: block.type,
           previousSelections: selections,
           isConfirmation,
+          conversationHistory,
         };
 
         // Determine which validation method to use

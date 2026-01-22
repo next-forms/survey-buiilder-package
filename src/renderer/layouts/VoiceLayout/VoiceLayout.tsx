@@ -416,11 +416,17 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         setLayoutMode('processing');
 
         try {
+          // Get conversation history for this question (from checkpoint onwards)
+          // This allows the LLM to have full context when user provides partial info
+          const checkpoint = conversationCheckpointsRef.current.get(blockId) ?? 0;
+          const questionConversationHistory = conversationHistoryRef.current.slice(checkpoint);
+
           const result = await validateAnswer(
             transcript,
             blockWithSchema,
             false,
-            []
+            [],
+            questionConversationHistory
           );
 
           if (result.isValid && result.extractedData !== undefined && result.extractedData !== null) {
@@ -437,6 +443,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
           if (!result.isValid || result.suggestedAction === 'reask') {
             // Couldn't extract data, ask for clarification
+            // Add the user's partial response to conversation history so context is preserved
+            conversationHistoryRef.current.push({ role: 'user', content: transcript });
             const reaskMessage = result.confirmationMessage ||
               "I couldn't understand your response. Could you please provide the information more clearly?";
             setCurrentQuestion(reaskMessage);
@@ -468,12 +476,17 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
           const voicePendingSelections = pendingValidation?.values || [];
           const allPreviousSelections = [...new Set([...visualSelections, ...voicePendingSelections])];
 
+          // Get conversation history for this question (from checkpoint onwards)
+          const checkpoint = conversationCheckpointsRef.current.get(blockId) ?? 0;
+          const questionConversationHistory = conversationHistoryRef.current.slice(checkpoint);
+
           // Use AI to validate the answer
           const result = await validateAnswer(
             transcript,
             currentBlock,
             awaitingConfirmation,
-            allPreviousSelections
+            allPreviousSelections,
+            questionConversationHistory
           );
 
           if (result.suggestedAction === 'submit' && result.isValid) {
@@ -603,6 +616,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
           if (result.suggestedAction === 'reask' || !result.isValid) {
             // Invalid answer - reask
+            // Add the user's response to conversation history so context is preserved
+            conversationHistoryRef.current.push({ role: 'user', content: transcript });
             const reaskMessage = result.invalidReason ||
               "I couldn't match your answer to any option. Please try again or select an option from the list.";
             setCurrentQuestion(reaskMessage);

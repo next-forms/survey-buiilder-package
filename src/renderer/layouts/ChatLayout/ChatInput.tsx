@@ -149,7 +149,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         >
           <SchemaBasedInput
             block={block}
-            schema={inputSchema || outputSchema}
+            schema={outputSchema || inputSchema}
             value={value}
             onChange={onChange}
             onSubmit={onSubmit}
