@@ -492,43 +492,6 @@ export function useVoiceSession(
    */
   const playAudioFromStreamUrl = useCallback(async (url: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      let resolved = false;
-      let hasStartedPlaying = false;
-
-      const cleanup = () => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(safetyTimeout);
-        clearInterval(playbackCheck);
-        audioElementRef.current = null;
-        setCustomTTSPlaying(false);
-        dispatch({ type: 'STOP_SPEAKING' });
-      };
-
-      // Safety timeout - if audio doesn't end within 30 seconds, force cleanup
-      // This handles iOS cases where events don't fire
-      const safetyTimeout = setTimeout(() => {
-        if (!resolved) {
-          console.warn('Audio playback safety timeout reached');
-          cleanup();
-          resolve();
-        }
-      }, 30000);
-
-      // Periodically check if audio has ended (iOS fallback)
-      // iOS Safari sometimes doesn't fire onended event
-      const playbackCheck = setInterval(() => {
-        const audio = audioElementRef.current;
-        if (audio && hasStartedPlaying) {
-          // Check if audio has ended or is in an error state
-          if (audio.ended || audio.paused && audio.currentTime > 0 && audio.currentTime >= audio.duration - 0.1) {
-            console.log('Audio ended detected via polling');
-            cleanup();
-            resolve();
-          }
-        }
-      }, 500);
-
       // Stop any currently playing audio
       if (audioElementRef.current) {
         audioElementRef.current.pause();
@@ -540,50 +503,28 @@ export function useVoiceSession(
       const audio = new Audio();
       audioElementRef.current = audio;
 
-      // iOS requires playsinline attribute
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-
       // Set up event handlers BEFORE setting src
-      audio.onloadedmetadata = () => {
-        console.log('Audio metadata loaded, duration:', audio.duration);
-      };
-
       audio.oncanplaythrough = () => {
-        console.log('Audio can play through');
+        // Audio has buffered enough to play through - but we'll start earlier
       };
 
       audio.onplay = () => {
-        console.log('Audio onplay event fired');
-        hasStartedPlaying = true;
-        setCustomTTSPlaying(true);
-      };
-
-      audio.onplaying = () => {
-        console.log('Audio onplaying event fired');
-        hasStartedPlaying = true;
+        // Audio started playing - mark as speaking
         setCustomTTSPlaying(true);
       };
 
       audio.onended = () => {
-        console.log('Audio onended event fired');
-        cleanup();
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
         resolve();
-      };
-
-      audio.onpause = () => {
-        console.log('Audio onpause event fired, currentTime:', audio.currentTime, 'duration:', audio.duration);
-        // On iOS, onpause fires instead of onended sometimes
-        if (hasStartedPlaying && audio.currentTime > 0 &&
-            (audio.ended || audio.currentTime >= audio.duration - 0.1)) {
-          cleanup();
-          resolve();
-        }
       };
 
       audio.onerror = (e) => {
         console.error('Audio playback error:', e);
-        cleanup();
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
         reject(new Error('Audio playback failed'));
       };
 
@@ -593,21 +534,14 @@ export function useVoiceSession(
       // Set the source - this starts loading
       audio.src = url;
 
-      // Mark as speaking immediately when we call play
-      // Don't wait for onplay event which may not fire on iOS
-      setCustomTTSPlaying(true);
-
-      // Start playing
-      audio.play()
-        .then(() => {
-          console.log('Audio play() promise resolved');
-          hasStartedPlaying = true;
-        })
-        .catch((error) => {
-          console.error('Audio play() failed:', error);
-          cleanup();
-          reject(error);
-        });
+      // Start playing as soon as possible (browser may wait for some buffering)
+      audio.play().catch((error) => {
+        console.error('Audio play() failed:', error);
+        audioElementRef.current = null;
+        setCustomTTSPlaying(false);
+        dispatch({ type: 'STOP_SPEAKING' });
+        reject(error);
+      });
     });
   }, [setCustomTTSPlaying]);
 
