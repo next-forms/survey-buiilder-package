@@ -52,6 +52,9 @@ export type {
   STTResponse,
   STTStreamingSession,
   STTStreamingSessionFactory,
+  // Media capture abstraction for cross-platform support
+  MediaCaptureFactory,
+  MediaCaptureSession,
 } from './types';
 
 // Hook types

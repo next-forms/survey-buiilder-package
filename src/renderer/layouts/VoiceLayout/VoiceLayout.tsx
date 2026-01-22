@@ -602,17 +602,19 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     [currentBlock, setValue, voiceCustomData, validateAnswer, awaitingConfirmation, pendingValidation, resetMultiSelectState, proceedToNextOrSubmit, clearSubsequentBlocksData]
   );
 
-  // Prepare session handlers from customData (including TTS/STT)
+  // Prepare session handlers from customData (including TTS/STT/MediaCapture)
   const sessionHandlers: VoiceSessionHandlers | undefined = (
     voiceCustomData?.sessionInitHandler ||
     voiceCustomData?.sessionEndHandler ||
     voiceCustomData?.ttsHandler ||
-    voiceCustomData?.sttSessionFactory
+    voiceCustomData?.sttSessionFactory ||
+    voiceCustomData?.mediaCaptureFactory
   ) ? {
     sessionInitHandler: voiceCustomData?.sessionInitHandler,
     sessionEndHandler: voiceCustomData?.sessionEndHandler,
     ttsHandler: voiceCustomData?.ttsHandler,
     sttSessionFactory: voiceCustomData?.sttSessionFactory,
+    mediaCaptureFactory: voiceCustomData?.mediaCaptureFactory,
     language: voiceCustomData?.language,
     ttsVoice: voiceCustomData?.ttsVoice,
   } : undefined;
@@ -625,6 +627,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     stopListening,
     speak,
     stopSpeaking,
+    preconnectSTT,
     initSession,
     endSession,
     switchToVisual,
@@ -692,6 +695,12 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       setCurrentQuestion('');
       setLayoutMode('ai_speaking');
 
+      // Pre-connect STT WebSocket while AI is speaking
+      // This ensures the connection is ready when user needs to speak
+      preconnectSTT().catch(() => {
+        // Non-fatal - connection will be established when user starts speaking
+      });
+
       try {
         // Wait briefly for typing effect
         await new Promise((resolve) => setTimeout(resolve, typingDelay));
@@ -737,6 +746,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     [
       aiHandler,
       speak,
+      preconnectSTT,
       values,
       currentQuestionIndex,
       totalQuestions,
@@ -945,24 +955,22 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     ) {
       hasTransitionedRef.current = true;
 
-      // Transition to input mode with minimal delay
-      const timeout = setTimeout(() => {
-        setLayoutMode('user_input');
+      // Transition to input mode - use single state update
+      setLayoutMode('user_input');
 
-        // Start listening immediately after mode change
-        // The WebSocket URL is pre-cached, so connection is fast
-        if (autoListen && currentInputMode !== 'visual' && !hasStartedListeningRef.current) {
-          hasStartedListeningRef.current = true;
-          // Small delay to ensure React has rendered the input screen
-          requestAnimationFrame(() => {
-            startListening();
+      // Start listening after a brief delay to ensure UI has rendered
+      // The WebSocket should already be connected from preconnect
+      if (autoListen && currentInputMode !== 'visual' && !hasStartedListeningRef.current) {
+        hasStartedListeningRef.current = true;
+        // Use setTimeout to batch separately from the layoutMode state update
+        setTimeout(() => {
+          startListening().catch((err) => {
+            console.warn('Auto-listen failed:', err);
           });
-        }
-      }, 100);
-
-      return () => clearTimeout(timeout);
+        }, 50);
+      }
     }
-  }, [isSpeaking, layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode]);
+  }, [isSpeaking, layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode, startListening]);
 
   // Ask question when block changes
   useEffect(() => {

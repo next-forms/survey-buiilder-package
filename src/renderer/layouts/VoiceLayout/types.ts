@@ -249,6 +249,15 @@ export interface VoiceCustomData {
   sttSessionFactory?: STTStreamingSessionFactory;
 
   /**
+   * Custom media capture factory for recording audio from the microphone.
+   * If provided, this will be used instead of the built-in Web Audio API implementation.
+   * Use this for better cross-platform support (especially iOS) with libraries like react-media-recorder.
+   *
+   * The factory should return audio as PCM Int16 ArrayBuffer chunks that will be sent to the STT session.
+   */
+  mediaCaptureFactory?: MediaCaptureFactory;
+
+  /**
    * Language code for TTS/STT (e.g., 'en-US', 'es-ES').
    * @default 'en-US'
    */
@@ -587,14 +596,24 @@ export interface STTResponse {
  * For real-time streaming STT like AWS Transcribe Streaming.
  */
 export interface STTStreamingSession {
-  /** Start the streaming session */
+  /** Start the streaming session (connects and begins listening) */
   start: () => Promise<void>;
   /** Send audio chunk to the stream */
   sendAudio: (audio: ArrayBuffer) => void;
-  /** End the streaming session */
+  /** End the streaming session and close connection */
   end: () => Promise<void>;
-  /** Whether the session is active */
+  /** Whether the session is actively listening */
   isActive: boolean;
+  /** Whether the WebSocket is connected (optional) */
+  isConnected?: boolean;
+  /** Whether listening is paused but connection is open (optional) */
+  isPaused?: boolean;
+  /** Pre-connect the WebSocket without starting to listen (optional) */
+  preconnect?: () => Promise<void>;
+  /** Pause listening but keep connection open (optional) */
+  pause?: () => void;
+  /** Resume listening after pause (optional) */
+  resume?: () => void;
 }
 
 /**
@@ -609,3 +628,56 @@ export type STTStreamingSessionFactory = (
     sampleRate?: number;
   }
 ) => STTStreamingSession;
+
+/**
+ * Media capture session for recording audio from the microphone.
+ * This abstraction allows different implementations (native Web Audio, react-media-recorder, etc.)
+ * to be used interchangeably.
+ */
+export interface MediaCaptureSession {
+  /** Start capturing audio */
+  start: () => Promise<void>;
+  /** Stop capturing audio */
+  stop: () => void;
+  /** Whether the session is currently capturing */
+  isCapturing: boolean;
+  /** Current volume level (0-1) for visualization */
+  volume: number;
+}
+
+/**
+ * Factory function to create a media capture session.
+ *
+ * The factory receives a callback that should be called with audio chunks.
+ * Audio should be provided as PCM Int16 ArrayBuffer at the specified sample rate.
+ *
+ * @example
+ * ```typescript
+ * const mediaCaptureFactory: MediaCaptureFactory = (onAudioChunk, config) => {
+ *   // Implementation using react-media-recorder or other library
+ *   return {
+ *     start: async () => { ... },
+ *     stop: () => { ... },
+ *     isCapturing: false,
+ *     volume: 0,
+ *   };
+ * };
+ * ```
+ */
+export type MediaCaptureFactory = (
+  /** Callback to send audio chunks to STT. Audio should be PCM Int16 ArrayBuffer. */
+  onAudioChunk: (audio: ArrayBuffer) => void,
+  /** Configuration for the capture session */
+  config?: {
+    /** Target sample rate in Hz (default: 16000) */
+    sampleRate?: number;
+    /** Enable echo cancellation */
+    echoCancellation?: boolean;
+    /** Enable noise suppression */
+    noiseSuppression?: boolean;
+    /** Enable auto gain control */
+    autoGainControl?: boolean;
+  },
+  /** Error callback */
+  onError?: (error: string) => void
+) => MediaCaptureSession;

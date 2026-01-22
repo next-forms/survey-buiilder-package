@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { STTStreamingSession } from '../types';
+import type { STTStreamingSession, MediaCaptureFactory, MediaCaptureSession } from '../types';
 import { calculateVolume } from '../utils/audioUtils';
 
 /**
@@ -16,6 +16,12 @@ interface StreamingAudioCaptureConfig {
   autoGainControl?: boolean;
   /** Chunk size in samples (default: 4096) */
   chunkSize?: number;
+  /**
+   * Custom media capture factory.
+   * If provided, this will be used instead of the built-in Web Audio API implementation.
+   * Use this for better cross-platform support (especially iOS).
+   */
+  mediaCaptureFactory?: MediaCaptureFactory;
 }
 
 /**
@@ -98,6 +104,10 @@ function downsample(
  * - Audio resampling to target sample rate
  * - Conversion to 16-bit PCM format
  * - Volume level monitoring for visualization
+ *
+ * If a custom mediaCaptureFactory is provided, it will be used instead of the
+ * built-in Web Audio API implementation. This allows for better cross-platform
+ * support using libraries like react-media-recorder.
  */
 export function useStreamingAudioCapture(
   config: StreamingAudioCaptureConfig = {}
@@ -108,6 +118,7 @@ export function useStreamingAudioCapture(
     noiseSuppression = true,
     autoGainControl = true,
     chunkSize = 4096,
+    mediaCaptureFactory,
   } = config;
 
   const [state, setState] = useState<StreamingAudioCaptureState>({
@@ -117,7 +128,7 @@ export function useStreamingAudioCapture(
     volume: 0,
   });
 
-  // Refs for audio processing
+  // Refs for audio processing (built-in implementation)
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
@@ -126,6 +137,10 @@ export function useStreamingAudioCapture(
   const sttSessionRef = useRef<STTStreamingSession | null>(null);
   const isCapturingRef = useRef<boolean>(false);
   const volumeIntervalRef = useRef<number | null>(null);
+
+  // Ref for custom media capture session
+  const customCaptureSessionRef = useRef<MediaCaptureSession | null>(null);
+  const customVolumeIntervalRef = useRef<number | null>(null);
 
   /**
    * Request microphone permission
@@ -163,6 +178,71 @@ export function useStreamingAudioCapture(
         return;
       }
 
+      // If custom media capture factory is provided, use it
+      if (mediaCaptureFactory) {
+        try {
+          sttSessionRef.current = sttSession;
+
+          // Create capture session using the factory
+          const captureSession = mediaCaptureFactory(
+            (audioChunk: ArrayBuffer) => {
+              // Forward audio chunks to STT session
+              if (sttSessionRef.current && isCapturingRef.current) {
+                sttSessionRef.current.sendAudio(audioChunk);
+              }
+            },
+            {
+              sampleRate: targetSampleRate,
+              echoCancellation,
+              noiseSuppression,
+              autoGainControl,
+            },
+            (error: string) => {
+              console.error('Custom media capture error:', error);
+              setState((prev) => ({
+                ...prev,
+                error,
+                isCapturing: false,
+              }));
+            }
+          );
+
+          customCaptureSessionRef.current = captureSession;
+
+          // Start capturing
+          await captureSession.start();
+
+          // Update state
+          isCapturingRef.current = true;
+          setState((prev) => ({
+            ...prev,
+            isCapturing: true,
+            error: null,
+          }));
+
+          // Start volume monitoring from custom session
+          customVolumeIntervalRef.current = window.setInterval(() => {
+            if (customCaptureSessionRef.current && isCapturingRef.current) {
+              setState((prev) => ({
+                ...prev,
+                volume: customCaptureSessionRef.current?.volume ?? 0,
+              }));
+            }
+          }, 100);
+
+          return;
+        } catch (error) {
+          console.error('Failed to start custom audio capture:', error);
+          setState((prev) => ({
+            ...prev,
+            error: error instanceof Error ? error.message : 'Failed to start capture',
+            isCapturing: false,
+          }));
+          return;
+        }
+      }
+
+      // Built-in Web Audio API implementation
       try {
         // Get microphone stream
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -184,6 +264,11 @@ export function useStreamingAudioCapture(
         // Resampling to target rate will be done in the processor
         const audioContext = new AudioContext();
         audioContextRef.current = audioContext;
+
+        // Resume AudioContext if suspended (required for iOS)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
 
         // Create source from microphone
         const source = audioContext.createMediaStreamSource(stream);
@@ -252,7 +337,7 @@ export function useStreamingAudioCapture(
         }));
       }
     },
-    [targetSampleRate, echoCancellation, noiseSuppression, autoGainControl, chunkSize]
+    [targetSampleRate, echoCancellation, noiseSuppression, autoGainControl, chunkSize, mediaCaptureFactory]
   );
 
   /**
@@ -261,7 +346,19 @@ export function useStreamingAudioCapture(
   const stopCapture = useCallback(() => {
     isCapturingRef.current = false;
 
-    // Stop volume monitoring
+    // Stop custom capture session if active
+    if (customCaptureSessionRef.current) {
+      customCaptureSessionRef.current.stop();
+      customCaptureSessionRef.current = null;
+    }
+
+    // Stop custom volume monitoring
+    if (customVolumeIntervalRef.current) {
+      clearInterval(customVolumeIntervalRef.current);
+      customVolumeIntervalRef.current = null;
+    }
+
+    // Stop volume monitoring (built-in)
     if (volumeIntervalRef.current) {
       clearInterval(volumeIntervalRef.current);
       volumeIntervalRef.current = null;
@@ -311,6 +408,13 @@ export function useStreamingAudioCapture(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop custom capture if active
+      if (customCaptureSessionRef.current) {
+        customCaptureSessionRef.current.stop();
+      }
+      if (customVolumeIntervalRef.current) {
+        clearInterval(customVolumeIntervalRef.current);
+      }
       stopCapture();
     };
   }, [stopCapture]);

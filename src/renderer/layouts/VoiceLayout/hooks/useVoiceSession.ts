@@ -11,6 +11,7 @@ import type {
   TTSHandler,
   STTStreamingSessionFactory,
   STTStreamingSession,
+  MediaCaptureFactory,
 } from '../types';
 import {
   voiceStateReducer,
@@ -47,6 +48,13 @@ export interface VoiceSessionHandlers {
    * If provided, this will be used instead of browser's SpeechRecognition.
    */
   sttSessionFactory?: STTStreamingSessionFactory;
+
+  /**
+   * Custom media capture factory for recording audio from the microphone.
+   * If provided, this will be used instead of the built-in Web Audio API implementation.
+   * Use this for better cross-platform support (especially iOS) with libraries like react-media-recorder.
+   */
+  mediaCaptureFactory?: MediaCaptureFactory;
 
   /**
    * Language code for TTS/STT (e.g., 'en-US').
@@ -97,6 +105,8 @@ interface UseVoiceSessionResult {
   speak: (text: string, preGeneratedAudio?: PreGeneratedAudio) => Promise<void>;
   speakImmediate: (text: string) => Promise<void>;
   stopSpeaking: () => void;
+  /** Pre-connect STT WebSocket (call during AI speaking for faster response) */
+  preconnectSTT: () => Promise<void>;
 
   // Session controls
   initSession: (config?: VoiceSessionConfig) => Promise<void>;
@@ -113,6 +123,8 @@ interface UseVoiceSessionResult {
   isSpeaking: boolean;
   isProcessing: boolean;
   volume: number;
+  /** Whether STT WebSocket is connected */
+  isSTTConnected: boolean;
 }
 
 /**
@@ -307,6 +319,7 @@ export function useVoiceSession(
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
+    mediaCaptureFactory: handlers?.mediaCaptureFactory,
   });
 
   /**
@@ -327,20 +340,47 @@ export function useVoiceSession(
           return;
         }
 
-        // Pre-warm the STT session if using custom STT factory
-        // This fetches the WebSocket URL early so listening can start quickly
-        if (handlers?.sttSessionFactory) {
-          const tempSession = handlers.sttSessionFactory(
-            () => {}, // dummy transcript handler
-            undefined,
+        // Create the persistent STT session if using custom STT factory
+        // This session will be reused across multiple questions
+        if (handlers?.sttSessionFactory && !customSTTSessionRef.current) {
+          customSTTSessionRef.current = handlers.sttSessionFactory(
+            (transcript, isFinal) => {
+              // Update session state
+              setSessionState((prev) => ({
+                ...prev,
+                lastTranscript: isFinal ? transcript : prev.lastTranscript,
+                lastInterimTranscript: isFinal ? '' : transcript,
+              }));
+
+              // Check for voice commands
+              if (isFinal) {
+                const command = parseVoiceCommand(transcript);
+                if (command) {
+                  if (onCommandRef.current) {
+                    onCommandRef.current(command);
+                  }
+                  return;
+                }
+              }
+
+              // Pass to transcript handler
+              if (onTranscriptRef.current) {
+                onTranscriptRef.current(transcript, isFinal);
+              }
+            },
+            (error) => {
+              console.error('Custom STT error:', error);
+              dispatch({ type: 'ERROR', payload: error });
+            },
             {
               language: handlers.language || 'en-US',
               sampleRate: 16000,
             }
           );
-          // Call prewarm if available (non-blocking)
-          if ('prewarm' in tempSession && typeof tempSession.prewarm === 'function') {
-            tempSession.prewarm().catch(() => {
+
+          // Pre-warm the URL (non-blocking)
+          if ('prewarm' in customSTTSessionRef.current && typeof customSTTSessionRef.current.prewarm === 'function') {
+            customSTTSessionRef.current.prewarm().catch(() => {
               // Prewarm errors are non-fatal
             });
           }
@@ -405,11 +445,18 @@ export function useVoiceSession(
 
   /**
    * End voice session
-   * Session end tracking is optional
+   * Closes STT connection and cleans up resources
    */
   const endSession = useCallback(async () => {
     stopCapture();
     stopSpeaking();
+    stopStreamingCapture();
+
+    // End custom STT session (close WebSocket connection)
+    if (customSTTSessionRef.current) {
+      await customSTTSessionRef.current.end().catch(console.error);
+      customSTTSessionRef.current = null;
+    }
 
     // Only call end handler if session was tracked and handler is provided
     if (sessionState.sessionId && handlers?.sessionEndHandler) {
@@ -429,7 +476,7 @@ export function useVoiceSession(
     }));
 
     dispatch({ type: 'COMPLETE' });
-  }, [sessionState.sessionId, stopCapture, stopSpeaking, handlers]);
+  }, [sessionState.sessionId, stopCapture, stopSpeaking, stopStreamingCapture, handlers]);
 
   /**
    * Helper to update custom TTS playing state (both state and ref)
@@ -623,94 +670,88 @@ export function useVoiceSession(
   }, [setCustomTTSPlaying]);
 
   /**
+   * Pre-connect STT WebSocket during AI speaking
+   * This ensures the connection is ready when user needs to speak
+   */
+  const preconnectSTT = useCallback(async () => {
+    if (!customSTTSessionRef.current) return;
+
+    // Check if already connected
+    if (customSTTSessionRef.current.isConnected) return;
+
+    try {
+      // Use preconnect if available, otherwise start will handle it
+      if ('preconnect' in customSTTSessionRef.current && typeof customSTTSessionRef.current.preconnect === 'function') {
+        await customSTTSessionRef.current.preconnect();
+      }
+    } catch (error) {
+      console.warn('STT preconnect failed (will retry on start):', error);
+    }
+  }, []);
+
+  // Track if we're in the process of starting listening to prevent double calls
+  const isStartingListeningRef = useRef(false);
+
+  /**
    * Start listening for voice input
    * Uses custom STT session if provided, otherwise falls back to browser's SpeechRecognition
    */
   const startListening = useCallback(async () => {
-    // Check if custom STT is available
-    if (handlers?.sttSessionFactory) {
-      // Use custom STT with streaming audio capture
-      dispatch({ type: 'START_LISTENING' });
+    // Prevent double starts
+    if (isStartingListeningRef.current) {
+      return;
+    }
 
-      // Create new STT session if needed
-      if (!customSTTSessionRef.current || !customSTTSessionRef.current.isActive) {
-        customSTTSessionRef.current = handlers.sttSessionFactory(
-          (transcript, isFinal) => {
-            // Update session state
-            setSessionState((prev) => ({
-              ...prev,
-              lastTranscript: isFinal ? transcript : prev.lastTranscript,
-              lastInterimTranscript: isFinal ? '' : transcript,
-            }));
+    // Check if already listening
+    if (streamingCaptureState.isCapturing || captureState.isCapturing) {
+      return;
+    }
 
-            // Check for voice commands
-            if (isFinal) {
-              const command = parseVoiceCommand(transcript);
-              if (command) {
-                if (onCommandRef.current) {
-                  onCommandRef.current(command);
-                }
-                return;
-              }
-            }
+    isStartingListeningRef.current = true;
 
-            // Pass to transcript handler
-            if (onTranscriptRef.current) {
-              onTranscriptRef.current(transcript, isFinal);
-            }
-          },
-          (error) => {
-            console.error('Custom STT error:', error);
-            dispatch({ type: 'ERROR', payload: error });
-          },
-          {
-            language: handlers.language || 'en-US',
-            sampleRate: 16000,
-          }
-        );
-      }
-
-      try {
-        // Start the STT session first
+    try {
+      // Check if custom STT is available
+      if (handlers?.sttSessionFactory && customSTTSessionRef.current) {
+        // Start the STT session first (will connect/reconnect if needed)
         await customSTTSessionRef.current.start();
 
-        // Then start capturing audio and streaming it to the STT session
+        // Then start capturing audio - this will update isCapturing state
         await startStreamingCapture(customSTTSessionRef.current);
-      } catch (error) {
-        console.error('Failed to start custom STT:', error);
-        dispatch({ type: 'ERROR', payload: 'Failed to start speech recognition' });
 
-        // Clean up on error
-        if (customSTTSessionRef.current) {
-          customSTTSessionRef.current.end().catch(console.error);
-          customSTTSessionRef.current = null;
-        }
-        stopStreamingCapture();
+        // Dispatch after capture starts to reduce re-renders
+        dispatch({ type: 'START_LISTENING' });
+        return;
       }
-      return;
-    }
 
-    // Fall back to browser's SpeechRecognition
-    if (!captureState.isSupported) {
-      dispatch({ type: 'ERROR', payload: 'Speech recognition not supported' });
-      return;
-    }
+      // Fall back to browser's SpeechRecognition
+      if (!captureState.isSupported) {
+        dispatch({ type: 'ERROR', payload: 'Speech recognition not supported' });
+        return;
+      }
 
-    dispatch({ type: 'START_LISTENING' });
-    await startCapture();
-  }, [handlers, captureState.isSupported, startCapture, startStreamingCapture, stopStreamingCapture, parseVoiceCommand]);
+      dispatch({ type: 'START_LISTENING' });
+      await startCapture();
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      dispatch({ type: 'ERROR', payload: 'Failed to start speech recognition' });
+      stopStreamingCapture();
+    } finally {
+      isStartingListeningRef.current = false;
+    }
+  }, [handlers, captureState.isSupported, captureState.isCapturing, streamingCaptureState.isCapturing, startCapture, startStreamingCapture, stopStreamingCapture]);
 
   /**
-   * Stop listening
+   * Stop listening (pauses STT but keeps connection open for next question)
    */
   const stopListening = useCallback(() => {
     // Stop streaming audio capture (for custom STT)
     stopStreamingCapture();
 
-    // Stop custom STT session if active
+    // Pause custom STT session (keep connection open for reuse)
     if (customSTTSessionRef.current?.isActive) {
-      customSTTSessionRef.current.end().catch(console.error);
-      customSTTSessionRef.current = null;
+      if ('pause' in customSTTSessionRef.current && typeof customSTTSessionRef.current.pause === 'function') {
+        customSTTSessionRef.current.pause();
+      }
     }
 
     // Also stop browser capture (for fallback STT)
@@ -929,6 +970,7 @@ export function useVoiceSession(
     speak,
     speakImmediate,
     stopSpeaking,
+    preconnectSTT,
 
     // Session controls
     initSession,
@@ -948,5 +990,7 @@ export function useVoiceSession(
     isProcessing: voiceState.isProcessing,
     // Use volume from streaming capture if active, otherwise from browser capture
     volume: streamingCaptureState.isCapturing ? streamingCaptureState.volume : captureState.volume,
+    // Whether STT WebSocket is connected
+    isSTTConnected: customSTTSessionRef.current?.isConnected ?? false,
   };
 }
