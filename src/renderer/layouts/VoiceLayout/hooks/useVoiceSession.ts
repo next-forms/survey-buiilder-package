@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useReducer } from 'react';
+import { Howl } from 'howler';
 import type {
   VoiceState,
   VoiceSessionConfig,
@@ -157,8 +158,8 @@ export function useVoiceSession(
   const customSTTSessionRef = useRef<STTStreamingSession | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  // HTML Audio element for streaming TTS (better for perceived performance)
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  // Howl instance for streaming TTS (better cross-browser support, especially iOS)
+  const howlRef = useRef<Howl | null>(null);
 
   // Track custom TTS playing state (browser TTS uses playbackState.isPlaying)
   const [isCustomTTSPlaying, setIsCustomTTSPlaying] = useState(false);
@@ -487,42 +488,31 @@ export function useVoiceSession(
   }, []);
 
   /**
-   * Play audio from a streaming URL using HTML Audio element.
-   * This allows playback to start before the full file is downloaded.
+   * Play audio from a streaming URL using Howler.js
+   * Howler provides reliable cross-browser audio playback, especially on iOS.
    */
   const playAudioFromStreamUrl = useCallback(async (url: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       // Track if we've already resolved/rejected to prevent double-firing
       let hasCompleted = false;
       let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
-      let pollingIntervalId: ReturnType<typeof setInterval> | null = null;
-      // Track consecutive "at end" detections to avoid false positives
-      let atEndCount = 0;
-      // Track last known position to detect if playback is truly stuck
-      let lastPosition = -1;
-      let stuckCount = 0;
 
       const cleanup = () => {
         if (safetyTimeoutId) {
           clearTimeout(safetyTimeoutId);
           safetyTimeoutId = null;
         }
-        if (pollingIntervalId) {
-          clearInterval(pollingIntervalId);
-          pollingIntervalId = null;
-        }
       };
 
-      const completePlayback = (_reason?: string) => {
+      const completePlayback = () => {
         if (hasCompleted) return;
         hasCompleted = true;
         cleanup();
 
-        // Clean up audio element
-        if (audioElementRef.current) {
-          audioElementRef.current.pause();
-          audioElementRef.current.src = '';
-          audioElementRef.current = null;
+        // Clean up Howl instance
+        if (howlRef.current) {
+          howlRef.current.unload();
+          howlRef.current = null;
         }
 
         setCustomTTSPlaying(false);
@@ -531,152 +521,59 @@ export function useVoiceSession(
       };
 
       // Stop any currently playing audio
-      if (audioElementRef.current) {
-        audioElementRef.current.pause();
-        audioElementRef.current.src = '';
-        audioElementRef.current = null;
+      if (howlRef.current) {
+        howlRef.current.unload();
+        howlRef.current = null;
       }
 
-      // Create new audio element
-      const audio = new Audio();
-      audioElementRef.current = audio;
-
       // Safety timeout - if audio doesn't end within 60 seconds, force cleanup
-      // This is critical for iOS where 'ended' event may not fire
       safetyTimeoutId = setTimeout(() => {
         console.warn('Audio playback safety timeout reached');
-        completePlayback('safety_timeout');
+        completePlayback();
       }, 60000);
 
-      // iOS workaround: Poll for ended state since 'ended' event may not fire
-      // Use conservative checks to avoid false positives during buffering
-      const startPolling = () => {
-        pollingIntervalId = setInterval(() => {
-          // Check if audio was stopped externally (e.g., stopCustomTTS was called)
-          if (!audio || hasCompleted || !audioElementRef.current) {
-            cleanup();
-            if (!hasCompleted) {
-              completePlayback('external_stop');
-            }
-            return;
-          }
-
-          // Primary check: audio.ended property (most reliable when it works)
-          if (audio.ended) {
-            completePlayback('polling_ended_true');
-            return;
-          }
-
-          // Secondary check: at end of known duration
-          // Only trigger if duration is valid (not NaN, not Infinity, and > 0)
-          const duration = audio.duration;
-          const currentTime = audio.currentTime;
-          const hasValidDuration = Number.isFinite(duration) && duration > 0;
-
-          if (hasValidDuration && currentTime >= duration - 0.05) {
-            // We appear to be at the end - but require multiple consecutive detections
-            // to avoid false positives during loading/buffering
-            atEndCount++;
-            if (atEndCount >= 3) {
-              completePlayback('polling_at_duration');
-              return;
-            }
-          } else {
-            // Reset counter if we're not at the end
-            atEndCount = 0;
-          }
-
-          // Tertiary check: detect truly stuck playback (position hasn't changed)
-          // This handles cases where audio finished but duration wasn't accurate
-          if (hasValidDuration && currentTime > 0) {
-            if (Math.abs(currentTime - lastPosition) < 0.01) {
-              stuckCount++;
-              // If stuck at same position for 2+ seconds (8 checks at 250ms),
-              // and we're past 90% of duration, consider it done
-              if (stuckCount >= 8 && currentTime >= duration * 0.9) {
-                completePlayback('polling_stuck_at_end');
-                return;
-              }
-            } else {
-              stuckCount = 0;
-            }
-            lastPosition = currentTime;
-          }
-        }, 250);
-      };
-
-      // Set up event handlers BEFORE setting src
-      audio.oncanplaythrough = () => {
-        // Audio has buffered enough to play through
-      };
-
-      audio.onplay = () => {
-        // Audio started playing - mark as speaking
-        setCustomTTSPlaying(true);
-        // Start polling as a backup for iOS
-        startPolling();
-      };
-
-      audio.onended = () => {
-        completePlayback('onended_event');
-      };
-
-      // iOS-specific: Also listen to 'pause' event at the end of playback
-      // On iOS, sometimes 'pause' fires instead of 'ended' when audio truly completes
-      // But we need to be careful not to trigger on buffering pauses
-      audio.onpause = () => {
-        if (hasCompleted) return;
-
-        // Only complete if audio.ended is true (safest check)
-        if (audio.ended) {
-          completePlayback('onpause_ended_true');
-          return;
-        }
-
-        // Or if we're very close to the end of a known duration
-        const duration = audio.duration;
-        const currentTime = audio.currentTime;
-        if (Number.isFinite(duration) && duration > 0 && currentTime >= duration - 0.05) {
-          // Wait a brief moment to confirm this isn't just a buffering pause
-          setTimeout(() => {
-            if (!hasCompleted && audio.paused && audio.currentTime >= audio.duration - 0.05) {
-              completePlayback('onpause_at_end_confirmed');
-            }
-          }, 300);
-        }
-      };
-
-      audio.onerror = (e) => {
-        if (hasCompleted) return;
-        hasCompleted = true;
-        cleanup();
-        console.error('Audio playback error:', e);
-        audioElementRef.current = null;
-        setCustomTTSPlaying(false);
-        dispatch({ type: 'STOP_SPEAKING' });
-        reject(new Error('Audio playback failed'));
-      };
-
-      // Set preload to auto for faster start
-      audio.preload = 'auto';
-
-      // iOS-specific: Set playsinline attribute
-      audio.setAttribute('playsinline', 'true');
-
-      // Set the source - this starts loading
-      audio.src = url;
-
-      // Start playing as soon as possible (browser may wait for some buffering)
-      audio.play().catch((error) => {
-        if (hasCompleted) return;
-        hasCompleted = true;
-        cleanup();
-        console.error('Audio play() failed:', error);
-        audioElementRef.current = null;
-        setCustomTTSPlaying(false);
-        dispatch({ type: 'STOP_SPEAKING' });
-        reject(error);
+      // Create new Howl instance
+      // html5: true is required for streaming audio and better iOS support
+      const howl = new Howl({
+        src: [url],
+        html5: true, // Required for streaming and iOS
+        format: ['mp3'], // Specify format since URL may not have extension
+        autoplay: true,
+        onplay: () => {
+          // Audio started playing - mark as speaking
+          setCustomTTSPlaying(true);
+        },
+        onend: () => {
+          // Audio finished playing - this is the reliable callback from Howler
+          completePlayback();
+        },
+        onstop: () => {
+          // Audio was stopped externally
+          completePlayback();
+        },
+        onloaderror: (_id, error) => {
+          if (hasCompleted) return;
+          hasCompleted = true;
+          cleanup();
+          console.error('Audio load error:', error);
+          howlRef.current = null;
+          setCustomTTSPlaying(false);
+          dispatch({ type: 'STOP_SPEAKING' });
+          reject(new Error('Audio load failed'));
+        },
+        onplayerror: (_id, error) => {
+          if (hasCompleted) return;
+          hasCompleted = true;
+          cleanup();
+          console.error('Audio play error:', error);
+          howlRef.current = null;
+          setCustomTTSPlaying(false);
+          dispatch({ type: 'STOP_SPEAKING' });
+          reject(new Error('Audio playback failed'));
+        },
       });
+
+      howlRef.current = howl;
     });
   }, [setCustomTTSPlaying]);
 
@@ -781,7 +678,7 @@ export function useVoiceSession(
   }, [setCustomTTSPlaying]);
 
   /**
-   * Stop custom TTS audio playback (both Web Audio API and HTML Audio element)
+   * Stop custom TTS audio playback (both Web Audio API and Howler)
    */
   const stopCustomTTS = useCallback(() => {
     // Stop Web Audio API source
@@ -794,11 +691,11 @@ export function useVoiceSession(
       currentAudioSourceRef.current = null;
     }
 
-    // Stop HTML Audio element
-    if (audioElementRef.current) {
-      audioElementRef.current.pause();
-      audioElementRef.current.src = '';
-      audioElementRef.current = null;
+    // Stop Howler instance
+    if (howlRef.current) {
+      howlRef.current.stop();
+      howlRef.current.unload();
+      howlRef.current = null;
     }
 
     setCustomTTSPlaying(false);
@@ -1078,13 +975,20 @@ export function useVoiceSession(
         customSTTSessionRef.current.end().catch(console.error);
       }
 
-      // Stop custom TTS playback
+      // Stop custom TTS playback (Web Audio API)
       if (currentAudioSourceRef.current) {
         try {
           currentAudioSourceRef.current.stop();
         } catch (e) {
           // Ignore
         }
+      }
+
+      // Stop Howler instance
+      if (howlRef.current) {
+        howlRef.current.stop();
+        howlRef.current.unload();
+        howlRef.current = null;
       }
 
       // Close audio context
