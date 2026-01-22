@@ -197,6 +197,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   const speakRef = useRef<(text: string) => Promise<void>>(() => Promise.resolve());
   const stopListeningRef = useRef<() => void>(() => {});
   const switchToVisualRef = useRef<() => void>(() => {});
+  const handleBackRef = useRef<() => void>(() => {});
 
   // Voice validation hook for AI-powered answer matching
   // Pass custom validation handler from customData if provided
@@ -240,8 +241,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       switch (command.type) {
         case 'navigate':
           if (command.payload?.direction === 'back') {
-            goToPreviousBlock();
-            setLayoutMode('ai_speaking');
+            // Use handleBackRef to go back without AI speaking
+            handleBackRef.current();
           }
           break;
         case 'repeat':
@@ -268,7 +269,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         voiceCustomData.onVoiceCommand(command);
       }
     },
-    [currentBlock, goToPreviousBlock, goToNextBlock, voiceCustomData]
+    [currentBlock, goToNextBlock, voiceCustomData]
   );
 
   /**
@@ -429,6 +430,13 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             questionConversationHistory
           );
 
+          // Check if this is a navigate back action
+          if (result.suggestedAction === 'navigate_back') {
+            // User wants to go back - trigger handleBack
+            handleBackRef.current();
+            return;
+          }
+
           if (result.isValid && result.extractedData !== undefined && result.extractedData !== null) {
             // Successfully extracted structured data
             // Note: We check !== undefined/null to allow falsy values like 0, false, ""
@@ -488,6 +496,13 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             allPreviousSelections,
             questionConversationHistory
           );
+
+          // Check if this is a navigate back action
+          if (result.suggestedAction === 'navigate_back') {
+            // User wants to go back - trigger handleBack
+            handleBackRef.current();
+            return;
+          }
 
           if (result.suggestedAction === 'submit' && result.isValid) {
             // Valid answer - submit it
@@ -937,6 +952,11 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     // Go to previous block
     goToPreviousBlock();
   }, [goToPreviousBlock, stopListening]);
+
+  // Update handleBackRef for use in handleTranscript
+  useEffect(() => {
+    handleBackRef.current = handleBack;
+  }, [handleBack]);
 
   /**
    * Start the survey (user interaction required for TTS)

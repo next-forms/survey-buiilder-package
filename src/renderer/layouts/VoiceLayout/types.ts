@@ -444,7 +444,7 @@ export interface VoiceValidationResponse {
   needsConfirmation: boolean;
   confirmationMessage?: string;
   invalidReason?: string;
-  suggestedAction?: 'confirm' | 'reask' | 'add_more' | 'submit' | 'finish_multiselect';
+  suggestedAction?: 'confirm' | 'reask' | 'add_more' | 'submit' | 'finish_multiselect' | 'navigate_back';
   // Schema-based extraction results
   extractedData?: Record<string, unknown>;
   missingFields?: string[];
