@@ -497,26 +497,27 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
   // Extract field name from block
   const fieldName = block.fieldName || 'bmiCalculator';
 
-  // Local state
+  // Local state - initialize with empty strings to show placeholders
   const [unitSystem, setUnitSystem] = useState(
     value.unitSystem || block.defaultUnit || 'metric'
   );
-  const [height, setHeight] = useState(
-    value.height || (unitSystem === 'metric' ? 170 : 70)
+  const [height, setHeight] = useState<number | ''>(
+    value.height || ''
   );
-  const [weight, setWeight] = useState(
-    value.weight || (unitSystem === 'metric' ? 70 : 150)
+  const [weight, setWeight] = useState<number | ''>(
+    value.weight || ''
   );
 
   // Track previous values to prevent infinite loops
   const prevValuesRef = useRef({
-    height: value.height || (unitSystem === 'metric' ? 170 : 70),
-    weight: value.weight || (unitSystem === 'metric' ? 70 : 150),
+    height: value.height || '',
+    weight: value.weight || '',
     unitSystem: value.unitSystem || block.defaultUnit || 'metric'
   });
 
   // Convert height input for imperial (total inches)
   const getImperialHeight = () => {
+    if (height === '' || height === 0) return { feet: '', inches: '' };
     const feet = Math.floor(height / 12);
     const inches = height % 12;
     return { feet, inches };
@@ -528,6 +529,7 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
 
   // Enhanced BMI calculation
   const calculateBMIEnhanced = () => {
+    if (height === '' || weight === '') return 0;
     let heightInMeters;
     let weightInKg = weight;
 
@@ -589,7 +591,7 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
       prevValues.weight !== weight || 
       prevValues.unitSystem !== unitSystem;
 
-    if (onChange && height > 0 && weight > 0 && hasChanged) {
+    if (onChange && height !== '' && height > 0 && weight !== '' && weight > 0 && hasChanged) {
       const calculatedBmi = calculateBMIEnhanced();
       const calculatedBmiData = getBMIData(calculatedBmi);
       
@@ -642,19 +644,14 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
 
       <CardContent className="space-y-8">
         {/* Unit System Tabs */}
-        <Tabs 
-          value={unitSystem} 
+        <Tabs
+          value={unitSystem}
           onValueChange={(value: string) => {
             setUnitSystem(value);
-            // Reset to reasonable defaults when switching units
-            if (value === "metric") {
-              setHeight(170);
-              setWeight(70);
-            } else {
-              setHeight(70); // 5'10" in inches
-              setWeight(150);
-            }
-          }} 
+            // Reset to empty values when switching units to show placeholders
+            setHeight('');
+            setWeight('');
+          }}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -678,8 +675,8 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={height}
-                    onChange={(e) => setHeight(parseInt(e.target.value) || 170)}
+                    value={height === '' ? '' : height}
+                    onChange={(e) => setHeight(e.target.value === '' ? '' : parseInt(e.target.value))}
                     onBlur={onBlur}
                     disabled={disabled}
                     min={100}
@@ -701,8 +698,8 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(parseInt(e.target.value) || 70)}
+                    value={weight === '' ? '' : weight}
+                    onChange={(e) => setWeight(e.target.value === '' ? '' : parseInt(e.target.value))}
                     onBlur={onBlur}
                     disabled={disabled}
                     min={30}
@@ -726,29 +723,29 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
                   Height
                 </Label>
                 <div className="flex gap-2">
-                  <Select 
-                    value={imperialHeight.feet.toString()} 
-                    onValueChange={(value: string) => setImperialHeight(parseInt(value), imperialHeight.inches)}
+                  <Select
+                    value={imperialHeight.feet === '' ? '' : imperialHeight.feet.toString()}
+                    onValueChange={(value: string) => setImperialHeight(parseInt(value), typeof imperialHeight.inches === 'number' ? imperialHeight.inches : 0)}
                     disabled={disabled}
                   >
                     <SelectTrigger className="h-14">
-                      <SelectValue />
+                      <SelectValue placeholder="ft" />
                     </SelectTrigger>
                     <SelectContent>
                       {[3, 4, 5, 6, 7, 8].map(ft => (
                         <SelectItem key={ft} value={ft.toString()}>
-                          {ft}' 
+                          {ft}'
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select 
-                    value={imperialHeight.inches.toString()} 
-                    onValueChange={(value: string) => setImperialHeight(imperialHeight.feet, parseInt(value))}
+                  <Select
+                    value={imperialHeight.inches === '' ? '' : imperialHeight.inches.toString()}
+                    onValueChange={(value: string) => setImperialHeight(typeof imperialHeight.feet === 'number' ? imperialHeight.feet : 5, parseInt(value))}
                     disabled={disabled}
                   >
                     <SelectTrigger className="h-14">
-                      <SelectValue />
+                      <SelectValue placeholder="in" />
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({length: 12}, (_, i) => (
@@ -769,8 +766,8 @@ const BMICalculatorRenderer: React.FC<BMICalculatorRendererProps> = ({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(parseInt(e.target.value) || 150)}
+                    value={weight === '' ? '' : weight}
+                    onChange={(e) => setWeight(e.target.value === '' ? '' : parseInt(e.target.value))}
                     onBlur={onBlur}
                     disabled={disabled}
                     min={70}
