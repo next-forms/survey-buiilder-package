@@ -442,6 +442,8 @@ export interface VoiceValidationResponse {
   // Schema-based extraction results
   extractedData?: Record<string, unknown>;
   missingFields?: string[];
+  // For multi-select: whether the matched options should be added or removed
+  action?: 'add' | 'remove';
 }
 
 /**

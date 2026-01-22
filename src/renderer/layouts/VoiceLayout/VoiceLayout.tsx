@@ -461,12 +461,19 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         setLayoutMode('processing');
 
         try {
+          // Merge visual selections (from form value) with voice pending selections
+          // This enables hybrid input where user can select visually AND speak
+          const currentFormValue = values[fieldName];
+          const visualSelections = Array.isArray(currentFormValue) ? currentFormValue : [];
+          const voicePendingSelections = pendingValidation?.values || [];
+          const allPreviousSelections = [...new Set([...visualSelections, ...voicePendingSelections])];
+
           // Use AI to validate the answer
           const result = await validateAnswer(
             transcript,
             currentBlock,
             awaitingConfirmation,
-            pendingValidation?.values || []
+            allPreviousSelections
           );
 
           if (result.suggestedAction === 'submit' && result.isValid) {
@@ -491,11 +498,34 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
           if (result.suggestedAction === 'confirm' && result.needsConfirmation) {
             // Need confirmation - speak the confirmation message
-            // Merge with existing pending values, using Set to avoid duplicates
-            const newPendingValues = {
-              values: [...new Set([...(pendingValidation?.values || []), ...result.matchedValues])],
-              labels: [...new Set([...(pendingValidation?.labels || []), ...result.matchedOptions.map(o => o.label)])],
-            };
+            // Check if this is a remove action or add action
+            const isRemoveAction = result.action === 'remove';
+
+            // Get labels for all previous selections (visual + voice)
+            const blockOptions = getBlockOptions(currentBlock);
+            const allPreviousLabels = allPreviousSelections.map(v => {
+              const opt = blockOptions.find(o => o.value === v);
+              return opt ? opt.label : String(v);
+            });
+
+            let newPendingValues: { values: string[]; labels: string[] };
+
+            if (isRemoveAction) {
+              // Remove the matched values from all previous selections (visual + voice)
+              const valuesToRemove = new Set(result.matchedValues);
+              const labelsToRemove = new Set(result.matchedOptions.map(o => o.label));
+              newPendingValues = {
+                values: allPreviousSelections.filter(v => !valuesToRemove.has(v)),
+                labels: allPreviousLabels.filter(l => !labelsToRemove.has(l)),
+              };
+            } else {
+              // Add - merge with all previous selections (visual + voice), using Set to avoid duplicates
+              newPendingValues = {
+                values: [...new Set([...allPreviousSelections, ...result.matchedValues])],
+                labels: [...new Set([...allPreviousLabels, ...result.matchedOptions.map(o => o.label)])],
+              };
+            }
+
             setPendingValidation(newPendingValues);
             setAwaitingConfirmation(true);
 
@@ -505,12 +535,24 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
               setValue(fieldName, newPendingValues.values);
             }
 
-            // Show what was just added, not all selections
-            const justAdded = result.matchedOptions.map(o => o.label).join(', ');
-            const confirmMessage = result.confirmationMessage ||
-              (newPendingValues.values.length > result.matchedValues.length
-                ? `Added ${justAdded}. You now have ${newPendingValues.labels.join(', ')} selected. Would you like to add more, or say "done" to continue?`
-                : `You selected ${justAdded}. Would you like to add more, or say "done" to continue?`);
+            // Build confirmation message based on action
+            const changedItems = result.matchedOptions.map(o => o.label).join(', ');
+            let confirmMessage: string;
+
+            if (result.confirmationMessage) {
+              confirmMessage = result.confirmationMessage;
+            } else if (isRemoveAction) {
+              if (newPendingValues.values.length === 0) {
+                confirmMessage = `Removed ${changedItems}. You have no options selected. Which option would you like to choose?`;
+              } else {
+                confirmMessage = `Removed ${changedItems}. You now have ${newPendingValues.labels.join(', ')} selected. Would you like to make more changes, or say "done" to continue?`;
+              }
+            } else {
+              confirmMessage = newPendingValues.values.length > result.matchedValues.length
+                ? `Added ${changedItems}. You now have ${newPendingValues.labels.join(', ')} selected. Would you like to add more, or say "done" to continue?`
+                : `You selected ${changedItems}. Would you like to add more, or say "done" to continue?`;
+            }
+
             setCurrentQuestion(confirmMessage);
             conversationHistoryRef.current.push({ role: 'assistant', content: confirmMessage });
             setLayoutMode('ai_speaking');
