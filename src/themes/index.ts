@@ -657,7 +657,7 @@ export const uniloop: ThemeDefinition = {
   button: {
     text: 'text-base font-medium text-[#948EC4] hover:text-[#948EC4]',
     primary:
-      'w-full max-w-lg mx-auto justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 focus:outline-none',
+      'w-full max-w-lg mx-auto bg-[#1C1C1C] hover:bg-[#1E1E1E] justify-center rounded-full px-8 py-4 sm:px-10 sm:py-5 text-white font-semibold text-sm sm:text-base transition-all duration-200 focus:outline-none',
     secondary:
       'inline-flex justify-center py-3 px-8 border border-[#1C1C1C1F] text-base font-medium rounded-full bg-white hover:bg-neutral-200 text-[#1C1C1C] focus:outline-none focus:ring-0 transition-colors',
     navigation:
