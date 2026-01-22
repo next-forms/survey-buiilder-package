@@ -972,6 +972,40 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
     }
   }, [isSpeaking, layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode, startListening]);
 
+  // iOS fallback: If we're stuck in ai_speaking mode with a question but speaking hasn't started,
+  // transition after a timeout. This handles cases where iOS audio events don't fire.
+  useEffect(() => {
+    if (
+      layoutMode === 'ai_speaking' &&
+      currentQuestion &&
+      currentBlock &&
+      !hasTransitionedRef.current
+    ) {
+      // Set a fallback timeout - if we're still in ai_speaking after 15 seconds
+      // and haven't transitioned, force the transition
+      const fallbackTimeout = setTimeout(() => {
+        if (layoutMode === 'ai_speaking' && !hasTransitionedRef.current) {
+          console.warn('iOS fallback: Forcing transition to user_input after timeout');
+          hasStartedSpeakingRef.current = true; // Pretend speaking happened
+          hasTransitionedRef.current = true;
+          setLayoutMode('user_input');
+
+          // Start listening
+          if (autoListen && currentInputMode !== 'visual' && !hasStartedListeningRef.current) {
+            hasStartedListeningRef.current = true;
+            setTimeout(() => {
+              startListening().catch((err) => {
+                console.warn('Auto-listen failed:', err);
+              });
+            }, 50);
+          }
+        }
+      }, 15000);
+
+      return () => clearTimeout(fallbackTimeout);
+    }
+  }, [layoutMode, currentQuestion, currentBlock, autoListen, currentInputMode, startListening]);
+
   // Ask question when block changes
   useEffect(() => {
     // Don't run if submitting (survey is complete)
