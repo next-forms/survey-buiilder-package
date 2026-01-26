@@ -450,9 +450,16 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
           }
 
           if (!result.isValid || result.suggestedAction === 'reask') {
-            // Couldn't extract data, ask for clarification
+            // Couldn't extract complete data, ask for clarification
             // Add the user's partial response to conversation history so context is preserved
             conversationHistoryRef.current.push({ role: 'user', content: transcript });
+
+            // If we have partial data, update the form value so UI shows what was captured
+            // This provides immediate feedback to the user about what was understood
+            if (result.partialData !== undefined && result.partialData !== null) {
+              setValue(fieldName, result.partialData);
+            }
+
             const reaskMessage = result.confirmationMessage ||
               "I couldn't understand your response. Could you please provide the information more clearly?";
             setCurrentQuestion(reaskMessage);
@@ -872,7 +879,8 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
       // Format display value for conversation history
       // For option-based blocks, use labels instead of raw values (which might be random IDs)
-      let displayValue = String(value);
+      // For objects, format as readable key-value pairs so AI can understand the data
+      let displayValue: string;
       const blockOptions = getBlockOptions(currentBlock);
 
       if (blockOptions.length > 0) {
@@ -891,7 +899,18 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         }
       } else if (Array.isArray(value)) {
         // Non-option block with array value
-        displayValue = value.join(', ');
+        displayValue = value.map(v =>
+          typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v)
+        ).join(', ');
+      } else if (typeof value === 'object' && value !== null) {
+        // Object value (e.g., multi-field schema like { firstName, lastName })
+        // Format as readable key-value pairs for AI context
+        const entries = Object.entries(value as Record<string, unknown>)
+          .filter(([, v]) => v !== null && v !== undefined && v !== '')
+          .map(([key, v]) => `${key}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+        displayValue = entries.length > 0 ? entries.join(', ') : JSON.stringify(value);
+      } else {
+        displayValue = String(value);
       }
 
       conversationHistoryRef.current.push({ role: 'user', content: displayValue });

@@ -447,6 +447,14 @@ export interface VoiceValidationResponse {
   suggestedAction?: 'confirm' | 'reask' | 'add_more' | 'submit' | 'finish_multiselect' | 'navigate_back';
   // Schema-based extraction results
   extractedData?: Record<string, unknown>;
+  /**
+   * Partial data extracted even when validation fails.
+   * This allows the UI to update with whatever was captured,
+   * improving UX by showing immediate feedback to the user.
+   * Contains successfully extracted fields with their values,
+   * while missing fields are set to null.
+   */
+  partialData?: Record<string, unknown> | unknown;
   missingFields?: string[];
   // For multi-select: whether the matched options should be added or removed
   action?: 'add' | 'remove';

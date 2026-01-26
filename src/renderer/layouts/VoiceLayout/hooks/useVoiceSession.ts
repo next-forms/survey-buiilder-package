@@ -114,6 +114,8 @@ interface UseVoiceSessionResult {
   endSession: () => void;
   switchToVisual: () => void;
   switchToVoice: () => void;
+  /** Clear any pending transcripts (call before starting new listening session) */
+  clearTranscripts: () => void;
 
   // Message management
   addMessage: (message: Omit<VoiceMessage, 'id' | 'timestamp'>) => void;
@@ -741,6 +743,14 @@ export function useVoiceSession(
 
     isStartingListeningRef.current = true;
 
+    // Clear any stale transcripts before starting new listening session
+    // This prevents old speech from being processed in the new session
+    setSessionState((prev) => ({
+      ...prev,
+      lastTranscript: '',
+      lastInterimTranscript: '',
+    }));
+
     try {
       // Check if custom STT is available
       if (handlers?.sttSessionFactory && customSTTSessionRef.current) {
@@ -960,6 +970,18 @@ export function useVoiceSession(
     }));
   }, []);
 
+  /**
+   * Clear any pending transcripts
+   * Call this before starting a new listening session to avoid processing stale speech
+   */
+  const clearTranscripts = useCallback(() => {
+    setSessionState((prev) => ({
+      ...prev,
+      lastTranscript: '',
+      lastInterimTranscript: '',
+    }));
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -1016,6 +1038,7 @@ export function useVoiceSession(
     endSession,
     switchToVisual,
     switchToVoice,
+    clearTranscripts,
 
     // Message management
     addMessage,
