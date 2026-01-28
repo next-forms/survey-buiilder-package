@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "../../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../../components/ui/sheet";
@@ -39,8 +39,14 @@ interface SurveyBuilderProps {
   mode?: SurveyMode;
 }
 
+// Ref handle interface - methods exposed to parent components
+export interface SurveyBuilderHandle {
+  updateTheme: (theme: ThemeDefinition) => void;
+  getTheme: () => ThemeDefinition;
+}
+
 // The main component wrapped with provider
-export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
+export const SurveyBuilder = forwardRef<SurveyBuilderHandle, SurveyBuilderProps>(({
   initialData,
   onDataChange,
   blockDefinitions = [],
@@ -51,10 +57,11 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
   customData,
   logo = null,
   mode = 'paged',
-}) => {
+}, ref) => {
   return (
     <SurveyBuilderProvider initialData={initialData} customData={customData} mode={mode}>
       <SurveyBuilderContent
+        ref={ref}
         onDataChange={onDataChange}
         blockDefinitions={blockDefinitions}
         nodeDefinitions={nodeDefinitions}
@@ -66,10 +73,10 @@ export const SurveyBuilder: React.FC<SurveyBuilderProps> = ({
       />
     </SurveyBuilderProvider>
   );
-};
+});
 
 // The internal component using context
-const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = ({
+const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderProps, 'initialData'>>(({
   onDataChange,
   blockDefinitions = [],
   nodeDefinitions = [],
@@ -78,7 +85,7 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
   previewLayout,
   logo = null,
   mode = 'paged',
-}) => {
+}, ref) => {
   const {
     state,
     addBlockDefinition,
@@ -87,8 +94,17 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
     createNode,
     setDisplayMode,
     exportSurvey,
-    setGlobalCustomFields
+    setGlobalCustomFields,
+    updateTheme,
   } = useSurveyBuilder();
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    updateTheme: (theme: ThemeDefinition) => {
+      updateTheme(theme);
+    },
+    getTheme: () => state.theme,
+  }), [updateTheme, state.theme]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isThemeBuilderOpen, setIsThemeBuilderOpen] = useState(false);
   const [isFlowBuilderOpen, setIsFlowBuilderOpen] = useState(false);
@@ -322,4 +338,4 @@ const SurveyBuilderContent: React.FC<Omit<SurveyBuilderProps, 'initialData'>> = 
       </div>
     </div>
   );
-};
+});
