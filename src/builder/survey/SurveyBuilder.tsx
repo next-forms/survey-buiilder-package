@@ -7,7 +7,7 @@ import { LocalizationEditor } from "./helpers/LocalizationEditor";
 import { v4 as uuidv4 } from "uuid";
 import { BlockLibrary } from "./panels/BlockLibrary";
 import { JsonEditor } from "./helpers/JsonEditor";
-import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition, LayoutProps, SurveyMode } from "../../types";
+import { BlockDefinition, GlobalCustomField, LocalizationMap, NodeData, NodeDefinition, ThemeDefinition, LayoutProps, SurveyMode, EditorMode } from "../../types";
 import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBuilderContext";
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
@@ -21,6 +21,7 @@ interface SurveyBuilderProps {
   initialData?: {
     rootNode?: NodeData;
     localizations?: LocalizationMap;
+    theme?: ThemeDefinition;
   };
   onDataChange?: (data: { rootNode: NodeData | null; localizations: LocalizationMap }) => void;
   blockDefinitions?: BlockDefinition[];
@@ -37,12 +38,14 @@ interface SurveyBuilderProps {
    * @default 'paged'
    */
   mode?: SurveyMode;
+  editorType?: EditorMode;
 }
 
 // Ref handle interface - methods exposed to parent components
 export interface SurveyBuilderHandle {
   updateTheme: (theme: ThemeDefinition) => void;
   getTheme: () => ThemeDefinition;
+  importSurvey: (data: { rootNode: NodeData; localizations?: LocalizationMap; theme?: ThemeDefinition }) => void;
 }
 
 // The main component wrapped with provider
@@ -57,6 +60,7 @@ export const SurveyBuilder = forwardRef<SurveyBuilderHandle, SurveyBuilderProps>
   customData,
   logo = null,
   mode = 'paged',
+  editorType = 'full'
 }, ref) => {
   return (
     <SurveyBuilderProvider initialData={initialData} customData={customData} mode={mode}>
@@ -70,6 +74,7 @@ export const SurveyBuilder = forwardRef<SurveyBuilderHandle, SurveyBuilderProps>
         previewLayout={previewLayout}
         logo={logo}
         mode={mode}
+        editorType={editorType}
       />
     </SurveyBuilderProvider>
   );
@@ -85,6 +90,7 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
   previewLayout,
   logo = null,
   mode = 'paged',
+  editorType = 'full'
 }, ref) => {
   const {
     state,
@@ -96,6 +102,7 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
     exportSurvey,
     setGlobalCustomFields,
     updateTheme,
+    importSurvey,
   } = useSurveyBuilder();
 
   // Expose methods to parent via ref
@@ -104,7 +111,10 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
       updateTheme(theme);
     },
     getTheme: () => state.theme,
-  }), [updateTheme, state.theme]);
+    importSurvey: (data: { rootNode: NodeData; localizations?: LocalizationMap; theme?: ThemeDefinition }) => {
+      importSurvey(data);
+    },
+  }), [updateTheme, state.theme, importSurvey]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isThemeBuilderOpen, setIsThemeBuilderOpen] = useState(false);
   const [isFlowBuilderOpen, setIsFlowBuilderOpen] = useState(false);
@@ -167,111 +177,138 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
     setDisplayMode(mode);
   };
 
+  if(editorType === "themeEditor") {
+    return (
+    <div className="h-full flex flex-col pb-5">
+      <div className="survey-builder-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-card">
+        {/* Heading */}
+        <h2 className="text-xl font-bold shrink-0">Theme Builder</h2>
+
+        {/* Controls */}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Preview */}
+          <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="grow lg:grow-0">
+                Full Page Preview
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full p-0 overflow-y-auto border-0">
+              <SheetHeader className="sr-only"><SheetTitle>Preview</SheetTitle></SheetHeader>
+              <PreviewSurvey layout={previewLayout} logo={logo} />
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+      <ThemeBuilder logo={logo} onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
+      </div>
+    );
+  }
+
   return (
     <div className="survey-builder h-full flex flex-col pb-5">
-<div className="survey-builder-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-card border-b">
-  {/* Heading */}
-  <h2 className="text-xl font-bold shrink-0">Form Builder</h2>
+      <div className="survey-builder-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-card border-b">
+        {/* Heading */}
+        <h2 className="text-xl font-bold shrink-0">Form Builder</h2>
 
-  {/* Controls */}
-  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-    {/* Tabs */}
-    <Tabs
-      value={state.displayMode}
-      onValueChange={(v) => handleDisplayModeChange(v as any)}
-      className="flex-grow overflow-x-auto whitespace-nowrap"
-    >
-      <TabsList>
-        <TabsTrigger value="list">List View</TabsTrigger>
-        <TabsTrigger value="graph">Graph View</TabsTrigger>
-        {/* <TabsTrigger value="flow">Flow Builder</TabsTrigger> */}
-        <TabsTrigger value="lang">Localizations</TabsTrigger>
-      </TabsList>
-    </Tabs>
+        {/* Controls */}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Tabs */}
+          <Tabs
+            value={state.displayMode}
+            onValueChange={(v) => handleDisplayModeChange(v as any)}
+            className="flex-grow overflow-x-auto whitespace-nowrap"
+          >
+            <TabsList>
+              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="graph">Graph View</TabsTrigger>
+              {/* <TabsTrigger value="flow">Flow Builder</TabsTrigger> */}
+              <TabsTrigger value="lang">Localizations</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-    {/* Flow Builder - uses FlowV2 for pageless mode, FlowBuilder for paged mode */}
-    <Sheet open={isFlowBuilderOpen} onOpenChange={(open) => {
-      if (open) setFlowBuilderKey(k => k + 1);
-      setIsFlowBuilderOpen(open);
-    }}>
-      <SheetTrigger asChild>
-        <Button type="button" variant="outline" className="grow lg:grow-0">
-          Flow Builder
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" hideCloseButton onEscapeKeyDown={(event) => {event.preventDefault();}}>
-        <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
-          <div className="survey-flow h-full">
-            {isFlowBuilderOpen && (state.rootNode ? (
-              mode === 'pageless' ? <FlowV3Builder key={flowBuilderKey} onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
-            ) : (
-              <div className="text-center p-12 bg-muted rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create a survey first to use the visual flow builder.
-                </p>
-                <Button type="button" onClick={handleCreateRootNode}>Create Survey</Button>
-              </div>
-            ))}
-          </div>
-      </SheetContent>
-    </Sheet>
+          {/* Flow Builder - uses FlowV2 for pageless mode, FlowBuilder for paged mode */}
+          <Sheet open={isFlowBuilderOpen} onOpenChange={(open) => {
+            if (open) setFlowBuilderKey(k => k + 1);
+            setIsFlowBuilderOpen(open);
+          }}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="grow lg:grow-0">
+                Flow Builder
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-screen h-screen sm:max-w-none p-0 overflow-auto" hideCloseButton onEscapeKeyDown={(event) => {event.preventDefault();}}>
+              <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
+                <div className="survey-flow h-full">
+                  {isFlowBuilderOpen && (state.rootNode ? (
+                    mode === 'pageless' ? <FlowV3Builder key={flowBuilderKey} onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
+                  ) : (
+                    <div className="text-center p-12 bg-muted rounded-lg">
+                      <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Create a survey first to use the visual flow builder.
+                      </p>
+                      <Button type="button" onClick={handleCreateRootNode}>Create Survey</Button>
+                    </div>
+                  ))}
+                </div>
+            </SheetContent>
+          </Sheet>
 
-    {/* Theme Builder */}
-    <Sheet open={isThemeBuilderOpen} onOpenChange={setIsThemeBuilderOpen}>
-      <SheetTrigger asChild>
-        <Button type="button" variant="outline" className="grow lg:grow-0">
-          Theme&nbsp;Builder
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full overflow-y-scroll">
-        <SheetHeader><SheetTitle>Theme Builder</SheetTitle></SheetHeader>
-        <ThemeBuilder logo={logo} onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
-      </SheetContent>
-    </Sheet>
+          {/* Theme Builder */}
+          <Sheet open={isThemeBuilderOpen} onOpenChange={setIsThemeBuilderOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="grow lg:grow-0">
+                Theme&nbsp;Builder
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full overflow-y-scroll">
+              <SheetHeader><SheetTitle>Theme Builder</SheetTitle></SheetHeader>
+              <ThemeBuilder logo={logo} onDataChange={onDataChange} customThemes={customThemes} layout={previewLayout} />
+            </SheetContent>
+          </Sheet>
 
-    {/* Tools */}
-    <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
-      <SheetTrigger asChild>
-        <Button type="button" variant="outline" className="grow lg:grow-0">
-          Tools
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full lg:w-[540px] overflow-y-scroll">
-        <SheetHeader><SheetTitle>Tools</SheetTitle></SheetHeader>
-        <Tabs defaultValue="blocks" className="mt-4">
-          <TabsList className="mb-4">
-            <TabsTrigger value="blocks">Block Library</TabsTrigger>
-            <TabsTrigger value="json">JSON</TabsTrigger>
-          </TabsList>
-          <TabsContent value="blocks" className="overflow-y-auto"><BlockLibrary /></TabsContent>
-          <TabsContent value="json"><JsonEditor /></TabsContent>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
+          {/* Tools */}
+          <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="grow lg:grow-0">
+                Tools
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full lg:w-[540px] overflow-y-scroll">
+              <SheetHeader><SheetTitle>Tools</SheetTitle></SheetHeader>
+              <Tabs defaultValue="blocks" className="mt-4">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="blocks">Block Library</TabsTrigger>
+                  <TabsTrigger value="json">JSON</TabsTrigger>
+                </TabsList>
+                <TabsContent value="blocks" className="overflow-y-auto"><BlockLibrary /></TabsContent>
+                <TabsContent value="json"><JsonEditor /></TabsContent>
+              </Tabs>
+            </SheetContent>
+          </Sheet>
 
-    {/* Preview */}
-    <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-      <SheetTrigger asChild>
-        <Button type="button" variant="outline" className="grow lg:grow-0">
-          Preview
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full p-0 overflow-y-auto border-0">
-        <SheetHeader className="sr-only"><SheetTitle>Preview</SheetTitle></SheetHeader>
-        <PreviewSurvey layout={previewLayout} logo={logo} />
-      </SheetContent>
-    </Sheet>
+          {/* Preview */}
+          <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="grow lg:grow-0">
+                Preview
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full p-0 overflow-y-auto border-0">
+              <SheetHeader className="sr-only"><SheetTitle>Preview</SheetTitle></SheetHeader>
+              <PreviewSurvey layout={previewLayout} logo={logo} />
+            </SheetContent>
+          </Sheet>
 
-    {/* Create Form */}
-    {!state.rootNode && (
-      <Button type="button" onClick={handleCreateRootNode} className="grow lg:grow-0">
-        Create&nbsp;Form
-      </Button>
-    )}
-  </div>
-</div>
-
+          {/* Create Form */}
+          {!state.rootNode && (
+            <Button type="button" onClick={handleCreateRootNode} className="grow lg:grow-0">
+              Create&nbsp;Form
+            </Button>
+          )}
+        </div>
+      </div>
 
       <div className="survey-builder-content flex-grow p-4 overflow-auto">
         {state.displayMode === "list" && (

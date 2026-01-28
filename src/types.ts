@@ -9,6 +9,8 @@ export type UUID = string;
  */
 export type SurveyMode = 'paged' | 'pageless';
 
+export type EditorMode = 'full' | 'themeEditor';
+
 export interface NavigationRule {
   condition: string;
   target: UUID | string;
