@@ -102,6 +102,7 @@ export {
   getAllBlockDefinitions,
   registerBlock,
   unregisterBlock,
+  clearBlockCache,
   // Export all unified blocks
   TextInputBlock,
   TextareaBlock,
@@ -161,6 +162,13 @@ export * from './utils/nodeUtils';
 // Export flow history hook
 export { useFlowHistory } from './builder/flow/useFlowHistory';
 export type { FlowHistoryState, FlowHistoryEntry, FlowHistory, UseFlowHistoryReturn } from './builder/flow/useFlowHistory';
+
+// Export block operation utilities (for blocks that need async mount operations)
+export {
+  useBlockOperation,
+  BlockMountGuard,
+  clearAllBlockOperations
+} from './hooks/useBlockOperation';
 
 // Export FlowV2 builder for pageless mode
 export { FlowV2Builder } from './builder/flowv2/FlowV2Builder';

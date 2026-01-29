@@ -1,4 +1,5 @@
-import type { BlockDefinition } from "../types";
+import React from "react";
+import type { BlockDefinition, BlockRendererProps } from "../types";
 import { AgreementBlock } from "./AgreementBlock";
 import { TextInputBlock } from "./TextInputBlock";
 import { TextareaBlock } from "./TextareaBlock";
@@ -19,6 +20,7 @@ import { RangeBlock } from "./RangeBlock";
 import { ScriptBlock } from "./ScriptBlock";
 import { SelectableBoxQuestionBlock } from "./SelectableBoxQuestionBlock";
 // import { PatientBlock } from "./PatientBlock";
+import { BlockMountGuard } from "../hooks/useBlockOperation";
 
 // Registry of all block definitions
 export const blockRegistry: Record<string, BlockDefinition> = {
@@ -101,9 +103,46 @@ export {
   SelectableBoxQuestionBlock
 };
 
-// Helper function to get a block definition by type
+// Cache for wrapped block definitions to avoid recreating on every call
+const wrappedBlockCache = new Map<string, BlockDefinition>();
+
+/**
+ * Helper function to get a block definition by type.
+ * Automatically wraps the block's renderBlock with BlockMountGuard
+ * to handle rapid unmount/remount cycles and provide operation deduplication.
+ */
 export function getBlockDefinition(type: string): BlockDefinition | undefined {
-  return blockRegistry[type];
+  const baseDefinition = blockRegistry[type];
+  if (!baseDefinition) return undefined;
+
+  // Check cache first
+  if (wrappedBlockCache.has(type)) {
+    return wrappedBlockCache.get(type);
+  }
+
+  // If the block doesn't have a renderBlock method, return as-is
+  if (!baseDefinition.renderBlock) {
+    return baseDefinition;
+  }
+
+  // Create wrapped definition with BlockMountGuard
+  const wrappedDefinition: BlockDefinition = {
+    ...baseDefinition,
+    renderBlock: (props: BlockRendererProps) => {
+      const blockId = props.block.uuid || props.block.fieldName || `${type}_${props.block.label || 'unnamed'}`;
+
+      return React.createElement(
+        BlockMountGuard,
+        { blockId },
+        baseDefinition.renderBlock!(props)
+      );
+    },
+  };
+
+  // Cache the wrapped definition
+  wrappedBlockCache.set(type, wrappedDefinition);
+
+  return wrappedDefinition;
 }
 
 // Helper function to get all block definitions
@@ -114,9 +153,17 @@ export function getAllBlockDefinitions(): BlockDefinition[] {
 // Helper function to register a custom block
 export function registerBlock(block: BlockDefinition): void {
   blockRegistry[block.type] = block;
+  // Clear cache for this type so it gets re-wrapped on next getBlockDefinition call
+  wrappedBlockCache.delete(block.type);
 }
 
 // Helper function to unregister a block
 export function unregisterBlock(type: string): void {
   delete blockRegistry[type];
+  wrappedBlockCache.delete(type);
+}
+
+// Clear all cached wrapped definitions (useful for testing)
+export function clearBlockCache(): void {
+  wrappedBlockCache.clear();
 }
