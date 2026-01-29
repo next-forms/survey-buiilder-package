@@ -272,12 +272,12 @@ export const SurveyForm: React.FC<SurveyFormRendererProps> = ({
 
   const surveyContent = (
     <div
-      className={`relative survey-theme-container ${themeClass} flex-1 h-full flex flex-col`}
+      className={`relative survey-theme-container ${themeClass} flex-1 min-h-screen flex flex-col`}
       style={surveyThemeStyle}
     >
-      <div className="survey-isolated-content flex-1 flex flex-col h-full">
+      <div className="survey-isolated-content flex-1 flex flex-col min-h-screen">
         <div
-          className={`${containerClass} ${themeConfig.background} flex flex-col items-center justify-center flex-1 h-full`}
+          className={`${containerClass} ${themeConfig.background} flex flex-col flex-1 min-h-screen`}
         >
           <SurveyFormProvider
             surveyData={survey}

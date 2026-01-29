@@ -13,7 +13,7 @@ export const PreviewSurvey: React.FC<PreviewSurveyProps> = ({ layout, logo = nul
   const { state } = useSurveyBuilder();
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full min-w-screen min-h-screen">
       {state.rootNode ? (
         <SurveyForm
           survey={state}
