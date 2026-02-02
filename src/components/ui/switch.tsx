@@ -13,32 +13,52 @@ const Switch: React.FC<SwitchProps> = ({
   className,
   checked = false,
   onCheckedChange,
+  disabled,
   ...props
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onCheckedChange?.(e.target.checked);
+  const handleClick = () => {
+    if (!disabled) {
+      onCheckedChange?.(!checked);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === "Enter" || e.key === " ") && !disabled) {
+      e.preventDefault();
+      onCheckedChange?.(!checked);
+    }
   };
 
   return (
-    <div className={cn("relative inline-flex h-5 w-9 flex-shrink-0 items-center", className)}>
+    <div
+      role="switch"
+      aria-checked={checked}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className={cn(
+        "relative inline-flex h-5 w-9 flex-shrink-0 items-center cursor-pointer rounded-full transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        checked ? "bg-primary" : "bg-input",
+        disabled && "opacity-50 cursor-not-allowed",
+        className
+      )}
+    >
+      <span
+        className={cn(
+          "absolute left-0.5 h-4 w-4 rounded-full bg-white transition-transform",
+          checked ? "translate-x-4" : "translate-x-0"
+        )}
+      />
       <input
         type="checkbox"
         id={id}
         checked={checked}
-        onChange={handleChange}
-        className="peer sr-only"
+        onChange={() => {}}
+        disabled={disabled}
+        className="sr-only"
         {...props}
-      />
-      <label
-        htmlFor={id}
-        className={cn(
-          "absolute left-0 right-0 h-5 w-9 cursor-pointer rounded-full transition-colors",
-          "after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform",
-          checked
-            ? "bg-primary after:translate-x-4"
-            : "bg-input after:translate-x-0",
-          "peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2"
-        )}
       />
     </div>
   );
