@@ -1,9 +1,26 @@
 import type { LayoutDefinition, LayoutProps } from "../../types";
 import { RenderPageSurveyLayout } from "./RenderPageSurveyLayout";
-import { ChatLayout } from "./ChatLayout";
-import { VoiceLayout } from "./VoiceLayout";
 import { createLayout } from "./createLayout";
-import React from "react";
+import React, { Suspense, lazy, createElement } from "react";
+
+// Lazy load heavy layout components
+const ChatLayoutLazy = lazy(() => import("./ChatLayout").then(m => ({ default: m.ChatLayout })));
+const VoiceLayoutLazy = lazy(() => import("./VoiceLayout").then(m => ({ default: m.VoiceLayout })));
+
+// Create wrapper components that handle Suspense using createElement to avoid JSX in .ts file
+const ChatLayoutWrapper: React.FC<LayoutProps> = (props) =>
+  createElement(
+    Suspense,
+    { fallback: createElement('div', { className: 'p-4 flex items-center justify-center' }, 'Loading chat...') },
+    createElement(ChatLayoutLazy, props)
+  );
+
+const VoiceLayoutWrapper: React.FC<LayoutProps> = (props) =>
+  createElement(
+    Suspense,
+    { fallback: createElement('div', { className: 'p-4 flex items-center justify-center' }, 'Loading voice interface...') },
+    createElement(VoiceLayoutLazy, props)
+  );
 
 // Registry of all layout definitions
 export const layoutRegistry: Record<string, LayoutDefinition> = {
@@ -20,12 +37,12 @@ export const layoutRegistry: Record<string, LayoutDefinition> = {
   chat: {
     name: "chat",
     description: "Conversational chat-style layout with AI-powered questions",
-    component: ChatLayout,
+    component: ChatLayoutWrapper,
   },
   voice: {
     name: "voice",
     description: "Conversational voice + visual intake form with speech-to-speech interaction",
-    component: VoiceLayout,
+    component: VoiceLayoutWrapper,
   },
 };
 
@@ -85,8 +102,7 @@ export function getLayoutComponent(
 // Export the default layout for direct import
 export { RenderPageSurveyLayout };
 
-// Export ChatLayout and its types
-export { ChatLayout } from './ChatLayout';
+// Export ChatLayout types (component is lazy-loaded via registry)
 export type {
   ChatMessage as ChatMessageType,
   AIHandler,
@@ -97,8 +113,7 @@ export type {
   ChatRendererProps,
 } from './ChatLayout';
 
-// Export VoiceLayout and its types
-export { VoiceLayout } from './VoiceLayout';
+// Export VoiceLayout types (component is lazy-loaded via registry)
 export type {
   VoiceLayoutProps,
   VoiceCustomData,

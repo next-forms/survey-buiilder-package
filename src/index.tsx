@@ -1,50 +1,27 @@
+/**
+ * Survey Form Package - Main Entry Point (Renderer)
+ *
+ * This is the lightweight entry point for rendering surveys.
+ * For builder functionality, import from './builder' instead.
+ *
+ * @example Rendering a survey:
+ * import SurveyForm, { useSurveyForm, themes } from '@/packages/survey-form-package/src';
+ *
+ * @example Building/editing a survey:
+ * import { SurveyBuilder, StandardBlocks, StandardNodes } from '@/packages/survey-form-package/src/builder';
+ */
+
+// Main survey form component
 import { SurveyForm } from './renderer/SurveyForm';
-import { SurveyFormProvider, useSurveyForm } from './context/SurveyFormContext';
-import { DebugInfo } from './components/ui/DebugInfo';
+export { SurveyForm };
+export default SurveyForm;
 
-// New conditional components
-import { ValidationSummary } from './components/ui/ValidationSummary';
+// Survey form context and hooks
+export { SurveyFormProvider, useSurveyForm } from './context/SurveyFormContext';
 
-// Utility functions
-import {
-  evaluateCondition,
-  evaluateSimpleCondition,
-  isBlockVisible,
-  executeCalculation,
-  calculateBMI
-} from './utils/conditionalUtils';
-
-import {
-  evaluateLogic,
-  getSurveyPages,
-  getSurveyPageIds,
-  getLocalized,
-  getThemeClass,
-  formatFieldName,
-  detectSurveyMode
-} from './utils/surveyUtils';
-
-import {
-  blockTypeMap,
-  validateBlock,
-  isContentBlock,
-  isInputBlock,
-  supportsConditionalRendering,
-  supportsBranchingLogic
-} from './utils/blockAdapter';
-import { SurveyBuilder } from './builder/survey/SurveyBuilder';
-
-export { applyDynamicColors } from './utils/colorUtils';
-
-// Font loader utilities
-export {
-  loadFonts,
-  unloadFonts,
-  useFontLoader,
-  getFontCSSProperties,
-  getFontFamilyWithFallback,
-  normalizeFontFamily
-} from './utils/fontLoader';
+// UI components for rendering
+export { DebugInfo } from './components/ui/DebugInfo';
+export { ValidationSummary } from './components/ui/ValidationSummary';
 
 // Themes
 export {
@@ -58,73 +35,57 @@ export {
   himsTheme,
 } from './themes';
 
+// Color utilities
+export { applyDynamicColors } from './utils/colorUtils';
+
+// Font loader utilities
 export {
-  // Main components
-  SurveyForm,
-  SurveyFormProvider,
-  useSurveyForm,
+  loadFonts,
+  unloadFonts,
+  useFontLoader,
+  getFontCSSProperties,
+  getFontFamilyWithFallback,
+  normalizeFontFamily
+} from './utils/fontLoader';
 
-  // UI components
-  DebugInfo,
-
-  ValidationSummary,
-
-  // Utility functions
+// Survey utility functions
+export {
   evaluateLogic,
   getSurveyPages,
+  getSurveyPageIds,
   getLocalized,
   getThemeClass,
   formatFieldName,
-  blockTypeMap,
-  validateBlock,
-  isContentBlock,
-  isInputBlock,
+  detectSurveyMode
+} from './utils/surveyUtils';
 
-  // Conditional utility functions
+// Conditional utilities
+export {
   evaluateCondition,
   evaluateSimpleCondition,
   isBlockVisible,
   executeCalculation,
-  calculateBMI,
-  supportsConditionalRendering,
-  supportsBranchingLogic,
-  getSurveyPageIds,
-  detectSurveyMode
-};
+  calculateBMI
+} from './utils/conditionalUtils';
 
-// Export public types
-export * from './types';
-
-// Export unified block system
+// Block adapter utilities
 export {
-  blockRegistry,
-  getBlockDefinition,
-  getAllBlockDefinitions,
-  registerBlock,
-  unregisterBlock,
-  clearBlockCache,
-  // Export all unified blocks
-  TextInputBlock,
-  TextareaBlock,
-  AuthBlock,
-  RadioBlock,
-  CheckboxBlock,
-  SelectBlock,
-  BMICalculatorBlock,
-  CalculatedFieldBlock,
-  // CheckoutBlock,
-  ConditionalBlock,
-  DatePickerBlock,
-  FileUploadBlock,
-  HtmlBlock,
-  MarkdownBlock,
-  MatrixBlock,
-  RangeBlock,
-  ScriptBlock,
-  SelectableBoxQuestionBlock
-} from './blocks';
+  blockTypeMap,
+  validateBlock,
+  isContentBlock,
+  isInputBlock,
+  supportsConditionalRendering,
+  supportsBranchingLogic
+} from './utils/blockAdapter';
 
-// Export layout system
+// Block operation utilities (for async mount operations)
+export {
+  useBlockOperation,
+  BlockMountGuard,
+  clearAllBlockOperations
+} from './hooks/useBlockOperation';
+
+// Layout system
 export {
   layoutRegistry,
   getLayoutDefinition,
@@ -133,42 +94,99 @@ export {
   unregisterLayout,
   getLayoutComponent,
   RenderPageSurveyLayout,
-  // Layout helpers for easier custom layout creation
   CurrentBlock,
   NavigationButtons,
   ProgressIndicator,
   createLayout
 } from './renderer/layouts';
 
-export * from "./builder/survey/SurveyBuilder";
+// Layout types
+export type {
+  ChatMessageType,
+  AIHandler,
+  AIHandlerContext,
+  AIHandlerResponse,
+  ChatLayoutProps,
+  ChatCustomData,
+  ChatRendererProps,
+  VoiceLayoutProps,
+  VoiceCustomData,
+  VoiceState,
+  VoiceMessageType,
+  VoiceCommand,
+  VoiceCommandType,
+  InputMode,
+  QuestionClassification,
+  VoiceSessionConfig,
+} from './renderer/layouts';
 
-// Export context and hooks
+// Block registry (needed for renderer to find block renderers)
 export {
-  SurveyBuilderProvider,
-  useSurveyBuilder,
-  ActionTypes
-} from './context/SurveyBuilderContext';
+  blockRegistry,
+  getBlockDefinition,
+  getAllBlockDefinitions,
+  registerBlock,
+  unregisterBlock,
+} from './blocks';
 
-// Export standard blocks - using unified blocks where available
-// For now, we'll export from the unifiedIndex which combines both unified and legacy blocks
-export * from './blocks/';
+// --------------------------------------------------------------------------
+// Types - Export specific types needed for rendering (not export *)
+// --------------------------------------------------------------------------
+export type {
+  // Core types
+  UUID,
+  SurveyMode,
+  EditorMode,
+  NavigationRule,
+  ValidationRule,
 
-// Export node definitions
-export * from './builder/nodes';
+  // Block types
+  BlockDefinition,
+  BlockData,
+  BlockRendererProps,
+  ContentBlockItemProps,
+  OutputSchema,
+  OutputSchemaScalar,
+  OutputSchemaArray,
+  OutputSchemaObject,
+  OutputSchemaUnion,
 
-// Export utility functions
-export * from './utils/nodeUtils';
+  // Node types
+  NodeDefinition,
+  NodeData,
 
-// Export block operation utilities (for blocks that need async mount operations)
-export {
-  useBlockOperation,
-  BlockMountGuard,
-  clearAllBlockOperations
-} from './hooks/useBlockOperation';
+  // Theme types
+  ThemeDefinition,
+  SurveyTheme,
 
-// Export global custom fields components
-export { GlobalCustomFields } from './builder/common/GlobalCustomFields';
-export { ReferenceQuestionKeyField } from './examples/ReferenceQuestionKeyField';
-export { SimpleCustomField } from './examples/SimpleCustomField';
+  // Layout types
+  LayoutDefinition,
+  LayoutProps,
 
-export default SurveyForm;
+  // Localization types
+  LocalizationMap,
+
+  // Global custom fields
+  GlobalCustomField,
+
+  // Survey form types
+  SurveyFormRendererProps,
+  SurveyFormContextProps,
+  ProgressBarOptions,
+  NavigationButtonsOptions,
+  PageRendererProps,
+
+  // Conditions and calculations
+  ConditionOperator,
+  ConditionRule,
+  BranchingLogic,
+  CalculationRule,
+  CurrentValues,
+  EvaluationResult,
+
+  // Mobile and AB testing
+  MobileNavigationConfig,
+  SwipeDirection,
+  ABTestVariant,
+  ABTestConfig,
+} from './types';
