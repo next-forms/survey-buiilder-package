@@ -298,7 +298,7 @@ export interface SurveyFormRendererProps {
    * Survey structure mode - determines how the survey data is organized
    * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
    * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
-   * @default 'paged'
+   * @default 'pageless'
    */
   mode?: SurveyMode;
   onSubmit?: (data: Record<string, any>) => void;

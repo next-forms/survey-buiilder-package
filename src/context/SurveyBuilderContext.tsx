@@ -40,7 +40,7 @@ const initialState: SurveyBuilderState = {
   displayMode: "list",
   enableDebug: false,
   customData: undefined,
-  mode: 'paged',
+  mode: 'pageless',
 };
 
 // Action types
@@ -390,7 +390,7 @@ interface SurveyBuilderProviderProps {
    * Survey structure mode - determines how the survey data is organized
    * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
    * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
-   * @default 'paged'
+   * @default 'pageless'
    */
   mode?: SurveyMode;
 }
@@ -400,7 +400,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
   initialData,
   enableDebug = false,
   customData,
-  mode = 'paged',
+  mode = 'pageless',
 }) => {
   const [state, dispatch] = useReducer(
     surveyBuilderReducer,

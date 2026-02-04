@@ -57,7 +57,7 @@ export const SurveyBuilder = forwardRef<SurveyBuilderHandle, SurveyBuilderProps>
   previewLayout,
   customData,
   logo = null,
-  mode = 'paged',
+  mode = 'pageless',
   editorType = 'full'
 }, ref) => {
   return (
@@ -87,7 +87,7 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
   customThemes = {},
   previewLayout,
   logo = null,
-  mode = 'paged',
+  mode = 'pageless',
   editorType = 'full'
 }, ref) => {
   const {
