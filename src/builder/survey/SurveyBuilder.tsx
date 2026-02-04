@@ -12,8 +12,6 @@ import { SurveyBuilderProvider, useSurveyBuilder } from "../../context/SurveyBui
 import { SurveyGraph } from "./SurveyGraph";
 import { ThemeBuilder } from "./panels/ThemeBuilder";
 import { PreviewSurvey } from "./panels/PreviewSurvey";
-import { FlowBuilder } from "../flow/FlowBuilder";
-import { FlowV2Builder } from "../flowv2/FlowV2Builder";
 import { FlowV3Builder } from "../flowv3";
 
 // Define the props
@@ -35,7 +33,7 @@ interface SurveyBuilderProps {
    * Survey structure mode - determines how the survey data is organized
    * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
    * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages)
-   * @default 'paged'
+   * @default 'pageless'
    */
   mode?: SurveyMode;
   editorType?: EditorMode;
@@ -241,7 +239,7 @@ const SurveyBuilderContent = forwardRef<SurveyBuilderHandle, Omit<SurveyBuilderP
               <SheetHeader style={{display: "none"}}><SheetTitle>Flow Builder</SheetTitle></SheetHeader>
                 <div className="survey-flow h-full">
                   {isFlowBuilderOpen && (state.rootNode ? (
-                    mode === 'pageless' ? <FlowV3Builder key={flowBuilderKey} onClose={() => setIsFlowBuilderOpen(false)} /> : <FlowBuilder />
+                    <FlowV3Builder key={flowBuilderKey} onClose={() => setIsFlowBuilderOpen(false)} />
                   ) : (
                     <div className="text-center p-12 bg-muted rounded-lg">
                       <h3 className="text-lg font-semibold mb-4">No Survey Created</h3>

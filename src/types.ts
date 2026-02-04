@@ -7,7 +7,7 @@ export type UUID = string;
  * - 'paged': Traditional mode with rootNode -> pages (sets) -> blocks
  * - 'pageless': Simplified mode with rootNode -> blocks directly (no pages/sets)
  */
-export type SurveyMode = 'paged' | 'pageless';
+export type SurveyMode = 'pageless' | 'paged';
 
 export type EditorMode = 'full' | 'themeEditor';
 
