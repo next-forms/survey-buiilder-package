@@ -62,6 +62,15 @@ export const ActionTypes = {
   SET_MODE: "SET_MODE",
 };
 
+// Ensure rootNode always has type: "section" and a uuid when present
+const ensureRootNodeDefaults = (rootNode: NodeData | null): NodeData | null => {
+  if (!rootNode) return null;
+  const patches: Partial<NodeData> = {};
+  if (!rootNode.type) patches.type = "section";
+  if (!rootNode.uuid) patches.uuid = uuidv4();
+  return Object.keys(patches).length > 0 ? { ...rootNode, ...patches } : rootNode;
+};
+
 // Reducer
 const surveyBuilderReducer = (
   state: SurveyBuilderState,
@@ -71,14 +80,14 @@ const surveyBuilderReducer = (
     case ActionTypes.INIT_SURVEY:
       return {
         ...state,
-        rootNode: action.payload.rootNode || null,
+        rootNode: ensureRootNodeDefaults(action.payload.rootNode || null),
         localizations: action.payload.localizations || { en: {} },
         theme: action.payload.theme || uniTheme,
       };
     case ActionTypes.SET_ROOT_NODE:
       return {
         ...state,
-        rootNode: action.payload,
+        rootNode: ensureRootNodeDefaults(action.payload),
       };
 
     case ActionTypes.ADD_NODE: {
@@ -316,7 +325,7 @@ const surveyBuilderReducer = (
     case ActionTypes.IMPORT_SURVEY:
       return {
         ...state,
-        rootNode: action.payload.rootNode || null,
+        rootNode: ensureRootNodeDefaults(action.payload.rootNode || null),
         localizations: action.payload.localizations || { en: {} },
         theme: action.payload.theme || uniTheme,
       };
@@ -406,7 +415,7 @@ export const SurveyBuilderProvider: React.FC<SurveyBuilderProviderProps> = ({
     surveyBuilderReducer,
     {
       ...initialState,
-      rootNode: initialData?.rootNode || null,
+      rootNode: ensureRootNodeDefaults(initialData?.rootNode || null),
       localizations: initialData?.localizations || { en: {} },
       theme: initialData?.theme || uniTheme,
       enableDebug,
