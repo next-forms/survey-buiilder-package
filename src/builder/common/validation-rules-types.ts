@@ -347,20 +347,21 @@ export function validationRuleToFunction(rule: ValidationRule): (value: any, for
         
         default:
           // Handle standard comparison operators
+          // These are "trigger" rules: if the condition is true, the validation FAILS
           const compareValue = ruleValue;
           switch (operator) {
             case '==':
-              return valueToValidate == compareValue ? null : message;
+              return valueToValidate == compareValue ? message : null;
             case '!=':
-              return valueToValidate != compareValue ? null : message;
+              return valueToValidate != compareValue ? message : null;
             case '>':
-              return Number(valueToValidate) > Number(compareValue) ? null : message;
+              return Number(valueToValidate) > Number(compareValue) ? message : null;
             case '>=':
-              return Number(valueToValidate) >= Number(compareValue) ? null : message;
+              return Number(valueToValidate) >= Number(compareValue) ? message : null;
             case '<':
-              return Number(valueToValidate) < Number(compareValue) ? null : message;
+              return Number(valueToValidate) < Number(compareValue) ? message : null;
             case '<=':
-              return Number(valueToValidate) <= Number(compareValue) ? null : message;
+              return Number(valueToValidate) <= Number(compareValue) ? message : null;
             default:
               return null;
           }
