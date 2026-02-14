@@ -524,48 +524,83 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
     });
   }, [values, computedValues]);
 
-  // Calculate total visible steps across all pages
-  const getTotalVisibleSteps = useCallback((): number => {
-    return pages.reduce((total, pageBlocks) => {
-      const visibleBlocks = getVisibleBlocks(pageBlocks);
-      return total + visibleBlocks.length;
-    }, 0);
-  }, [pages, getVisibleBlocks]);
+  // Find the longest path from start to submit/end using memoized DP (O(n))
+  // Each block is computed once and cached — no exponential backtracking
+  const getLongestPathLength = useCallback((): number => {
+    const allBlocks = pages.flat();
+    if (allBlocks.length === 0) return 0;
 
-  // Get current step position (0-based index of current step across all visible steps)
-  const getCurrentStepPosition = useCallback((): number => {
-    let position = 0;
-    
-    // Count visible steps in previous pages
-    for (let i = 0; i < currentPage; i++) {
-      const visibleBlocks = getVisibleBlocks(pages[i] || []);
-      position += visibleBlocks.length;
-    }
-    
-    // Add current block index within current page (only counting visible blocks)
-    const currentPageBlocks = pages[currentPage] || [];
-    const visibleCurrentPageBlocks = getVisibleBlocks(currentPageBlocks);
-    const currentBlockInVisibleBlocks = visibleCurrentPageBlocks.findIndex(
-      (block, index) => {
-        const actualIndex = currentPageBlocks.findIndex(b => b.uuid === block.uuid);
-        return actualIndex === currentBlockIndex;
+    const blockByUuid = new Map(allBlocks.map(b => [b.uuid, b]));
+    const memo = new Map<string, number>();
+    const inStack = new Set<string>(); // cycle detection
+
+    const dfs = (block: BlockData): number => {
+      if (!block.uuid) return 1;
+      if (memo.has(block.uuid)) return memo.get(block.uuid)!;
+      if (inStack.has(block.uuid)) return 0; // cycle — stop
+
+      if (block.isEndBlock || block.nextBlockId === 'submit') {
+        memo.set(block.uuid, 1);
+        return 1;
       }
-    );
-    
-    if (currentBlockInVisibleBlocks >= 0) {
-      position += currentBlockInVisibleBlocks;
-    }
-    
-    return position;
-  }, [currentPage, currentBlockIndex, pages, getVisibleBlocks]);
 
-  // Get actual progress percentage based on visible steps completed
+      inStack.add(block.uuid);
+      const idx = allBlocks.findIndex(b => b.uuid === block.uuid);
+      let maxChild = 0;
+
+      // Collect all possible successors
+      const nextUuids = new Set<string>();
+
+      if (block.nextBlockId && block.nextBlockId !== 'submit') {
+        nextUuids.add(block.nextBlockId);
+      }
+
+      if (block.navigationRules) {
+        for (const rule of block.navigationRules) {
+          if (rule.target && rule.target !== 'submit') {
+            nextUuids.add(rule.target);
+          }
+        }
+      }
+
+      if (!block.nextBlockId && idx >= 0 && idx < allBlocks.length - 1) {
+        const seqNext = allBlocks[idx + 1];
+        if (seqNext.uuid) nextUuids.add(seqNext.uuid);
+      }
+
+      for (const uuid of nextUuids) {
+        const nextBlock = blockByUuid.get(uuid);
+        if (nextBlock) {
+          maxChild = Math.max(maxChild, dfs(nextBlock));
+        }
+      }
+
+      inStack.delete(block.uuid);
+      const result = 1 + maxChild;
+      memo.set(block.uuid, result);
+      return result;
+    };
+
+    return dfs(allBlocks[0]);
+  }, [pages]);
+
+  // Total steps = longest possible path through the survey
+  const getTotalVisibleSteps = useCallback((): number => {
+    return getLongestPathLength();
+  }, [getLongestPathLength]);
+
+  // Current step position = how many blocks the user has visited (0-based)
+  const getCurrentStepPosition = useCallback((): number => {
+    return Math.max(0, navigationHistory.length - 1);
+  }, [navigationHistory]);
+
+  // Progress = steps completed / longest path
   const getActualProgress = useCallback((): number => {
     const totalSteps = getTotalVisibleSteps();
     const currentPosition = getCurrentStepPosition();
-    
+
     if (totalSteps === 0) return 0;
-    
+
     return Math.min(100, ((currentPosition + 1) / totalSteps) * 100);
   }, [getTotalVisibleSteps, getCurrentStepPosition]);
 

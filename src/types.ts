@@ -631,6 +631,8 @@ export interface BlockData {
   validationRules?: ValidationRule[];
   visibleIf?: any;
   isEndBlock?: boolean;
+  /** Whether isEndBlock was manually set by the user (prevents auto-clearing) */
+  isEndBlockManual?: boolean;
   /** If true, automatically continue to the next step when an option is selected */
   autoContinueOnSelect?: boolean;
   /** Whether to show the continue button for this block/page */

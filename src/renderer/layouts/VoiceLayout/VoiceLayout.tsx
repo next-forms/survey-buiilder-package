@@ -229,9 +229,11 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
   // Check if this is the final step (will trigger submit)
   // This follows the same logic as RenderPageSurveyLayout
+  const hasExplicitNavigation = (currentBlock?.nextBlockId && currentBlock.nextBlockId !== 'submit')
+    || (currentBlock?.navigationRules && currentBlock.navigationRules.length > 0);
   const isFinalStep =
     currentBlock?.isEndBlock === true ||
-    (isLastPage && currentBlockIndex === visibleBlocks.length - 1);
+    (isLastPage && currentBlockIndex === visibleBlocks.length - 1 && !hasExplicitNavigation);
 
   /**
    * Handle voice command

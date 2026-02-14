@@ -436,8 +436,8 @@ const ButtonEdgeInner = ({
           <div
             style={{
               position: "absolute",
-              // Center on the label position, offset slightly above the line
-              transform: `translate(-50%, -100%) translate(${labelX}px,${labelY - 10}px)`,
+              // Center on the label position
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY - 12}px)`,
               pointerEvents: "all",
               zIndex: labelZIndex,
             }}
@@ -489,38 +489,12 @@ const ButtonEdgeInner = ({
           </div>
         )}
 
-        {/* Reconnection Handle for edges without labels (sequential edges) */}
-        {!label && !isExplicitRule && source !== 'start' && !isDragging && (
-          <div
-            style={{
-              position: "absolute",
-              transform: showInsertButton
-                ? `translate(-50%, -170%) translate(${labelX}px,${labelY}px)`
-                : `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: "all",
-              zIndex: labelZIndex,
-            }}
-            className="nodrag nopan"
-          >
-            <div
-              onMouseDown={handleReconnectMouseDown}
-              className="h-5 w-5 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-blue-500 hover:border-blue-500 dark:hover:text-blue-400 dark:hover:border-blue-400 flex items-center justify-center shadow-sm transition-colors cursor-grab active:cursor-grabbing"
-              title="Drag to reconnect to a different block"
-            >
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </div>
-          </div>
-        )}
-
-        {/* Insert Button Container - Below label or centered on edge */}
+        {/* Insert Button - At the start of the edge (near source) */}
         {showInsertButton && (
           <div
             style={{
               position: "absolute",
-              // Position slightly below the edge line
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY + 5}px)`,
+              transform: `translate(-50%, -50%) translate(${sourceX + parallelOffset}px,${sourceY + 35}px)`,
               pointerEvents: "all",
               zIndex: labelZIndex
             }}
@@ -538,27 +512,26 @@ const ButtonEdgeInner = ({
           </div>
         )}
 
-        {/* Insert Button - Near Source (appears on hover) */}
-        {/* Only shown when this is the only edge from source to avoid ambiguity */}
-        {showEndpointButtons && (
+        {/* Reconnection Handle for edges without labels (sequential edges) - centered on edge */}
+        {!label && !isExplicitRule && source !== 'start' && !isDragging && (
           <div
             style={{
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${sourceX}px,${sourceY + 40}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
-              zIndex: labelZIndex
+              zIndex: labelZIndex,
             }}
-            className="nodrag nopan group/start"
+            className="nodrag nopan"
           >
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-5 w-5 rounded-full border shadow-sm p-0 transition-all opacity-0 group-hover/start:opacity-100 hover:!opacity-100 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 hover:scale-110"
-              onClick={onInsertClick}
-              title="Insert Block After Source"
+            <div
+              onMouseDown={handleReconnectMouseDown}
+              className="h-5 w-5 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-blue-500 hover:border-blue-500 dark:hover:text-blue-400 dark:hover:border-blue-400 flex items-center justify-center shadow-sm transition-colors cursor-grab active:cursor-grabbing"
+              title="Drag to reconnect to a different block"
             >
-              <Plus className="h-3 w-3 text-current" />
-            </Button>
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
         )}
 

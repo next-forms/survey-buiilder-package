@@ -347,21 +347,24 @@ export function validationRuleToFunction(rule: ValidationRule): (value: any, for
         
         default:
           // Handle standard comparison operators
-          // These are "trigger" rules: if the condition is true, the validation FAILS
+          // '==' is a TRIGGER: if value matches, validation FAILS (e.g. disqualify specific value)
+          // All others are CONSTRAINTS: condition must be true for validation to PASS
           const compareValue = ruleValue;
           switch (operator) {
             case '==':
+              // Trigger: "if value equals X, show error" (e.g. disqualify "yes")
               return valueToValidate == compareValue ? message : null;
             case '!=':
-              return valueToValidate != compareValue ? message : null;
+              // Constraint: "value must not equal X" (e.g. must not be "Pregnant")
+              return valueToValidate != compareValue ? null : message;
             case '>':
-              return Number(valueToValidate) > Number(compareValue) ? message : null;
+              return Number(valueToValidate) > Number(compareValue) ? null : message;
             case '>=':
-              return Number(valueToValidate) >= Number(compareValue) ? message : null;
+              return Number(valueToValidate) >= Number(compareValue) ? null : message;
             case '<':
-              return Number(valueToValidate) < Number(compareValue) ? message : null;
+              return Number(valueToValidate) < Number(compareValue) ? null : message;
             case '<=':
-              return Number(valueToValidate) <= Number(compareValue) ? message : null;
+              return Number(valueToValidate) <= Number(compareValue) ? null : message;
             default:
               return null;
           }

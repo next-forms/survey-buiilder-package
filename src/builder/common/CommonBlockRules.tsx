@@ -43,6 +43,7 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
     onUpdate?.({
       ...data,
       isEndBlock: checked,
+      isEndBlockManual: checked,
     });
   };
 
@@ -66,10 +67,14 @@ export const CommonBlockRules: React.FC<CommonBlockRulesProps> = ({ data, onUpda
 
   const handleNextBlockChange = (value: string) => {
     const nextBlockId = value === "default" ? undefined : value;
-    onUpdate?.({
-        ...data,
-        nextBlockId,
-    });
+    const updates: Partial<BlockData> = { ...data, nextBlockId };
+
+    // Auto-clear isEndBlock if it was auto-set and a specific next block is selected
+    if (nextBlockId && nextBlockId !== "submit" && data.isEndBlock && !data.isEndBlockManual) {
+        updates.isEndBlock = false;
+    }
+
+    onUpdate?.(updates as BlockData);
   };
 
   // Keep local state up‑to‑date if parent swaps out the data object

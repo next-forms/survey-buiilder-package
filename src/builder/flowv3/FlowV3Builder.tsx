@@ -522,6 +522,10 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
           if (newItem.nextBlockId && bridgeMap.has(newItem.nextBlockId)) {
               newItem.nextBlockId = bridgeMap.get(newItem.nextBlockId);
               modified = true;
+              // Auto-clear isEndBlock if it was auto-set and nextBlockId now points to a real block
+              if (newItem.nextBlockId !== "submit" && newItem.isEndBlock && !newItem.isEndBlockManual) {
+                  newItem.isEndBlock = false;
+              }
           }
 
           // Update navigationRules
@@ -682,9 +686,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         // This is a sequential/nextBlockId edge
         if (newTarget === "submit") {
           updatedBlock.isEndBlock = true;
+          updatedBlock.isEndBlockManual = false;
           updatedBlock.nextBlockId = undefined;
         } else {
           updatedBlock.isEndBlock = false;
+          updatedBlock.isEndBlockManual = false;
           updatedBlock.nextBlockId = newTarget;
         }
       }
@@ -754,6 +760,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
       ...newBlockData,
       uuid: uuidv4(),
       isEndBlock: true, // Newly created branch end
+      isEndBlockManual: false,
     };
 
     // Add Navigation Rule to Source Block
@@ -818,7 +825,8 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
             ...newBlockData,
             uuid: uuidv4(),
             nextBlockId: insertTargetId === 'submit' ? undefined : (insertTargetId || undefined), // Set next step if target is provided and not submit
-            isEndBlock: insertTargetId === 'submit' // Mark as end block if targeting submit
+            isEndBlock: insertTargetId === 'submit', // Mark as end block if targeting submit
+            isEndBlockManual: false,
         };
 
         // Create updated items array
@@ -848,6 +856,7 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
                      // If inserting before 'submit', and source was end block
                      if (insertTargetId === 'submit' && sourceBlock.isEndBlock) {
                          sourceBlock.isEndBlock = false;
+                         sourceBlock.isEndBlockManual = false;
                          sourceBlock.nextBlockId = newBlock.uuid;
                          updatedItems[sourceIndex] = sourceBlock;
                      }
@@ -1026,9 +1035,11 @@ const FlowV3BuilderInner: React.FC<FlowV3BuilderProps> = ({ onClose }) => {
         // Update nextBlockId or isEndBlock based on new target
         if (newTargetId === "submit") {
           updatedBlock.isEndBlock = true;
+          updatedBlock.isEndBlockManual = false;
           updatedBlock.nextBlockId = undefined;
         } else {
           updatedBlock.isEndBlock = false;
+          updatedBlock.isEndBlockManual = false;
           updatedBlock.nextBlockId = newTargetId;
         }
       }

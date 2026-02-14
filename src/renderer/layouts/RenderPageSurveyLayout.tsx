@@ -162,10 +162,6 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
       submit();
       return;
     }
-    if (isLastPage && currentBlockIndex === currentPageBlocks.length - 1) {
-      submit();
-      return;
-    }
     goToNextBlock();
   };
 
@@ -179,8 +175,10 @@ export const RenderPageSurveyLayout: React.FC<RenderPageSurveyLayoutProps> = ({
   const continueText = navigationButtons?.nextText || 'Continue';
   const completeText = navigationButtons?.submitText || submitText;
 
-  const isFinalStep =
-    isLastPage && currentBlockIndex === currentPageBlocks.length - 1;
+  const hasExplicitNavigation = (currentBlock?.nextBlockId && currentBlock.nextBlockId !== 'submit')
+    || (currentBlock?.navigationRules && currentBlock.navigationRules.length > 0);
+  const isFinalStep = currentBlock?.isEndBlock ||
+    (isLastPage && currentBlockIndex === currentPageBlocks.length - 1 && !hasExplicitNavigation);
 
   const showNextButton =
     navigationButtons?.showNext !== false &&

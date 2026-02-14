@@ -128,7 +128,10 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   const shouldShowNext = showNext && currentBlock?.showContinueButton !== false;
 
   // Determine if we're on the final step
-  const isFinalStep = isLastPage && currentBlockIndex === currentPageBlocks.length - 1;
+  const hasExplicitNavigation = (currentBlock?.nextBlockId && currentBlock.nextBlockId !== 'submit')
+    || (currentBlock?.navigationRules && currentBlock.navigationRules.length > 0);
+  const isFinalStep = currentBlock?.isEndBlock ||
+    (isLastPage && currentBlockIndex === currentPageBlocks.length - 1 && !hasExplicitNavigation);
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
