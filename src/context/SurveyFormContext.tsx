@@ -169,6 +169,8 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
   // State for form values and errors
   // Merge defaultValues with initialValues (initialValues takes precedence for loading saved answers)
   // This is calculated only once during initial render inside useState initializer
+  const isInitialRender = useRef(true);
+
   const [values, setValues] = useState<Record<string, any>>(() => {
     const initial = { ...defaultValues, ...(initialValues || {}) };
     if(debug) {
@@ -804,13 +806,18 @@ export const SurveyFormProvider: React.FC<SurveyFormProviderProps> = ({
         });
       }
 
-      if (onChange) {
-        onChange(updatedValues);
-      }
-
       return updatedValues;
     });
   };
+
+  // Call onChange after values state is committed, avoiding setState during render
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+    onChange?.(values);
+  }, [values]);
 
   const setError = (field: string, error: string | null) => {
     setErrors(prev => {
