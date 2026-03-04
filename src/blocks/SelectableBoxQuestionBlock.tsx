@@ -1,4 +1,4 @@
-import React, { useState, useId, useEffect } from 'react';
+import React, { useState, useId, useEffect, useRef } from 'react';
 import type {
   BlockData,
   BlockDefinition,
@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Switch } from '../components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Checkbox } from '../components/ui/checkbox';
 import {
@@ -23,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateFieldName } from './utils/GenFieldName';
 import { cn } from '../lib/utils';
 import { themes } from '../themes';
+import { useSurveyForm } from '../context/SurveyFormContext';
 import {
   DndContext,
   closestCenter,
@@ -45,6 +47,43 @@ interface BoxOption {
   id: string;
   label: string;
   value: string;
+  exclusiveAutoSubmit?: boolean;
+}
+
+function handleExclusiveMultiSelect(
+  optionValue: string,
+  currentValues: string[],
+  options: BoxOption[]
+): { newValues: string[]; shouldAutoSubmit: boolean } {
+  const clickedOption = options.find((o) => o.value === optionValue);
+  const isExclusive = clickedOption?.exclusiveAutoSubmit === true;
+  const isCurrentlySelected = currentValues.includes(optionValue);
+
+  if (isExclusive) {
+    if (isCurrentlySelected && currentValues.length === 1) {
+      // Exclusive option toggled off (already selected alone)
+      return { newValues: [], shouldAutoSubmit: false };
+    }
+    // Exclusive option clicked — clear all others, select only this
+    return { newValues: [optionValue], shouldAutoSubmit: true };
+  }
+
+  // Non-exclusive option clicked — remove any exclusive options, toggle normally
+  const withoutExclusives = currentValues.filter(
+    (v) => !options.find((o) => o.value === v)?.exclusiveAutoSubmit
+  );
+
+  if (isCurrentlySelected) {
+    return {
+      newValues: withoutExclusives.filter((v) => v !== optionValue),
+      shouldAutoSubmit: false,
+    };
+  }
+
+  return {
+    newValues: [...withoutExclusives, optionValue],
+    shouldAutoSubmit: false,
+  };
 }
 
 // Form component for editing the block configuration
@@ -104,6 +143,16 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
     newOptions[index] = {
       ...newOptions[index],
       [field]: value,
+    };
+    handleChange('options', newOptions);
+  };
+
+  // Handle toggling exclusiveAutoSubmit on an option
+  const handleToggleExclusive = (index: number) => {
+    const newOptions = [...options];
+    newOptions[index] = {
+      ...newOptions[index],
+      exclusiveAutoSubmit: !newOptions[index].exclusiveAutoSubmit,
     };
     handleChange('options', newOptions);
   };
@@ -233,6 +282,8 @@ const SelectableBoxQuestionForm: React.FC<ContentBlockItemProps> = ({
                   index={index}
                   onUpdateOption={handleUpdateOption}
                   onRemoveOption={handleRemoveOption}
+                  isMultiSelect={data.multiSelect === true}
+                  onToggleExclusive={handleToggleExclusive}
                 />
               ))}
 
@@ -346,6 +397,8 @@ interface SortableOptionProps {
     value: string
   ) => void;
   onRemoveOption: (index: number) => void;
+  isMultiSelect?: boolean;
+  onToggleExclusive?: (index: number) => void;
 }
 
 const SortableOption: React.FC<SortableOptionProps> = ({
@@ -353,6 +406,8 @@ const SortableOption: React.FC<SortableOptionProps> = ({
   index,
   onUpdateOption,
   onRemoveOption,
+  isMultiSelect,
+  onToggleExclusive,
 }) => {
   const {
     attributes,
@@ -370,39 +425,52 @@ const SortableOption: React.FC<SortableOptionProps> = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      <button
-        type="button"
-        className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <div className="w-6 h-6 flex items-center justify-center">
-        <span className="text-xs text-muted-foreground">{index + 1}</span>
+    <div ref={setNodeRef} style={style} className="space-y-1">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="cursor-grab hover:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="w-6 h-6 flex items-center justify-center">
+          <span className="text-xs text-muted-foreground">{index + 1}</span>
+        </div>
+        <div className="grow grid grid-cols-2 gap-2">
+          <Input
+            value={option.label}
+            onChange={(e) => onUpdateOption(index, 'label', e.target.value)}
+            placeholder="Option label"
+          />
+          <Input
+            value={option.value}
+            onChange={(e) => onUpdateOption(index, 'value', e.target.value)}
+            placeholder="Option value"
+          />
+        </div>
+      {isMultiSelect && (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={option.exclusiveAutoSubmit === true}
+            onCheckedChange={() => onToggleExclusive?.(index)}
+          />
+          <span className="text-xs text-muted-foreground">
+            Exclusive (auto-submit)
+          </span>
+        </div>
+      )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemoveOption(index)}
+          className="text-destructive"
+        >
+          <CircleX className="h-4 w-4" />
+        </Button>
       </div>
-      <div className="grow grid grid-cols-2 gap-2">
-        <Input
-          value={option.label}
-          onChange={(e) => onUpdateOption(index, 'label', e.target.value)}
-          placeholder="Option label"
-        />
-        <Input
-          value={option.value}
-          onChange={(e) => onUpdateOption(index, 'value', e.target.value)}
-          placeholder="Option value"
-        />
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => onRemoveOption(index)}
-        className="text-destructive"
-      >
-        <CircleX className="h-4 w-4" />
-      </Button>
     </div>
   );
 };
@@ -443,13 +511,14 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
     setSelectedValue(value);
   };
 
-  const handleMultiSelect = (value: string, checked: boolean) => {
+  const handleMultiSelect = (value: string) => {
     const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
-    if (checked) {
-      setSelectedValue([...currentValues, value]);
-    } else {
-      setSelectedValue(currentValues.filter((v) => v !== value));
-    }
+    const { newValues } = handleExclusiveMultiSelect(
+      value,
+      currentValues,
+      options
+    );
+    setSelectedValue(newValues);
   };
 
   const isSelected = (optionValue: string) => {
@@ -478,9 +547,7 @@ const SelectableBoxQuestionItem: React.FC<ContentBlockItemProps> = ({
                 <Checkbox
                   id={`${idPrefix}-${data.fieldName}-${option.id}`}
                   checked={selected}
-                  onCheckedChange={(checked) =>
-                    handleMultiSelect(option.value, checked as boolean)
-                  }
+                  onCheckedChange={() => handleMultiSelect(option.value)}
                   className="sr-only"
                 />
                 <Label
@@ -589,6 +656,15 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   const themeConfig = theme ?? themes.default;
   const idPrefix = useId();
 
+  const { goToNextBlock } = useSurveyForm();
+  const autoSubmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
+    };
+  }, []);
+
   // Parse options from block
   const options: BoxOption[] = block.options || [];
   const boxSpacing = block.boxSpacing || '4';
@@ -640,15 +716,13 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
   };
 
   // Handle multi select option selection
-  const handleMultiSelect = (optionValue: string, checked: boolean) => {
+  const handleMultiSelect = (optionValue: string) => {
     const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
-    let newValues: string[];
-
-    if (checked) {
-      newValues = [...currentValues, optionValue];
-    } else {
-      newValues = currentValues.filter((v) => v !== optionValue);
-    }
+    const { newValues, shouldAutoSubmit } = handleExclusiveMultiSelect(
+      optionValue,
+      currentValues,
+      options
+    );
 
     setSelectedValue(newValues);
 
@@ -658,6 +732,13 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
 
     if (onBlur) {
       onBlur();
+    }
+
+    if (shouldAutoSubmit) {
+      if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
+      autoSubmitTimerRef.current = setTimeout(() => {
+        goToNextBlock({ [block.fieldName]: newValues });
+      }, 150);
     }
   };
 
@@ -711,9 +792,7 @@ const SelectableBoxRenderer: React.FC<SelectableBoxRendererProps> = ({
                 <Checkbox
                   id={id}
                   checked={selected}
-                  onCheckedChange={(checked) =>
-                    handleMultiSelect(option.value, checked as boolean)
-                  }
+                  onCheckedChange={() => handleMultiSelect(option.value)}
                   disabled={disabled}
                   className="sr-only"
                   aria-invalid={!!error}
@@ -912,6 +991,13 @@ const SelectableBoxChatRenderer: React.FC<ChatRendererProps> = ({
   const options: BoxOption[] = block.options || [];
   const isMultiSelect = block.multiSelect === true;
   const showSelectionIndicator = block.showSelectionIndicator !== false;
+  const autoSubmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
+    };
+  }, []);
 
   // Parse initial value based on selection mode
   const parseValue = (val: any): string | string[] => {
@@ -952,11 +1038,21 @@ const SelectableBoxChatRenderer: React.FC<ChatRendererProps> = ({
 
     if (isMultiSelect) {
       const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
-      const newValues = currentValues.includes(optionValue)
-        ? currentValues.filter((v) => v !== optionValue)
-        : [...currentValues, optionValue];
+      const { newValues, shouldAutoSubmit } = handleExclusiveMultiSelect(
+        optionValue,
+        currentValues,
+        options
+      );
       setSelectedValue(newValues);
       onChange(newValues);
+
+      if (shouldAutoSubmit) {
+        if (autoSubmitTimerRef.current)
+          clearTimeout(autoSubmitTimerRef.current);
+        autoSubmitTimerRef.current = setTimeout(() => {
+          onSubmit(newValues);
+        }, 300);
+      }
     } else {
       // Single select - toggle or select
       const newValue = selectedValue === optionValue ? '' : optionValue;
